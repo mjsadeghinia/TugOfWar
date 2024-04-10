@@ -79,14 +79,10 @@ def plot_pressure_and_activationInOne(
     np.save(outdir / "normal_activation.npy", normal_activation)
     np.save(outdir / "delayed_activation.npy", delayed_activation)
 #%
-delay = 0.0
-threshold = 0.5
 geometry = get_ellipsoid_geometry()
 t_span = (0.0, 1.0)
 t_eval = np.linspace(*t_span, 20)
-
-delay = 0.0
-outdir = Path("results") / f"delay_{delay}"
+outdir = Path("results")
 outdir.mkdir(exist_ok=True, parents=True)
 
 pressure = (
@@ -98,9 +94,7 @@ pressure = (
     / 1000.0
 )
 normal_activation_params = activation_model.default_parameters()
-delayed_activation_params = normal_activation_params.copy()
-delayed_activation_params["t_sys"] += delay
-delayed_activation_params["t_dias"] += delay
+
 normal_activation = (
     activation_model.activation_function(
         t_span=t_span,
@@ -109,21 +103,8 @@ normal_activation = (
     )
     / 1000.0
 )
-delayed_activation = (
-    activation_model.activation_function(
-        t_span=t_span,
-        t_eval=t_eval,
-        parameters=delayed_activation_params,
-    )
-    / 1000.0
-)
-plot_pressure_and_activationInOne(
-    pressure,
-    normal_activation=normal_activation,
-    delayed_activation=delayed_activation,
-    t_eval=t_eval,
-    outdir=outdir,
-)
+
+
 V = dolfin.FunctionSpace(geometry.mesh, "CG", 1)
 
 infarct = create_infarct(V=V)
@@ -137,10 +118,27 @@ with dolfin.XDMFFile((outdir / "infarct.xdmf").as_posix()) as xdmf:
     )
 #%%
 # Find the delayed activation dofs
-delayed_dofs = infarct.vector().get_local() > threshold
+delays = infarct.vector().get_local()
 target_activation = dolfin.Function(V)
 activation = dolfin.Function(V)
 
+delayed_activations=np.zeros((normal_activation.shape[0],delays.shape[0]))
+i=0
+for i, delay in enumerate(delays):
+    delayed_activation_params = normal_activation_params.copy()
+    delayed_activation_params["t_sys"] += delay*5
+    delayed_activation_params["t_dias"] += delay*5
+    delayed_activation = (
+        activation_model.activation_function(
+            t_span=t_span,
+            t_eval=t_eval,
+            parameters=delayed_activation_params,
+        )
+        / 1000.0
+    )
+    delayed_activations[:,i]=delayed_activation
+# plt.plot(delayed_activations)
+#%%
 # Create the model
 matparams = pulse.HolzapfelOgden.default_parameters()
 material = pulse.HolzapfelOgden(
@@ -199,15 +197,14 @@ problem = pulse.MechanicsProblem(geometry, material, bcs)
 vols = []
 breakpoint()
 for i, (pi, a_normal, a_delayed) in enumerate(
-    zip(pressure, normal_activation, delayed_activation),
+    zip(pressure, normal_activation, delayed_activations),
 ):
     print(f"\nSolving for pressure {pi} kPa")
-    print(f"Activation normal {a_normal}")
-    print(f"Activation delayed {a_delayed}")
+    # print(f"Activation normal {a_normal}")
+    # print(f"Activation delayed {a_delayed}")
 
     # Update the activation
-    target_activation.vector()[:] = a_normal
-    target_activation.vector()[delayed_dofs] = a_delayed
+    target_activation.vector()[:] = a_delayed
 
     # Solve the problem
     pulse.iterate.iterate(problem, lvp, pi)
@@ -233,4 +230,4 @@ ax.set_xlabel("Volume [ml]")
 ax.set_ylabel("Pressure [kPa]")
 fig.savefig(outdir / "pv.png")
 
-
+#%%
