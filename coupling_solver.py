@@ -12,20 +12,15 @@ logger = get_logger()
 
 
 class HeartModel(Protocol):
-    def compute_volume(self, activation: float, pressure: float) -> float:
-        ...
+    def compute_volume(self, activation: float, pressure: float) -> float: ...
 
-    def dVdp(self, activation: float, pressure: float) -> float:
-        ...
+    def dVdp(self, activation: float, pressure: float) -> float: ...
 
-    def get_pressure(self) -> float:
-        ...
+    def get_pressure(self) -> float: ...
 
-    def get_volume(self) -> float:
-        ...
+    def get_volume(self) -> float: ...
 
-    def save(self, t: float, outdir: Path) -> None:
-        ...
+    def save(self, t: float, outdir: Path) -> None: ...
 
 
 class CirculationModel(Protocol):
@@ -33,19 +28,19 @@ class CirculationModel(Protocol):
     aortic_pressure_derivation: float
     valve_open: bool
 
-    def Q(self, pressure_current: float, pressure_old: float, dt: float) -> float:
-        ...
+    def Q(self, pressure_current: float, pressure_old: float, dt: float) -> float: ...
 
-    def dQdp(self, pressure_current: float, pressure_old: float, dt: float) -> float:
-        ...
+    def dQdp(
+        self, pressure_current: float, pressure_old: float, dt: float
+    ) -> float: ...
 
-    def update_aortic_pressure(self) -> float:
-        ...
+    def update_aortic_pressure(self) -> float: ...
 
 
 def get_elems(cfun, cfun_num):
-    indices=np.where(cfun.array() == cfun_num)[0]
+    indices = np.where(cfun.array() == cfun_num)[0]
     return indices
+
 
 def circulation_solver(
     heart_model: HeartModel,
@@ -79,16 +74,15 @@ def circulation_solver(
         collector = DataCollector(outdir=Path("results"), problem=heart_model)
 
     target_activation = dolfin.Function(heart_model.activation.ufl_function_space())
-    aha=heart_model.geometry.cfun
+    aha = heart_model.geometry.cfun
 
-    
     for i, t in enumerate(time):
         # Getting state variable pressure and volume
         p_old = heart_model.get_pressure()
         v_old = heart_model.get_volume()
         # Current activation level
         for n in range(17):
-            target_activation.vector()[get_elems(aha,n+1)] = activation[n][i,:]
+            target_activation.vector()[get_elems(aha, n + 1)] = activation[n][i, :]
 
         a_current_0 = target_activation.vector()[0]
         logger.info("Current time", t=t, a_current=a_current_0)

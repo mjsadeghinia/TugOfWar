@@ -108,5 +108,3 @@ def activation_function(
         method="Radau",
     )
     return res.y.squeeze()
-
-

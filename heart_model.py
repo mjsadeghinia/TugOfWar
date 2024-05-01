@@ -27,7 +27,7 @@ class HeartModelPulse:
         geo_params (dict, optional): Dictionary of geometric parameters.
         geo_folder (Path): Path object indicating the folder where geometry data is stored.
         """
-        
+
         if geo is None:
             # Use provided geo_params or default ones if not provided
             default_geo_params = self.get_default_geo_params()
@@ -43,19 +43,21 @@ class HeartModelPulse:
             self.geometry = self.get_ellipsoid_geometry(geo_folder, self.geo_params)
         else:
             self.geometry = geo
-            
+
         V = dolfin.FunctionSpace(self.geometry.mesh, "DG", 0)
         self.lv_pressure = dolfin.Constant(0.0, name="LV Pressure")
         self.activation = dolfin.Function(V, name="Activation")
-        
+
         self.E_ff = []
-        
+
         self.material = self.get_material_model()
         self.bcs = self.apply_bcs()
         self.problem = pulse.MechanicsProblem(self.geometry, self.material, self.bcs)
         self.problem.solve()
 
-    def compute_volume(self, activation_value: Union[float, np.ndarray], pressure_value: float) -> float:
+    def compute_volume(
+        self, activation_value: Union[float, np.ndarray], pressure_value: float
+    ) -> float:
         """
         Computes the volume of the heart model based on activation and pressure values.
 
@@ -85,14 +87,16 @@ class HeartModelPulse:
         # )
         pulse.iterate.iterate(self.problem, self.activation, activation_value)
         pulse.iterate.iterate(self.problem, self.lv_pressure, pressure_value)
-        
+
         volume_current = self.problem.geometry.cavity_volume(
             u=self.problem.state.sub(0)
         )
         logger.info("Computed volume", volume_current=volume_current)
         return volume_current
 
-    def dVdp(self, activation_value: Union[float, np.ndarray], pressure_value: float) -> float:
+    def dVdp(
+        self, activation_value: Union[float, np.ndarray], pressure_value: float
+    ) -> float:
         """
         Computes dV/dP, with V is the volume of the model and P is the pressure.
         The derivation is computed as the change of volume due to a small change in the pressure at a given pressure.
@@ -163,15 +167,15 @@ class HeartModelPulse:
             xdmf.write_checkpoint(
                 results_u, "u", float(t + 1), dolfin.XDMFFile.Encoding.HDF5, True
             )
-            
+
         F = pulse.kinematics.DeformationGradient(results_u)
         E = pulse.kinematics.GreenLagrangeStrain(F)
         # Green strain normal to fiber direction
         V = dolfin.FunctionSpace(self.geometry.mesh, "DG", 0)
         Eff_t = dolfin.project(dolfin.inner(E * self.geometry.f0, self.geometry.f0), V)
-        E_ff_segment=[]
+        E_ff_segment = []
         for n in range(17):
-            indices=np.where(self.problem.geometry.cfun.array() == n + 1)[0]
+            indices = np.where(self.problem.geometry.cfun.array() == n + 1)[0]
             E_ff_segment.append(Eff_t.vector()[indices])
         self.E_ff.append(E_ff_segment)
 
