@@ -167,9 +167,14 @@ class HeartModelPulse:
         F = pulse.kinematics.DeformationGradient(results_u)
         E = pulse.kinematics.GreenLagrangeStrain(F)
         # Green strain normal to fiber direction
-        V = dolfin.FunctionSpace(self.geometry.mesh, "CG", 1)
+        V = dolfin.FunctionSpace(self.geometry.mesh, "DG", 0)
         Eff_t = dolfin.project(dolfin.inner(E * self.geometry.f0, self.geometry.f0), V)
-        self.E_ff.append(Eff_t.vector()[:])
+        E_ff_segment=[]
+        for n in range(17):
+            indices=np.where(self.problem.geometry.cfun.array() == n + 1)[0]
+            E_ff_segment.append(Eff_t.vector()[indices])
+        self.E_ff.append(E_ff_segment)
+
         # with dolfin.XDMFFile(fname.as_posix()) as xdmf:
         #     xdmf.write_checkpoint(
         #         self.activation, "Activation", float(t + 1), dolfin.XDMFFile.Encoding.HDF5, True

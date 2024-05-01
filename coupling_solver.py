@@ -88,7 +88,6 @@ def circulation_solver(
         v_old = heart_model.get_volume()
         # Current activation level
         for n in range(17):
-            breakpoint()
             target_activation.vector()[get_elems(aha,n+1)] = activation[n][i,:]
 
         a_current_0 = target_activation.vector()[0]

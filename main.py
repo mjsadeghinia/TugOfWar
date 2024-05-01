@@ -123,3 +123,18 @@ circulation_solver(
 )
 
 # %%
+# fe_model.geometry.cfun.array().shape
+# plt.plot(np.array(fe_model.E_ff)[:,:100])
+# # %%
+# idx=[]
+# for cell in dolfin.cells(fe_model.geometry.mesh):
+#     if fe_model.geometry.cfun[cell]==1:
+#         idx.append(cell.entities(0))
+
+# # Use Counter to count the frequency of each element
+# element_counts = Counter(np.array(idx).flatten())
+
+# # Filter to find elements that appear exactly once
+# unique_elements = [element for element, count in element_counts.items() if count == 1]
+# unique_elements
+# # %%
