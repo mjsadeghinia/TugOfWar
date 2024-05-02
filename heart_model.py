@@ -18,7 +18,7 @@ class HeartModelPulse:
         self,
         geo: pulse.HeartGeometry = None,
         geo_params: dict = None,
-        geo_folder: Path = Path("lv_test"),
+        geo_folder: Path = Path("lv"),
     ):
         """
         Initializes the heart model with given geometrical parameters and folder for geometrical data.
@@ -221,10 +221,14 @@ class HeartModelPulse:
                 fiber_space="P_1",
                 aha=True,
             )
-        geo = cardiac_geometries.geometry.Geometry.from_folder(folder)
-        marker_functions = pulse.MarkerFunctions(
-            cfun=geo.cfun, ffun=geo.ffun, efun=geo.efun
-        )
+        # Trying to force cardiac_geometries to read cfun, containing aha 17 segments
+        schema = cardiac_geometries.geometry.Geometry.default_schema()
+        cfun_schema = schema["cfun"]._asdict()
+        cfun_schema["fname"] = "cfun.xdmf:f"
+        schema["cfun"] = cardiac_geometries.geometry.H5Path(**cfun_schema)
+
+        geo = cardiac_geometries.geometry.Geometry.from_folder(folder, schema=schema)
+        marker_functions = pulse.MarkerFunctions(cfun=geo.cfun, ffun=geo.ffun)
         microstructure = pulse.Microstructure(f0=geo.f0, s0=geo.s0, n0=geo.n0)
         return pulse.HeartGeometry(
             mesh=geo.mesh,

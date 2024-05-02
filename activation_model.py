@@ -4,6 +4,8 @@ from typing import Dict
 from typing import Optional
 from typing import Tuple
 
+import scipy.stats as stats
+from tqdm import tqdm
 import numpy as np
 import scipy.integrate
 
@@ -108,3 +110,44 @@ def activation_function(
         method="Radau",
     )
     return res.y.squeeze()
+
+
+def get_elems(cfun, cfun_num):
+    indices = np.where(cfun.array() == cfun_num)[0]
+    return indices
+
+
+def compute_delayed_activations(
+    cfun,
+    devaiation=0.01,
+    aha_segments_num=np.linspace(1, 17, 17),
+    t_span=(0.0, 1.0),
+    num_time_step=20,
+):
+    t_eval = np.linspace(*t_span, num_time_step)
+    normal_activation_params = default_parameters()
+    delayed_activations = []
+    for n in tqdm(
+        aha_segments_num, desc="Creating Delayed Activation Curves", ncols=100
+    ):
+        elems = get_elems(cfun, n)
+        num_elems = len(elems)
+        offsets = stats.norm.ppf(
+            np.linspace(0.01, 0.99, num_elems), loc=0, scale=devaiation
+        )
+        segment_delayed_activations = np.zeros((len(t_eval), num_elems))
+        for i, offset in enumerate(offsets):
+            segment_delayed_activation_params = normal_activation_params.copy()
+            segment_delayed_activation_params["t_sys"] += offset
+            segment_delayed_activation_params["t_dias"] += offset
+            segment_delayed_activation = (
+                activation_function(
+                    t_span=t_span,
+                    t_eval=t_eval,
+                    parameters=segment_delayed_activation_params,
+                )
+                / 1000.0
+            )
+            segment_delayed_activations[:, i] = segment_delayed_activation
+        delayed_activations.append(segment_delayed_activations)
+    return delayed_activations
