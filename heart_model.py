@@ -199,28 +199,28 @@ class HeartModelPulse:
         Returns:
         A geometry object compatible with the pulse.MechanicsProblem.
         """
-        if not folder.exists():
-            cardiac_geometries.mesh.create_lv_ellipsoid(
-                outdir=folder,
-                r_short_endo=geo_props["r_short_endo"],
-                r_short_epi=geo_props["r_short_epi"],
-                r_long_endo=geo_props["r_long_endo"],
-                r_long_epi=geo_props["r_long_epi"],
-                psize_ref=geo_props["mesh_size"],
-                mu_apex_endo=-np.pi,
-                mu_base_endo=-np.arccos(
-                    geo_props["r_short_epi"] / geo_props["r_long_endo"] / 2
-                ),
-                mu_apex_epi=-np.pi,
-                mu_base_epi=-np.arccos(
-                    geo_props["r_short_epi"] / geo_props["r_long_epi"] / 2
-                ),
-                create_fibers=True,
-                fiber_angle_endo=-60,
-                fiber_angle_epi=60,
-                fiber_space="P_1",
-                aha=True,
-            )
+        # if not folder.exists():
+        cardiac_geometries.mesh.create_lv_ellipsoid(
+            outdir=folder,
+            r_short_endo=geo_props["r_short_endo"],
+            r_short_epi=geo_props["r_short_epi"],
+            r_long_endo=geo_props["r_long_endo"],
+            r_long_epi=geo_props["r_long_epi"],
+            psize_ref=geo_props["mesh_size"],
+            mu_apex_endo=-np.pi,
+            mu_base_endo=-np.arccos(
+                geo_props["r_short_epi"] / geo_props["r_long_endo"] / 2
+            ),
+            mu_apex_epi=-np.pi,
+            mu_base_epi=-np.arccos(
+                geo_props["r_short_epi"] / geo_props["r_long_epi"] / 2
+            ),
+            create_fibers=True,
+            fiber_angle_endo=-60,
+            fiber_angle_epi=60,
+            fiber_space="P_1",
+            aha=True,
+        )
         # Trying to force cardiac_geometries to read cfun, containing aha 17 segments
         schema = cardiac_geometries.geometry.Geometry.default_schema()
         cfun_schema = schema["cfun"]._asdict()

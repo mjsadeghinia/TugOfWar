@@ -15,7 +15,7 @@ import dolfin
 # %%
 
 
-def main(t_end=550, num_time_step=1000, circ_params={}, outdir=Path("results")):
+def main(t_end=550, num_time_step=1000, geo_params={}, circ_params={}, outdir=Path("results")):
     logging.getLogger("pulse").setLevel(logging.WARNING)
     t_span = (0, 1)
     fe_model = HeartModelPulse()
@@ -80,13 +80,20 @@ def plot_strains_aha(Eff, outdir=Path("results")):
 
 # %%
 
+geo_params = {
+    "r_short_endo": 3,
+    "r_short_epi": 3.75,
+    "r_long_endo": 5,
+    "r_long_epi": 5.75,
+    "mesh_size": 2.5,
+}
 circ_params = {
     "aortic_resistance": 0.5,
-    "systematic_resistance": 2.5,
+    "systematic_resistance": 1.5,
     "systematic_compliance": 0.01,
     "aortic_pressure": 10,
     "diastolic_pressure": 10,
     "initial_pressure": 0.0,
 }
-collector, fe_model, circ_model = main(circ_params=circ_params)
+collector, fe_model, circ_model = main(geo_params=geo_params, circ_params=circ_params)
 plot_strains_aha(fe_model.E_ff)
