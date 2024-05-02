@@ -118,7 +118,7 @@ def get_elems(cfun, cfun_num):
 
 def compute_delayed_activations(
     cfun,
-    devaiation=0.01,
+    std=0.01,
     aha_segments_num=np.linspace(1, 17, 17),
     t_span=(0.0, 1.0),
     num_time_step=20,
@@ -132,7 +132,7 @@ def compute_delayed_activations(
         elems = get_elems(cfun, n)
         num_elems = len(elems)
         offsets = stats.norm.ppf(
-            np.linspace(0.01, 0.99, num_elems), loc=0, scale=devaiation
+            np.linspace(0.01, 0.99, num_elems), loc=0, scale=std
         )
         segment_delayed_activations = np.zeros((len(t_eval), num_elems))
         for i, offset in enumerate(offsets):

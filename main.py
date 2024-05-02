@@ -13,13 +13,13 @@ from heart_model import HeartModelPulse
 
 
 def main(
-    t_end=550, num_time_step=1000, geo_params={}, circ_params={}, outdir=Path("results")
+    t_end=550, num_time_step=1000, delay=0.01, geo_params={}, circ_params={}, outdir=Path("results")
 ):
     logging.getLogger("pulse").setLevel(logging.WARNING)
     t_span = (0, 1)
-    fe_model = HeartModelPulse()
+    fe_model = HeartModelPulse(geo_params=geo_params)
     delayed_activations = compute_delayed_activations(
-        fe_model.geometry.cfun, num_time_step=num_time_step
+        fe_model.geometry.cfun, num_time_step=num_time_step, std=delay
     )
     circ_model = CirculationModel(params=circ_params)
     outname = Path(outdir) / "results.xdmf"
@@ -82,7 +82,7 @@ geo_params = {
     "r_short_epi": 3.75,
     "r_long_endo": 5,
     "r_long_epi": 5.75,
-    "mesh_size": 2.5,
+    "mesh_size": 1,
 }
 circ_params = {
     "aortic_resistance": 1,
@@ -92,8 +92,9 @@ circ_params = {
     "diastolic_pressure": 10,
     "initial_pressure": 0.0,
 }
+outdir = Path('results_delayed_01')
 collector, fe_model, circ_model = main(
-    num_time_step=500, t_end=250, geo_params=geo_params, circ_params=circ_params
+    num_time_step=500, t_end=260, delay=0.01, geo_params=geo_params, circ_params=circ_params
 )
 plot_strains_aha(fe_model.E_ff)
 
