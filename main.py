@@ -54,7 +54,7 @@ def main(
 # %%
 
 
-def plot_strains_aha(Eff, outdir=Path("results")):
+def plot_strains_aha(Eff, num_time_step=1000, outdir=Path("results")):
     plots_path = outdir / "plots"
     plots_path.mkdir(parents=True, exist_ok=True)
 
@@ -66,11 +66,11 @@ def plot_strains_aha(Eff, outdir=Path("results")):
         file_path = plots_path / f"strains_aha_{n + 1}.png"
 
         plt.figure()
-        plt.plot(data_array, "k-", linewidth=0.1)
-        plt.plot(np.average(data_array, axis=1), "k-", linewidth=1)
+        plt.plot(np.linspace(0,len(data)*1000/num_time_step,len(data)),data_array, "k-", linewidth=0.1)
+        plt.plot(np.linspace(0,len(data)*1000/num_time_step,len(data)),np.average(data_array, axis=1), "r-", linewidth=1)
         plt.xlabel("Time [ms]")
         plt.ylabel("Green-Lagrange Fiber Strain (-)")
-        plt.ylim((-0.25, 0.25))
+        plt.ylim((-0.35, 0.35))
         plt.savefig(file_path)
         plt.close()
 
@@ -92,10 +92,10 @@ circ_params = {
     "diastolic_pressure": 10,
     "initial_pressure": 0.0,
 }
-outdir = Path('results_delayed_01')
+outdir = Path('results_05')
 collector, fe_model, circ_model = main(
-    num_time_step=500, t_end=260, delay=0.01, geo_params=geo_params, circ_params=circ_params
+    num_time_step=500, t_end=260, delay=0.01, geo_params=geo_params, circ_params=circ_params, outdir=outdir
 )
-plot_strains_aha(fe_model.E_ff)
+plot_strains_aha(fe_model.E_ff, num_time_step=500, outdir=outdir)
 
 # %%

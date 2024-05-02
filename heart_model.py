@@ -179,10 +179,12 @@ class HeartModelPulse:
             E_ff_segment.append(Eff_t.vector()[indices])
         self.E_ff.append(E_ff_segment)
 
-        # with dolfin.XDMFFile(fname.as_posix()) as xdmf:
-        #     xdmf.write_checkpoint(
-        #         self.activation, "Activation", float(t + 1), dolfin.XDMFFile.Encoding.HDF5, True
-        #     )
+        results_activation = dolfin.project(self.activation,V)
+        fname = outdir / "activation.xdmf"    
+        with dolfin.XDMFFile(fname.as_posix()) as xdmf:
+            xdmf.write_checkpoint(
+                results_activation, "activation", float(t + 1), dolfin.XDMFFile.Encoding.HDF5, True
+            )
 
     def assign_state_variables(self, activation_value, pressure_value):
         self.lv_pressure.assign(pressure_value)
