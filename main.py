@@ -26,8 +26,8 @@ def get_ellipsoid_geometry(folder=Path("lv")):
         folder,
         create_fibers=True,
         aha=True,
-        r_short_endo=3.5,
-        r_short_epi=4.25,
+        r_short_endo=3.25,
+        r_short_epi=4.0,
         r_long_endo=5.0,
         r_long_epi=5.75,
         psize_ref=2.5,
@@ -104,9 +104,9 @@ delayed_activations = compute_delayed_activations(
 # %%
 logging.getLogger("pulse").setLevel(logging.WARNING)
 circ_params = {
-    "aortic_resistance": 0.1,
-    "systematic_resistance": 1,
-    "systematic_compliance": 1,
+    "aortic_resistance": 0.5,
+    "systematic_resistance": 2.5,
+    "systematic_compliance": 0.01,
     "aortic_pressure": 10,
     "diastolic_pressure": 10,
     "initial_pressure": 0.0,
@@ -132,7 +132,7 @@ for pressure in [0.0, 0.01]:
         p_ao=circ_model.aortic_pressure,
     )
 # %%
-t_end = 650
+t_end = 550
 t_span = (0, 1)
 t_eval = np.linspace(*t_span, num_time_step)
 #  we use only the first 700ms, as the relaxation is not yet implemented
@@ -144,4 +144,31 @@ circulation_solver(
     collector=collector,
     start_time=2,
 )
+# %%
+import matplotlib.pyplot as plt
+
+
+def plot_strains_aha(Eff, outdir=Path("results")):
+    plots_path = outdir / "plots"
+    plots_path.mkdir(parents=True, exist_ok=True)
+
+    total_time = len(Eff)
+    num_aha_segments = len(Eff[0])
+    for n in range(num_aha_segments):
+        data = [Eff[t][n] for t in range(total_time)]
+        data_array = np.array(data)
+        file_path = plots_path / f"strains_aha_{n + 1}.png"
+
+        fig = plt.figure()
+        plt.plot(data_array, "k-", linewidth=0.1)
+        plt.plot(np.average(data_array, axis=1), "k-", linewidth=1)
+        plt.xlabel("Time [ms]")
+        plt.ylabel("Green-Lagrange Fiber Strain (-)")
+        plt.ylim((-0.25, 0.25))
+        plt.savefig(file_path)
+        plt.close()
+
+
+plot_strains_aha(fe_model.E_ff, outdir=outdir)
+
 # %%
