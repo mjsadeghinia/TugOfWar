@@ -3,6 +3,7 @@ lv/
 results/
 
 .DS_Store
+.ruff_cache/
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

@@ -1,7 +1,6 @@
 from typing import Protocol
 import numpy as np
 from pathlib import Path
-import csv
 
 from structlog import get_logger
 
@@ -99,7 +98,6 @@ def circulation_solver(
             dt = time[i] - time[i - 1]
 
         tol = 1e-3
-        R = []
         circ_iter = 0
         v_diff = 1.0
         while abs(v_diff) > tol and circ_iter < 20:

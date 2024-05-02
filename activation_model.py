@@ -1,5 +1,4 @@
 import math
-import pprint
 from typing import Dict
 from typing import Optional
 from typing import Tuple
@@ -36,7 +35,7 @@ def default_parameters() -> Dict[str, float]:
         gamma=0.005,
         a_max=5.0,
         a_min=-30.0,
-        sigma_0=150e3,
+        sigma_0=300e3,
     )
 
 

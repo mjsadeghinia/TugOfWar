@@ -1,25 +1,23 @@
 # %%
-import dolfin.function
 import numpy as np
 import logging
 from pathlib import Path
+import matplotlib.pyplot as plt
 
-import cardiac_geometries
-import pulse
 from activation_model import compute_delayed_activations
 from coupling_solver import circulation_solver
 from circ.circulation_model import CirculationModel
 from circ.datacollector import DataCollector
 from heart_model import HeartModelPulse
-import dolfin
 # %%
 
 
-def main(t_end=550, num_time_step=1000, geo_params={}, circ_params={}, outdir=Path("results")):
+def main(
+    t_end=550, num_time_step=1000, geo_params={}, circ_params={}, outdir=Path("results")
+):
     logging.getLogger("pulse").setLevel(logging.WARNING)
     t_span = (0, 1)
     fe_model = HeartModelPulse()
-    target_activation = dolfin.Function(fe_model.activation.ufl_function_space())
     delayed_activations = compute_delayed_activations(
         fe_model.geometry.cfun, num_time_step=num_time_step
     )
@@ -30,7 +28,7 @@ def main(t_end=550, num_time_step=1000, geo_params={}, circ_params={}, outdir=Pa
         outname.with_suffix(".h5").unlink()
     collector = DataCollector(outdir=outdir, problem=fe_model)
     # Increase to atrial pressure
-    for pressure in [0.0, 0.01]:
+    for pressure in [0.0, 0.2]:
         volume = fe_model.compute_volume(activation_value=0, pressure_value=pressure)
         collector.collect(
             time=0,
@@ -54,7 +52,6 @@ def main(t_end=550, num_time_step=1000, geo_params={}, circ_params={}, outdir=Pa
 
 
 # %%
-import matplotlib.pyplot as plt
 
 
 def plot_strains_aha(Eff, outdir=Path("results")):
@@ -68,7 +65,7 @@ def plot_strains_aha(Eff, outdir=Path("results")):
         data_array = np.array(data)
         file_path = plots_path / f"strains_aha_{n + 1}.png"
 
-        fig = plt.figure()
+        plt.figure()
         plt.plot(data_array, "k-", linewidth=0.1)
         plt.plot(np.average(data_array, axis=1), "k-", linewidth=1)
         plt.xlabel("Time [ms]")
@@ -88,12 +85,16 @@ geo_params = {
     "mesh_size": 2.5,
 }
 circ_params = {
-    "aortic_resistance": 0.5,
-    "systematic_resistance": 1.5,
-    "systematic_compliance": 0.01,
+    "aortic_resistance": 1,
+    "systematic_resistance": 10,
+    "systematic_compliance": 10,
     "aortic_pressure": 10,
     "diastolic_pressure": 10,
     "initial_pressure": 0.0,
 }
-collector, fe_model, circ_model = main(geo_params=geo_params, circ_params=circ_params)
+collector, fe_model, circ_model = main(
+    num_time_step=500, t_end=250, geo_params=geo_params, circ_params=circ_params
+)
 plot_strains_aha(fe_model.E_ff)
+
+# %%
