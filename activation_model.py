@@ -131,9 +131,13 @@ def compute_delayed_activations(
     ):
         elems = get_elems(cfun, n)
         num_elems = len(elems)
-        offsets = stats.norm.ppf(
-            np.linspace(0.01, 0.99, num_elems), loc=0, scale=std
-        )
+        if std == 0:
+            offsets = np.zeros(num_elems)
+        else:
+            offsets = stats.norm.ppf(
+                np.linspace(0.01, 0.99, num_elems), loc=0, scale=std
+            )
+            
         segment_delayed_activations = np.zeros((len(t_eval), num_elems))
         for i, offset in enumerate(offsets):
             segment_delayed_activation_params = normal_activation_params.copy()
