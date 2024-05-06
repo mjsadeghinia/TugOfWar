@@ -1,6 +1,7 @@
 # folder to ignore
 lv/
-results/
+lv_highres/
+00_results/
 
 .DS_Store
 .ruff_cache/

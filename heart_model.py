@@ -19,6 +19,7 @@ class HeartModelPulse:
         geo: pulse.HeartGeometry = None,
         geo_params: dict = None,
         geo_folder: Path = Path("lv"),
+        bc_params: dict = None,
     ):
         """
         Initializes the heart model with given geometrical parameters and folder for geometrical data.
@@ -29,17 +30,7 @@ class HeartModelPulse:
         """
 
         if geo is None:
-            # Use provided geo_params or default ones if not provided
-            default_geo_params = self.get_default_geo_params()
-            self.geo_params = (
-                {
-                    key: geo_params.get(key, default_geo_params[key])
-                    for key in default_geo_params
-                }
-                if geo_params
-                else default_geo_params
-            )
-
+            self._get_geo_params(geo_params)
             self.geometry = self.get_ellipsoid_geometry(geo_folder, self.geo_params)
         else:
             self.geometry = geo
@@ -51,6 +42,7 @@ class HeartModelPulse:
         self.E_ff = []
 
         self.material = self.get_material_model()
+        self._get_bc_params(bc_params)
         self.bcs = self.apply_bcs()
         self.problem = pulse.MechanicsProblem(self.geometry, self.material, self.bcs)
         self.problem.solve()
@@ -156,7 +148,7 @@ class HeartModelPulse:
         t (float): The time at which to save the model state.
         outname (Path): The file path to save the model state.
         """
-        fname = outdir / "resuls.xdmf"
+        fname = outdir / "results.xdmf"
         if np.isclose(t, 0.0):
             fname.unlink(missing_ok=True)
             fname.with_suffix(".h5").unlink(missing_ok=True)
@@ -179,11 +171,15 @@ class HeartModelPulse:
             E_ff_segment.append(Eff_t.vector()[indices])
         self.E_ff.append(E_ff_segment)
 
-        results_activation = dolfin.project(self.activation,V)
-        fname = outdir / "activation.xdmf"    
+        results_activation = dolfin.project(self.activation, V)
+        fname = outdir / "activation.xdmf"
         with dolfin.XDMFFile(fname.as_posix()) as xdmf:
             xdmf.write_checkpoint(
-                results_activation, "activation", float(t + 1), dolfin.XDMFFile.Encoding.HDF5, True
+                results_activation,
+                "activation",
+                float(t + 1),
+                dolfin.XDMFFile.Encoding.HDF5,
+                True,
             )
 
     def assign_state_variables(self, activation_value, pressure_value):
@@ -269,8 +265,9 @@ class HeartModelPulse:
 
     def apply_bcs(self):
         bcs = pulse.BoundaryConditions(
-            dirichlet=(self._fixed_base,),
+            dirichlet=(self._fixed_base_x,),
             neumann=self._neumann_bc(),
+            robin=self._robin_bc(),
         )
         return bcs
 
@@ -317,6 +314,19 @@ class HeartModelPulse:
 
         return bc_fixed_based
 
+    def _fixed_base_x(self, W):
+        V = W if W.sub(0).num_sub_spaces() == 0 else W.sub(0)
+
+        # Fixing the base in x[0] direction
+        bc_fixed_based = dolfin.DirichletBC(
+            V.sub(0),
+            dolfin.Constant((0.0)),
+            self.geometry.ffun,
+            self.geometry.markers["BASE"][0],
+        )
+
+        return bc_fixed_based
+
     def _neumann_bc(self):
         # LV Pressure
         lv_marker = self.geometry.markers["ENDO"][0]
@@ -325,6 +335,42 @@ class HeartModelPulse:
         )
         neumann_bc = [lv_pressure]
         return neumann_bc
+
+    def _robin_bc(self):
+        if self.bc_params["pericardium_spring"] > 0.0:
+            robin_bc = [
+                pulse.RobinBC(
+                    value=dolfin.Constant(self.bc_params["pericardium_spring"]),
+                    marker=self.geometry.markers["EPI"][0],
+                ),
+            ]
+        else:
+            robin_bc = []
+        return robin_bc
+
+    def _get_geo_params(self, geo_params):
+        # Use provided geo_params or default ones if not provided
+        default_geo_params = self.get_default_geo_params()
+        self.geo_params = (
+            {
+                key: geo_params.get(key, default_geo_params[key])
+                for key in default_geo_params
+            }
+            if geo_params
+            else default_geo_params
+        )
+
+    def _get_bc_params(self, bc_params):
+        # Use provided geo_params or default ones if not provided
+        default_bc_params = self.get_default_bc_params()
+        self.bc_params = (
+            {
+                key: bc_params.get(key, default_bc_params[key])
+                for key in default_bc_params
+            }
+            if bc_params
+            else default_bc_params
+        )
 
     def _get_endo_ring(self):
         endo_ring_points = []
@@ -346,4 +392,14 @@ class HeartModelPulse:
             "r_long_endo": 5,
             "r_long_epi": 5.75,
             "mesh_size": 2.5,
+        }
+
+    @staticmethod
+    def get_default_bc_params():
+        """
+        Default BC parameter for the left ventricle
+        """
+        return {
+            "pericardium_spring": 0,
+            "base_spring": 0,
         }

@@ -13,11 +13,11 @@ from heart_model import HeartModelPulse
 
 
 def main(
-    t_end=550, num_time_step=1000, delay=0.01, geo_params={}, circ_params={}, outdir=Path("results")
+    t_end=550, num_time_step=1000, delay=0.01, geo_params={}, circ_params={}, bc_params={}, outdir=Path("results")
 ):
     logging.getLogger("pulse").setLevel(logging.WARNING)
     t_span = (0, 1)
-    fe_model = HeartModelPulse(geo_params=geo_params)
+    fe_model = HeartModelPulse(geo_params=geo_params,bc_params=bc_params)
     delayed_activations = compute_delayed_activations(
         fe_model.geometry.cfun, num_time_step=num_time_step, std=delay
     )
@@ -92,9 +92,14 @@ circ_params = {
     "diastolic_pressure": 10,
     "initial_pressure": 0.0,
 }
-outdir = Path('results_05')
+
+bc_params = {
+    "pericardium_spring": 0.01
+}
+
+outdir = Path('00_results/test')
 collector, fe_model, circ_model = main(
-    num_time_step=500, t_end=260, delay=0.01, geo_params=geo_params, circ_params=circ_params, outdir=outdir
+    num_time_step=500, t_end=260, delay=0.05, geo_params=geo_params, bc_params=bc_params, circ_params=circ_params, outdir=outdir
 )
 plot_strains_aha(fe_model.E_ff, num_time_step=500, outdir=outdir)
 
