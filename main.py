@@ -10,7 +10,8 @@ from circ.circulation_model import CirculationModel
 from circ.datacollector import DataCollector
 from heart_model import HeartModelPulse
 # %%
-
+# Dimensions
+# [ms] [cm] [ml] [kPa] 
 
 def main(
     t_end=550, num_time_step=1000, delay=0.01, geo_params={}, circ_params={}, bc_params={}, outdir=Path("results")
@@ -94,13 +95,81 @@ circ_params = {
 }
 
 bc_params = {
-    "pericardium_spring": 0.01
+    "pericardium_spring": 0.0001
 }
 
-outdir = Path('00_results/test')
+outdir = Path('00_results/test_0001_00')
+collector, fe_model, circ_model = main(
+    num_time_step=500, t_end=260, delay=0.0, geo_params=geo_params, bc_params=bc_params, circ_params=circ_params, outdir=outdir
+)
+plot_strains_aha(fe_model.E_ff, num_time_step=500, outdir=outdir)
+
+# %%
+bc_params = {
+    "pericardium_spring": 0.0001
+}
+
+outdir = Path('00_results/test_0001_01')
+collector, fe_model, circ_model = main(
+    num_time_step=500, t_end=260, delay=0.01, geo_params=geo_params, bc_params=bc_params, circ_params=circ_params, outdir=outdir
+)
+plot_strains_aha(fe_model.E_ff, num_time_step=500, outdir=outdir)
+
+# %%
+bc_params = {
+    "pericardium_spring": 0.00001
+}
+
+outdir = Path('00_results/test_00001_05')
 collector, fe_model, circ_model = main(
     num_time_step=500, t_end=260, delay=0.05, geo_params=geo_params, bc_params=bc_params, circ_params=circ_params, outdir=outdir
 )
 plot_strains_aha(fe_model.E_ff, num_time_step=500, outdir=outdir)
 
+
 # %%
+bc_params = {
+    "pericardium_spring": 0.00001
+}
+
+outdir = Path('00_results/test_00001_01')
+collector, fe_model, circ_model = main(
+    num_time_step=500, t_end=260, delay=0.01, geo_params=geo_params, bc_params=bc_params, circ_params=circ_params, outdir=outdir
+)
+plot_strains_aha(fe_model.E_ff, num_time_step=500, outdir=outdir)
+
+
+# %%
+bc_params = {
+    "pericardium_spring": 0.00001
+}
+
+outdir = Path('00_results/test_00001_00')
+collector, fe_model, circ_model = main(
+    num_time_step=500, t_end=260, delay=0.0, geo_params=geo_params, bc_params=bc_params, circ_params=circ_params, outdir=outdir
+)
+plot_strains_aha(fe_model.E_ff, num_time_step=500, outdir=outdir)
+
+
+# %%
+bc_params = {
+    "pericardium_spring": 0.001
+}
+
+outdir = Path('00_results/test_001')
+collector, fe_model, circ_model = main(
+    num_time_step=500, t_end=260, delay=0.05, geo_params=geo_params, bc_params=bc_params, circ_params=circ_params, outdir=outdir
+)
+plot_strains_aha(fe_model.E_ff, num_time_step=500, outdir=outdir)
+
+
+# %%
+bc_params = {
+    "pericardium_spring": 0.01
+}
+
+outdir = Path('00_results/test_01')
+collector, fe_model, circ_model = main(
+    num_time_step=500, t_end=260, delay=0.05, geo_params=geo_params, bc_params=bc_params, circ_params=circ_params, outdir=outdir
+)
+plot_strains_aha(fe_model.E_ff, num_time_step=500, outdir=outdir)
