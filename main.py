@@ -49,7 +49,7 @@ def main(
         collector=collector,
         start_time=2,
     )
-    return collector, fe_model, circ_model
+    return collector, fe_model, circ_model, delayed_activations
 
 
 # %%
@@ -86,7 +86,7 @@ geo_params = {
     "mesh_size": 1,
 }
 circ_params = {
-    "aortic_resistance": 1,
+    "aortic_resistance": 10,
     "systematic_resistance": 10,
     "systematic_compliance": 10,
     "aortic_pressure": 10,
@@ -98,78 +98,46 @@ bc_params = {
     "pericardium_spring": 0.0001
 }
 
-outdir = Path('00_results/test_0001_00')
-collector, fe_model, circ_model = main(
+outdir = Path('00_results/forward_1')
+collector, fe_model, circ_model, delayed_activations = main(
     num_time_step=500, t_end=260, delay=0.0, geo_params=geo_params, bc_params=bc_params, circ_params=circ_params, outdir=outdir
 )
 plot_strains_aha(fe_model.E_ff, num_time_step=500, outdir=outdir)
+#%%
+from forward_problem import filter_volume_changes
+from forward_problem import forward_solver
 
+data = collector.read_csv()
+
+data_filtered, delayed_activations_filtered = filter_volume_changes(data, delayed_activations, 1e-3)
+
+fig, ax = plt.subplots(
+            1, 1, figsize=(6, 6)
+        ) 
+ax.scatter(data_filtered["volume"],data_filtered["lv_pressure"])
+ax.set_ylabel("Pressure (kPa)")
+ax.set_xlabel("Volume (ml)")
+ax2 = ax.twinx()
+pressures_mmHg = np.array(data_filtered["lv_pressure"]) * 7.50062 #Convert to mmHg
+# Plotting the same data but converted on the second y-axis
+ax2.plot(data_filtered["volume"], pressures_mmHg, 'r-', alpha=0)  # invisible plot just for axis
+ax2.set_ylabel('Pressure (mmHg)')
 # %%
-bc_params = {
-    "pericardium_spring": 0.0001
+geo_params_highres = {
+    "r_short_endo": 3,
+    "r_short_epi": 3.75,
+    "r_long_endo": 5,
+    "r_long_epi": 5.75,
+    "mesh_size": 0.5,
 }
 
-outdir = Path('00_results/test_0001_01')
-collector, fe_model, circ_model = main(
-    num_time_step=500, t_end=260, delay=0.01, geo_params=geo_params, bc_params=bc_params, circ_params=circ_params, outdir=outdir
-)
-plot_strains_aha(fe_model.E_ff, num_time_step=500, outdir=outdir)
+fe_model_highres = HeartModelPulse(geo_params=geo_params_highres,bc_params=bc_params)
+outdir_highres = Path('00_results/forward/highres')
+outname = Path(outdir_highres) / "results.xdmf"
+if outname.is_file():
+    outname.unlink()
+    outname.with_suffix(".h5").unlink()
+collector_highres = DataCollector(outdir=outdir_highres, problem=fe_model)
 
+forward_solver(fe_model_highres,delayed_activations_filtered,data_filtered["lv_pressure"],data_filtered["time"],collector_highres)
 # %%
-bc_params = {
-    "pericardium_spring": 0.00001
-}
-
-outdir = Path('00_results/test_00001_05')
-collector, fe_model, circ_model = main(
-    num_time_step=500, t_end=260, delay=0.05, geo_params=geo_params, bc_params=bc_params, circ_params=circ_params, outdir=outdir
-)
-plot_strains_aha(fe_model.E_ff, num_time_step=500, outdir=outdir)
-
-
-# %%
-bc_params = {
-    "pericardium_spring": 0.00001
-}
-
-outdir = Path('00_results/test_00001_01')
-collector, fe_model, circ_model = main(
-    num_time_step=500, t_end=260, delay=0.01, geo_params=geo_params, bc_params=bc_params, circ_params=circ_params, outdir=outdir
-)
-plot_strains_aha(fe_model.E_ff, num_time_step=500, outdir=outdir)
-
-
-# %%
-bc_params = {
-    "pericardium_spring": 0.00001
-}
-
-outdir = Path('00_results/test_00001_00')
-collector, fe_model, circ_model = main(
-    num_time_step=500, t_end=260, delay=0.0, geo_params=geo_params, bc_params=bc_params, circ_params=circ_params, outdir=outdir
-)
-plot_strains_aha(fe_model.E_ff, num_time_step=500, outdir=outdir)
-
-
-# %%
-bc_params = {
-    "pericardium_spring": 0.001
-}
-
-outdir = Path('00_results/test_001')
-collector, fe_model, circ_model = main(
-    num_time_step=500, t_end=260, delay=0.05, geo_params=geo_params, bc_params=bc_params, circ_params=circ_params, outdir=outdir
-)
-plot_strains_aha(fe_model.E_ff, num_time_step=500, outdir=outdir)
-
-
-# %%
-bc_params = {
-    "pericardium_spring": 0.01
-}
-
-outdir = Path('00_results/test_01')
-collector, fe_model, circ_model = main(
-    num_time_step=500, t_end=260, delay=0.05, geo_params=geo_params, bc_params=bc_params, circ_params=circ_params, outdir=outdir
-)
-plot_strains_aha(fe_model.E_ff, num_time_step=500, outdir=outdir)
