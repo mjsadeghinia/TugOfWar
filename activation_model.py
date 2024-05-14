@@ -7,7 +7,7 @@ import scipy.stats as stats
 from tqdm import tqdm
 import numpy as np
 import scipy.integrate
-from scipy.interpolate import CubicSpline
+from scipy.interpolate import interp1d
 
 
 def default_parameters() -> Dict[str, float]:
@@ -159,7 +159,7 @@ def compute_delayed_activations(
             if t_interp is None:
                 segment_delayed_activations[:, i] = segment_delayed_activation
             else:
-                interp = CubicSpline(t_eval, segment_delayed_activation)
+                interp = interp1d(t_eval, segment_delayed_activation)
                 segment_delayed_activation_interp = interp(t_interp)
                 segment_delayed_activations[:, i] = segment_delayed_activation_interp
 

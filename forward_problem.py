@@ -1,6 +1,7 @@
 from typing import Protocol
 import numpy as np
 from pathlib import Path
+import logging
 
 from structlog import get_logger
 
@@ -36,17 +37,30 @@ def forward_solver(
     collector: DataCollector | None = None,
     start_time: int = 0,
 ):
+    logging.getLogger("pulse").setLevel(logging.WARNING)
     if collector is None:
         collector = DataCollector(outdir=Path("results"), problem=heart_model)
 
     delayed_activations = compute_delayed_activations(
-        heart_model.geometry.cfun, std=activation_delay, t_interp=np.array(time)/1000
+        heart_model.geometry.cfun, std=activation_delay, t_interp=np.array(time[1:])/1000
     )
 
     target_activation = dolfin.Function(heart_model.activation.ufl_function_space())
     aha = heart_model.geometry.cfun
 
-    for i, t in enumerate(time):
+    for pres in pressure[:2]:
+        volume = heart_model.compute_volume(activation_value=0, pressure_value=pres)
+        collector.collect(
+            time=0,
+            pressure=pres,
+            volume=volume,
+            activation=0.0,
+            flow=0,
+            p_ao=0,
+        )
+
+
+    for i, t in enumerate(time[1:]):
         v_old = heart_model.get_volume()
         for n in range(17):
             target_activation.vector()[get_elems(aha, n + 1)] = delayed_activations[n][i, :]
@@ -60,12 +74,13 @@ def forward_solver(
         pulse.iterate.iterate(
             heart_model.problem,
             (heart_model.lv_pressure),
-            (pressure[i]),
+            (pressure[i+1]),
             continuation=False,
         )
         p_current = heart_model.get_pressure()
         v_current = heart_model.get_volume()
-        outflow = v_current - v_old
+        logger.info("Computed volume", volume_current=v_current)
+        outflow = v_old - v_current 
         collector.collect(
             t,
             a_current_mean,

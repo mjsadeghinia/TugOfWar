@@ -127,12 +127,12 @@ plot_strains_aha(fe_model.E_ff, num_time_step=500, outdir=outdir)
 # %%
 data = collector.read_csv()
 
-data_sampled = data_sampleing(data, 30)
+data_sampled = data_sampleing(data, 50)
 data_plotting(data_sampled, "ko")
 
 # %%
 geo_params_highres = geo_params
-geo_params_highres["mesh_size"] = 0.5
+geo_params_highres["mesh_size"] = 1
 fe_model_highres = HeartModelPulse(geo_params=geo_params_highres, bc_params=bc_params)
 outdir_highres = Path("00_results/forward/highres")
 outname = Path(outdir_highres) / "results.xdmf"
