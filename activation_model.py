@@ -7,6 +7,7 @@ import scipy.stats as stats
 from tqdm import tqdm
 import numpy as np
 import scipy.integrate
+from scipy.interpolate import CubicSpline
 
 
 def default_parameters() -> Dict[str, float]:
@@ -121,7 +122,8 @@ def compute_delayed_activations(
     std=0.01,
     aha_segments_num=np.linspace(1, 17, 17),
     t_span=(0.0, 1.0),
-    num_time_step=20,
+    num_time_step=100,
+    t_interp=None,
 ):
     t_eval = np.linspace(*t_span, num_time_step)
     normal_activation_params = default_parameters()
@@ -137,8 +139,11 @@ def compute_delayed_activations(
             offsets = stats.norm.ppf(
                 np.linspace(0.01, 0.99, num_elems), loc=0, scale=std
             )
-            
-        segment_delayed_activations = np.zeros((len(t_eval), num_elems))
+        
+        if t_interp is None:    
+            segment_delayed_activations = np.zeros((len(t_eval), num_elems))
+        else:
+            segment_delayed_activations = np.zeros((len(t_interp), num_elems))
         for i, offset in enumerate(offsets):
             segment_delayed_activation_params = normal_activation_params.copy()
             segment_delayed_activation_params["t_sys"] += offset
@@ -151,6 +156,12 @@ def compute_delayed_activations(
                 )
                 / 1000.0
             )
-            segment_delayed_activations[:, i] = segment_delayed_activation
+            if t_interp is None:
+                segment_delayed_activations[:, i] = segment_delayed_activation
+            else:
+                interp = CubicSpline(t_eval, segment_delayed_activation)
+                segment_delayed_activation_interp = interp(t_interp)
+                segment_delayed_activations[:, i] = segment_delayed_activation_interp
+                
         delayed_activations.append(segment_delayed_activations)
     return delayed_activations
