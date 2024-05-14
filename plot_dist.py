@@ -1,6 +1,6 @@
 import scipy.stats as stats
 import matplotlib.pyplot as plt
-import numpy as np 
+import numpy as np
 
 from activation_model import compute_delayed_activations
 from heart_model import HeartModelPulse
@@ -18,19 +18,17 @@ fe_model = HeartModelPulse(geo_params=geo_params)
 delayed_activations = compute_delayed_activations(
     fe_model.geometry.cfun, num_time_step=500, std=delay
 )
-data = delayed_activations[0][0,:]
+data = delayed_activations[0][0, :]
 if delay == 0:
     offsets = np.zeros(len(data))
 else:
-    offsets = stats.norm.ppf(
-        np.linspace(0.01, 0.99, len(data)), loc=0, scale=delay
-    )
-plt.hist(offsets*1000, align='left')
-plt.ylabel('No. of elements')
-plt.xlabel('delays [ms]')
-plt.xlim([-150,150])
+    offsets = stats.norm.ppf(np.linspace(0.01, 0.99, len(data)), loc=0, scale=delay)
+plt.hist(offsets * 1000, align="left")
+plt.ylabel("No. of elements")
+plt.xlabel("delays [ms]")
+plt.xlim([-150, 150])
 # %%
-plt.plot(delayed_activations[0][:,:],'k-', linewidth = .05)
+plt.plot(delayed_activations[0][:, :], "k-", linewidth=0.05)
 plt.ylabel("Activation (kPa)")
 plt.xlabel("Time (ms)")
 # %%

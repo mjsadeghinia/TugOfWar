@@ -15,16 +15,23 @@ from heart_model import HeartModelPulse
 
 # %%
 # Dimensions
-# [ms] [cm] [ml] [kPa] 
+# [ms] [cm] [ml] [kPa]
+
 
 def main(
-    t_end=550, num_time_step=1000, delay=0.01, geo_params={}, circ_params={}, bc_params={}, outdir=Path("results")
+    t_end=550,
+    num_time_step=1000,
+    delay=0.01,
+    geo_params={},
+    circ_params={},
+    bc_params={},
+    outdir=Path("results"),
 ):
     logging.getLogger("pulse").setLevel(logging.WARNING)
-    fe_model = HeartModelPulse(geo_params=geo_params,bc_params=bc_params)
+    fe_model = HeartModelPulse(geo_params=geo_params, bc_params=bc_params)
     collector = DataCollector(outdir=outdir, problem=fe_model)
     delayed_activations = compute_delayed_activations(
-    fe_model.geometry.cfun, num_time_step=num_time_step, std=delay
+        fe_model.geometry.cfun, num_time_step=num_time_step, std=delay
     )
     circ_model = CirculationModel(params=circ_params)
     # Increase to atrial pressure
@@ -38,6 +45,7 @@ def main(
             flow=circ_model.flow,
             p_ao=circ_model.aortic_pressure,
         )
+    t_span = (0.0, 1.0)
     t_eval = np.linspace(*t_span, num_time_step)
     #  we use only the first 700ms, as the relaxation is not yet implemented
     collector = circulation_solver(
@@ -66,8 +74,18 @@ def plot_strains_aha(Eff, num_time_step=1000, outdir=Path("results")):
         file_path = plots_path / f"strains_aha_{n + 1}.png"
 
         plt.figure()
-        plt.plot(np.linspace(0,len(data)*1000/num_time_step,len(data)),data_array, "k-", linewidth=0.1)
-        plt.plot(np.linspace(0,len(data)*1000/num_time_step,len(data)),np.average(data_array, axis=1), "r-", linewidth=1)
+        plt.plot(
+            np.linspace(0, len(data) * 1000 / num_time_step, len(data)),
+            data_array,
+            "k-",
+            linewidth=0.1,
+        )
+        plt.plot(
+            np.linspace(0, len(data) * 1000 / num_time_step, len(data)),
+            np.average(data_array, axis=1),
+            "r-",
+            linewidth=1,
+        )
         plt.xlabel("Time [ms]")
         plt.ylabel("Green-Lagrange Fiber Strain (-)")
         plt.ylim((-0.35, 0.35))
@@ -93,38 +111,41 @@ circ_params = {
     "initial_pressure": 0.0,
 }
 
-bc_params = {
-    "pericardium_spring": 0.0001
-}
+bc_params = {"pericardium_spring": 0.0001}
 
-outdir = Path('00_results/forward')
+outdir = Path("00_results/forward")
 collector, fe_model, circ_model, delayed_activations = main(
-    num_time_step=500, t_end=260, delay=0.01, geo_params=geo_params, bc_params=bc_params, circ_params=circ_params, outdir=outdir
+    num_time_step=500,
+    t_end=260,
+    delay=0.01,
+    geo_params=geo_params,
+    bc_params=bc_params,
+    circ_params=circ_params,
+    outdir=outdir,
 )
 plot_strains_aha(fe_model.E_ff, num_time_step=500, outdir=outdir)
-#%%
+# %%
 data = collector.read_csv()
 
 data_sampled = data_sampleing(data, 30)
-data_plotting(data_sampled, 'ko')
+data_plotting(data_sampled, "ko")
 
-#%%
+# %%
 geo_params_highres = geo_params
-geo_params_highres['mesh_size'] = 0.5
-fe_model_highres = HeartModelPulse(geo_params=geo_params_highres,bc_params=bc_params)
-outdir_highres = Path('00_results/forward/highres')
+geo_params_highres["mesh_size"] = 0.5
+fe_model_highres = HeartModelPulse(geo_params=geo_params_highres, bc_params=bc_params)
+outdir_highres = Path("00_results/forward/highres")
 outname = Path(outdir_highres) / "results.xdmf"
 if outname.is_file():
     outname.unlink()
     outname.with_suffix(".h5").unlink()
 collector_highres = DataCollector(outdir=outdir_highres, problem=fe_model)
 
-forward_solver(fe_model_highres,data_sampled["lv_pressure"],data_sampled["time"],0.01,collector_highres)
-
-# %%
-# Example usage:
-n_points = 30  # Number of points to sample
-sampled_volumes, sampled_pressures, sampled_times = custom_sampled_data_v2(data, n_points)
-plt.scatter(sampled_volumes,sampled_pressures)
-
+forward_solver(
+    fe_model_highres,
+    data_sampled["lv_pressure"],
+    data_sampled["time"],
+    0.01,
+    collector_highres,
+)
 # %%

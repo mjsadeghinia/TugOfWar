@@ -139,8 +139,8 @@ def compute_delayed_activations(
             offsets = stats.norm.ppf(
                 np.linspace(0.01, 0.99, num_elems), loc=0, scale=std
             )
-        
-        if t_interp is None:    
+
+        if t_interp is None:
             segment_delayed_activations = np.zeros((len(t_eval), num_elems))
         else:
             segment_delayed_activations = np.zeros((len(t_interp), num_elems))
@@ -162,6 +162,6 @@ def compute_delayed_activations(
                 interp = CubicSpline(t_eval, segment_delayed_activation)
                 segment_delayed_activation_interp = interp(t_interp)
                 segment_delayed_activations[:, i] = segment_delayed_activation_interp
-                
+
         delayed_activations.append(segment_delayed_activations)
     return delayed_activations

@@ -83,7 +83,7 @@ def circulation_solver(
         for n in range(17):
             target_activation.vector()[get_elems(aha, n + 1)] = activation[n][i, :]
 
-        a_current_mean = np.round(np.mean(target_activation.vector()[:]),3)
+        a_current_mean = np.round(np.mean(target_activation.vector()[:]), 3)
         logger.info("Current time", t=t, a_current=a_current_mean)
         # initial guess for the current pressure pressure
         if i == 0 or i == 1:

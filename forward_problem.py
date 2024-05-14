@@ -1,7 +1,6 @@
 from typing import Protocol
 import numpy as np
 from pathlib import Path
-from scipy.interpolate import interp1d, CubicSpline
 
 from structlog import get_logger
 
@@ -24,7 +23,6 @@ class HeartModel(Protocol):
     def save(self, t: float, outdir: Path) -> None: ...
 
 
-
 def get_elems(cfun, cfun_num):
     indices = np.where(cfun.array() == cfun_num)[0]
     return indices
@@ -38,19 +36,17 @@ def forward_solver(
     collector: DataCollector | None = None,
     start_time: int = 0,
 ):
-   
     if collector is None:
         collector = DataCollector(outdir=Path("results"), problem=heart_model)
 
     delayed_activations = compute_delayed_activations(
         heart_model.geometry.cfun, std=activation_delay, t_interp=time
     )
-    
+
     target_activation = dolfin.Function(heart_model.activation.ufl_function_space())
     aha = heart_model.geometry.cfun
 
     for i, t in enumerate(time):
-        p_old = heart_model.get_pressure()
         v_old = heart_model.get_volume()
         for n in range(17):
             target_activation.vector()[get_elems(aha, n + 1)] = delayed_activations[n][i, :]
