@@ -9,7 +9,6 @@ import numpy as np
 import scipy.integrate
 from scipy.interpolate import interp1d
 
-
 def default_parameters() -> Dict[str, float]:
     r"""Default parameters for the activation model
 
@@ -124,9 +123,10 @@ def compute_delayed_activations(
     t_span=(0.0, 1.0),
     num_time_step=100,
     t_interp=None,
+    mode='delay'
 ):
     t_eval = np.linspace(*t_span, num_time_step)
-    normal_activation_params = default_parameters()
+    # normal_activation_params = default_parameters()
     delayed_activations = []
     for n in tqdm(
         aha_segments_num, desc="Creating Delayed Activation Curves", ncols=100
@@ -139,23 +139,12 @@ def compute_delayed_activations(
             offsets = stats.norm.ppf(
                 np.linspace(0.01, 0.99, num_elems), loc=0, scale=std
             )
-
         if t_interp is None:
             segment_delayed_activations = np.zeros((len(t_eval), num_elems))
         else:
             segment_delayed_activations = np.zeros((len(t_interp), num_elems))
         for i, offset in enumerate(offsets):
-            segment_delayed_activation_params = normal_activation_params.copy()
-            segment_delayed_activation_params["t_sys"] += offset
-            segment_delayed_activation_params["t_dias"] += offset
-            segment_delayed_activation = (
-                activation_function(
-                    t_span=t_span,
-                    t_eval=t_eval,
-                    parameters=segment_delayed_activation_params,
-                )
-                / 1000.0
-            )
+            segment_delayed_activation = compute_segment_delayed_activation(mode, offset, t_span, t_eval)
             if t_interp is None:
                 segment_delayed_activations[:, i] = segment_delayed_activation
             else:
@@ -165,3 +154,62 @@ def compute_delayed_activations(
 
         delayed_activations.append(segment_delayed_activations)
     return delayed_activations
+
+
+def compute_segment_delayed_activation(mode, offset, t_span, t_eval):
+    valid_modes = ['delay', 'activation', 'decay']
+    
+    if mode == valid_modes[0]:
+        return process_delay(offset, t_span, t_eval)
+    elif mode == valid_modes[1]:
+        return process_activation(offset, t_span, t_eval)
+    elif mode == valid_modes[2]:
+        return process_decay(offset, t_span, t_eval)
+    else:
+        raise ValueError(f"Invalid mode: {mode}. Choose from {valid_modes}")
+
+def process_delay(offset, t_span, t_eval):
+    normal_activation_params = default_parameters()
+    segment_delayed_activation_params = normal_activation_params.copy()
+    segment_delayed_activation_params["t_sys"] += offset
+    segment_delayed_activation_params["t_dias"] += offset
+    segment_delayed_activation = (
+    activation_function(
+        t_span=t_span,
+        t_eval=t_eval,
+        parameters=segment_delayed_activation_params,
+    )
+    / 1000.0
+    )
+    return segment_delayed_activation
+
+def process_activation(offset, t_span, t_eval):
+    segment_delayed_activation_params = default_parameters()
+    segment_delayed_activation_params["a_max"] += segment_delayed_activation_params["a_max"]*offset
+    segment_delayed_activation = (
+    activation_function(
+        t_span=t_span,
+        t_eval=t_eval,
+        parameters=segment_delayed_activation_params,
+    )
+    / 1000.0
+    )
+    return segment_delayed_activation
+
+def process_decay(offset, t_span, t_eval):
+    segment_delayed_activation_params = default_parameters()
+    segment_delayed_activation_params["a_min"] += segment_delayed_activation_params["a_min"]*offset
+    segment_delayed_activation = (
+    activation_function(
+        t_span=t_span,
+        t_eval=t_eval,
+        parameters=segment_delayed_activation_params,
+    )
+    / 1000.0
+    )
+    return segment_delayed_activation
+
+
+def process_twitch(offset, t_span, t_eval):
+    # Custom processing logic
+    pass
