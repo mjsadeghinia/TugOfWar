@@ -35,7 +35,7 @@ def default_parameters() -> Dict[str, float]:
         gamma=0.005,
         a_max=5.0,
         a_min=-30.0,
-        sigma_0=300e3,
+        sigma_0=250e3,
     )
 
 
@@ -157,7 +157,7 @@ def compute_delayed_activations(
 
 
 def compute_segment_delayed_activation(mode, offset, t_span, t_eval):
-    valid_modes = ['delay', 'activation', 'decay']
+    valid_modes = ['delay', 'activation', 'decay','diastole_time']
     
     if mode == valid_modes[0]:
         return process_delay(offset, t_span, t_eval)
@@ -165,6 +165,8 @@ def compute_segment_delayed_activation(mode, offset, t_span, t_eval):
         return process_activation(offset, t_span, t_eval)
     elif mode == valid_modes[2]:
         return process_decay(offset, t_span, t_eval)
+    elif mode == valid_modes[3]:
+        return process_diastole_time(offset, t_span, t_eval)
     else:
         raise ValueError(f"Invalid mode: {mode}. Choose from {valid_modes}")
 
@@ -209,6 +211,21 @@ def process_decay(offset, t_span, t_eval):
     )
     return segment_delayed_activation
 
+def process_diastole_time(offset, t_span, t_eval):
+    segment_delayed_activation_params = default_parameters()
+    segment_delayed_activation_params["t_dias"] += offset
+    segment_delayed_activation_params["sigma_0"] *= 1-1.35*offset
+    # segment_delayed_activation_params["t_sys"] += offset
+    # segment_delayed_activation_params["sigma_0"] *= 1+1.35*offset
+    segment_delayed_activation = (
+    activation_function(
+        t_span=t_span,
+        t_eval=t_eval,
+        parameters=segment_delayed_activation_params,
+    )
+    / 1000.0
+    )
+    return segment_delayed_activation
 
 def process_twitch(offset, t_span, t_eval):
     # Custom processing logic
