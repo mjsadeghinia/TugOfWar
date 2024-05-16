@@ -17,6 +17,7 @@ class HeartModelPulse:
     def __init__(
         self,
         geo: pulse.HeartGeometry = None,
+        geo_refinement: int = None,
         geo_params: dict = None,
         geo_folder: Path = Path("lv"),
         bc_params: dict = None,
@@ -33,7 +34,11 @@ class HeartModelPulse:
             self._get_geo_params(geo_params)
             self.geometry = self.get_ellipsoid_geometry(geo_folder, self.geo_params)
         else:
-            self.geometry = geo
+            if geo_refinement is None:
+                self.geometry = geo
+            else:
+                geo._refine_geo(geo, geo_refinement)
+                self.geometry = geo
 
         V = dolfin.FunctionSpace(self.geometry.mesh, "DG", 0)
         self.lv_pressure = dolfin.Constant(0.0, name="LV Pressure")
@@ -230,6 +235,22 @@ class HeartModelPulse:
         microstructure = pulse.Microstructure(f0=geo.f0, s0=geo.s0, n0=geo.n0)
         return pulse.HeartGeometry(
             mesh=geo.mesh,
+            markers=geo.markers,
+            marker_functions=marker_functions,
+            microstructure=microstructure,
+        )
+        
+    def _refine_geo(self, geo, geo_refinement):
+        mesh, cfun, ffun = geo.mesh, geo.cfun, geo.ffun 
+        dolfin.parameters["refinement_algorithm"] = "plaza_with_parent_facets"
+        for _ in range(geo_refinement):
+            mesh = dolfin.adapt(mesh)
+            cfun = dolfin.adapt(cfun, mesh)
+            ffun = dolfin.adapt(ffun, mesh)
+        marker_functions = pulse.MarkerFunctions(cfun=cfun, ffun=ffun)
+        microstructure = pulse.Microstructure(f0=geo.f0, s0=geo.s0, n0=geo.n0)
+        return pulse.HeartGeometry(
+            mesh=mesh,
             markers=geo.markers,
             marker_functions=marker_functions,
             microstructure=microstructure,

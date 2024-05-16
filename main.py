@@ -149,3 +149,33 @@ forward_solver(
     collector_highres,
 )
 # %%
+import dolfin
+from fenics_plotly import plot
+mesh, cfun, ffun = fe_model.geometry.mesh, fe_model.geometry.cfun, fe_model.geometry.ffun 
+f0 = fe_model.geometry.f0
+num_refinements = 1
+
+print(
+    f"Original mesh has {mesh.num_cells()} cells, "
+    f"{mesh.num_facets()} facets and "
+    f"{mesh.num_vertices()} vertices"
+)
+dolfin.parameters["refinement_algorithm"] = "plaza_with_parent_facets"
+for _ in range(num_refinements):
+    mesh_refined = dolfin.adapt(mesh)
+    cfun_refined = dolfin.adapt(cfun, mesh_refined)
+    ffun_refined = dolfin.adapt(ffun, mesh_refined)
+    print(
+    f"The mesh has refined with {mesh.num_cells()} cells, "
+    f"{mesh_refined.num_facets()} facets and "
+    f"{mesh_refined.num_vertices()} vertices"
+)
+V = dolfin.VectorFunctionSpace(mesh_refined, 'Lagrange',3)
+f0_refined = dolfin.Function(V)
+f0_refined.interpolate(f0)   
+
+    
+V = dolfin.FunctionSpace(mesh, f0.ufl_element())
+f0_refined = dolfin.Function(V)
+f0_refined.sub(0).interpolate(f0.sub(0))   
+    
