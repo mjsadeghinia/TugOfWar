@@ -12,6 +12,7 @@ from coupling_solver import circulation_solver
 from utils import data_sampleing, data_plotting
 from forward_problem import forward_solver
 from heart_model import HeartModelPulse
+from mesh_refinement import refine_mesh
 
 # %%
 # Dimensions
@@ -113,7 +114,7 @@ circ_params = {
 
 bc_params = {"pericardium_spring": 0.0001}
 
-outdir = Path("00_results/HighRes/Circ")
+outdir = Path("00_results/HighRes_mesh_refined/Circ")
 collector, fe_model, circ_model, delayed_activations = main(
     num_time_step=500,
     t_end=260,
@@ -129,12 +130,14 @@ data = collector.read_csv()
 
 data_sampled = data_sampleing(data, 50)
 data_plotting(data_sampled, "ko")
+#%%
+
+geo = refine_mesh(fe_model.geometry)
+
 
 # %%
-geo_params_highres = geo_params
-geo_params_highres["mesh_size"] = 1
-fe_model_highres = HeartModelPulse(geo_params=geo_params_highres, bc_params=bc_params)
-outdir_forward = Path("00_results/HighRes/Forward")
+fe_model_highres = HeartModelPulse(geo=geo, bc_params=bc_params)
+outdir_forward = Path("00_results/HighRes_mesh_refined/Forward")
 outname = Path(outdir_forward) / "results.xdmf"
 if outname.is_file():
     outname.unlink()
@@ -148,54 +151,4 @@ forward_solver(
     0.01,
     collector_highres,
 )
-# %% Forward problem without any data sampling
-
-geo_params_highres = geo_params
-geo_params_highres["mesh_size"] = 1
-fe_model_highres = HeartModelPulse(geo_params=geo_params_highres, bc_params=bc_params)
-outdir_forward = Path("00_results/HighRes/Forward_no_sampling")
-outname = Path(outdir_forward) / "results.xdmf"
-if outname.is_file():
-    outname.unlink()
-    outname.with_suffix(".h5").unlink()
-collector_highres = DataCollector(outdir=outdir_forward, problem=fe_model)
-
-forward_solver(
-    fe_model_highres,
-    data["lv_pressure"],
-    data["time"],
-    0.01,
-    collector_highres,
-)
-
-#%%
-import dolfin
-from fenics_plotly import plot
-mesh, cfun, ffun = fe_model.geometry.mesh, fe_model.geometry.cfun, fe_model.geometry.ffun 
-f0 = fe_model.geometry.f0
-num_refinements = 1
-
-print(
-    f"Original mesh has {mesh.num_cells()} cells, "
-    f"{mesh.num_facets()} facets and "
-    f"{mesh.num_vertices()} vertices"
-)
-dolfin.parameters["refinement_algorithm"] = "plaza_with_parent_facets"
-for _ in range(num_refinements):
-    mesh_refined = dolfin.adapt(mesh)
-    cfun_refined = dolfin.adapt(cfun, mesh_refined)
-    ffun_refined = dolfin.adapt(ffun, mesh_refined)
-    print(
-    f"The mesh has refined with {mesh_refined.num_cells()} cells, "
-    f"{mesh_refined.num_facets()} facets and "
-    f"{mesh_refined.num_vertices()} vertices"
-)
-V = dolfin.VectorFunctionSpace(mesh_refined, 'Lagrange',3)
-f0_refined = dolfin.Function(V)
-f0_refined.interpolate(f0)   
-
-    
-V = dolfin.FunctionSpace(mesh, f0.ufl_element())
-f0_refined = dolfin.Function(V)
-f0_refined.sub(0).interpolate(f0.sub(0))   
-    
+# %%
