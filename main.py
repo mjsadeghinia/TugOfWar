@@ -113,7 +113,7 @@ circ_params = {
 
 bc_params = {"pericardium_spring": 0.0001}
 
-outdir = Path("00_results/forward")
+outdir = Path("00_results/HighRes/Circ")
 collector, fe_model, circ_model, delayed_activations = main(
     num_time_step=500,
     t_end=260,
@@ -134,12 +134,12 @@ data_plotting(data_sampled, "ko")
 geo_params_highres = geo_params
 geo_params_highres["mesh_size"] = 1
 fe_model_highres = HeartModelPulse(geo_params=geo_params_highres, bc_params=bc_params)
-outdir_highres = Path("00_results/forward/highres")
-outname = Path(outdir_highres) / "results.xdmf"
+outdir_forward = Path("00_results/HighRes/Forward")
+outname = Path(outdir_forward) / "results.xdmf"
 if outname.is_file():
     outname.unlink()
     outname.with_suffix(".h5").unlink()
-collector_highres = DataCollector(outdir=outdir_highres, problem=fe_model)
+collector_highres = DataCollector(outdir=outdir_forward, problem=fe_model)
 
 forward_solver(
     fe_model_highres,
@@ -148,7 +148,27 @@ forward_solver(
     0.01,
     collector_highres,
 )
-# %%
+# %% Forward problem without any data sampling
+
+geo_params_highres = geo_params
+geo_params_highres["mesh_size"] = 1
+fe_model_highres = HeartModelPulse(geo_params=geo_params_highres, bc_params=bc_params)
+outdir_forward = Path("00_results/HighRes/Forward_no_sampling")
+outname = Path(outdir_forward) / "results.xdmf"
+if outname.is_file():
+    outname.unlink()
+    outname.with_suffix(".h5").unlink()
+collector_highres = DataCollector(outdir=outdir_forward, problem=fe_model)
+
+forward_solver(
+    fe_model_highres,
+    data["lv_pressure"],
+    data["time"],
+    0.01,
+    collector_highres,
+)
+
+#%%
 import dolfin
 from fenics_plotly import plot
 mesh, cfun, ffun = fe_model.geometry.mesh, fe_model.geometry.cfun, fe_model.geometry.ffun 
@@ -166,7 +186,7 @@ for _ in range(num_refinements):
     cfun_refined = dolfin.adapt(cfun, mesh_refined)
     ffun_refined = dolfin.adapt(ffun, mesh_refined)
     print(
-    f"The mesh has refined with {mesh.num_cells()} cells, "
+    f"The mesh has refined with {mesh_refined.num_cells()} cells, "
     f"{mesh_refined.num_facets()} facets and "
     f"{mesh_refined.num_vertices()} vertices"
 )
