@@ -118,7 +118,7 @@ geo_params = {
     "r_short_epi": 3.75,
     "r_long_endo": 5,
     "r_long_epi": 5.75,
-    "mesh_size": 2.5,
+    "mesh_size": .25,
 }
 circ_params = {
     "aortic_resistance": 4,
@@ -133,7 +133,7 @@ bc_params = {"pericardium_spring": 0.0001}
 
 
 #%%
-outdir = Path("00_results/normal")
+outdir = Path("01_results/normal")
 collector, fe_model, circ_model, delayed_activations = main(
     num_time_step=500,
     t_end=300,
@@ -146,93 +146,3 @@ collector, fe_model, circ_model, delayed_activations = main(
 )
 plot_strains_aha(fe_model.E_ff, num_time_step=500, outdir=outdir)
 plot_activation(delayed_activations[0], outdir=outdir)
-#%%
-outdir = Path("00_results/delay/001")
-collector, fe_model, circ_model, delayed_activations = main(
-    num_time_step=500,
-    t_end=300,
-    delay=0.01,
-    geo_params=geo_params,
-    bc_params=bc_params,
-    circ_params=circ_params,
-    outdir=outdir,
-    mode='delay'
-)
-plot_strains_aha(fe_model.E_ff, num_time_step=500, outdir=outdir)
-plot_activation(delayed_activations[0], outdir=outdir)
-
-#%%
-outdir = Path("00_results/delay/005")
-collector, fe_model, circ_model, delayed_activations = main(
-    num_time_step=500,
-    t_end=300,
-    delay=0.05,
-    geo_params=geo_params,
-    bc_params=bc_params,
-    circ_params=circ_params,
-    outdir=outdir,
-    mode='delay'
-)
-plot_strains_aha(fe_model.E_ff, num_time_step=500, outdir=outdir)
-plot_activation(delayed_activations[0], outdir=outdir)
-
-#%%
-outdir = Path("00_results/activation/004")
-collector, fe_model, circ_model, delayed_activations = main(
-    num_time_step=500,
-    t_end=300,
-    delay=0.04,
-    geo_params=geo_params,
-    bc_params=bc_params,
-    circ_params=circ_params,
-    outdir=outdir,
-    mode='activation'
-)
-plot_strains_aha(fe_model.E_ff, num_time_step=500, outdir=outdir)
-plot_activation(delayed_activations[0], outdir=outdir)
-
-#%%
-outdir = Path("00_results/activation/01")
-collector, fe_model, circ_model, delayed_activations = main(
-    num_time_step=500,
-    t_end=300,
-    delay=0.1,
-    geo_params=geo_params,
-    bc_params=bc_params,
-    circ_params=circ_params,
-    outdir=outdir,
-    mode='activation'
-)
-plot_strains_aha(fe_model.E_ff, num_time_step=500, outdir=outdir)
-plot_activation(delayed_activations[0], outdir=outdir)
-
-#%%
-outdir = Path("00_results/decay/008")
-collector, fe_model, circ_model, delayed_activations = main(
-    num_time_step=500,
-    t_end=300,
-    delay=0.08,
-    geo_params=geo_params,
-    bc_params=bc_params,
-    circ_params=circ_params,
-    outdir=outdir,
-    mode='decay'
-)
-plot_strains_aha(fe_model.E_ff, num_time_step=500, outdir=outdir)
-plot_activation(delayed_activations[0], outdir=outdir)
-
-#%%
-outdir = Path("00_results/decay/03")
-collector, fe_model, circ_model, delayed_activations = main(
-    num_time_step=500,
-    t_end=300,
-    delay=0.3,
-    geo_params=geo_params,
-    bc_params=bc_params,
-    circ_params=circ_params,
-    outdir=outdir,
-    mode='decay'
-)
-plot_strains_aha(fe_model.E_ff, num_time_step=500, outdir=outdir)
-plot_activation(delayed_activations[0], outdir=outdir)
-
