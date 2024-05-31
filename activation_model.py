@@ -157,7 +157,7 @@ def compute_delayed_activations(
 
 
 def compute_segment_delayed_activation(mode, offset, t_span, t_eval):
-    valid_modes = ['delay', 'activation', 'decay','diastole_time']
+    valid_modes = ['delay', 'activation', 'decay','diastole_time', 'sysole_time']
     
     if mode == valid_modes[0]:
         return process_delay(offset, t_span, t_eval)
@@ -167,6 +167,8 @@ def compute_segment_delayed_activation(mode, offset, t_span, t_eval):
         return process_decay(offset, t_span, t_eval)
     elif mode == valid_modes[3]:
         return process_diastole_time(offset, t_span, t_eval)
+    elif mode == valid_modes[4]:
+        return process_systole_time(offset, t_span, t_eval)
     else:
         raise ValueError(f"Invalid mode: {mode}. Choose from {valid_modes}")
 
@@ -214,9 +216,17 @@ def process_decay(offset, t_span, t_eval):
 def process_diastole_time(offset, t_span, t_eval):
     segment_delayed_activation_params = default_parameters()
     segment_delayed_activation_params["t_dias"] += offset
-    segment_delayed_activation_params["sigma_0"] *= 1-1.35*offset
-    # segment_delayed_activation_params["t_sys"] += offset
-    # segment_delayed_activation_params["sigma_0"] *= 1+1.35*offset
+    segment_delayed_activation = (
+    activation_function(
+        t_span=t_span,
+        t_eval=t_eval,
+        parameters=segment_delayed_activation_params,
+    )
+    / 1000.0
+    )
+    # we normalize sigma_0 based on max value so that the peak force is the same.
+    a_max = np.max(segment_delayed_activation)
+    segment_delayed_activation_params["sigma_0"] *= 200/a_max
     segment_delayed_activation = (
     activation_function(
         t_span=t_span,
@@ -227,6 +237,26 @@ def process_diastole_time(offset, t_span, t_eval):
     )
     return segment_delayed_activation
 
-def process_twitch(offset, t_span, t_eval):
-    # Custom processing logic
-    pass
+def process_systole_time(offset, t_span, t_eval):
+    segment_delayed_activation_params = default_parameters()
+    segment_delayed_activation_params["t_sys"] += offset
+    segment_delayed_activation = (
+    activation_function(
+        t_span=t_span,
+        t_eval=t_eval,
+        parameters=segment_delayed_activation_params,
+    )
+    / 1000.0
+    )
+    # we normalize sigma_0 based on max value so that the peak force is the same.
+    a_max = np.max(segment_delayed_activation)
+    segment_delayed_activation_params["sigma_0"] *= 200/a_max
+    segment_delayed_activation = (
+    activation_function(
+        t_span=t_span,
+        t_eval=t_eval,
+        parameters=segment_delayed_activation_params,
+    )
+    / 1000.0
+    )
+    return segment_delayed_activation
