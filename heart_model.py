@@ -242,7 +242,8 @@ class HeartModelPulse:
             microstructure=microstructure,
         )
         
-    def refine_geo(self, geo, geo_refinement):
+    @staticmethod
+    def refine_geo(geo, geo_refinement):
         mesh, cfun, ffun = geo.mesh, geo.cfun, geo.ffun 
         dolfin.parameters["refinement_algorithm"] = "plaza_with_parent_facets"
         for _ in range(geo_refinement):

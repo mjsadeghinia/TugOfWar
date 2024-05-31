@@ -12,7 +12,6 @@ from coupling_solver import circulation_solver
 from utils import data_sampleing, data_plotting
 from forward_problem import forward_solver
 from heart_model import HeartModelPulse
-from mesh_refinement import refine_mesh
 
 # %%
 # Dimensions
@@ -114,7 +113,7 @@ circ_params = {
 
 bc_params = {"pericardium_spring": 0.0001}
 
-outdir = Path("00_results/HighRes_mesh_refined/Circ")
+outdir = Path("test")
 collector, fe_model, circ_model, delayed_activations = main(
     num_time_step=500,
     t_end=260,
@@ -130,13 +129,11 @@ data = collector.read_csv()
 
 data_sampled = data_sampleing(data, 50)
 data_plotting(data_sampled, "ko")
-#%%
-
-geo = refine_mesh(fe_model.geometry)
-
 
 # %%
-fe_model_highres = HeartModelPulse(geo=geo, bc_params=bc_params)
+fe_model_highres = HeartModelPulse(geo=fe_model.geometry, bc_params=bc_params,geo_refinement=1)
+
+#%%
 outdir_forward = Path("00_results/HighRes_mesh_refined/Forward_no_sampling")
 outname = Path(outdir_forward) / "results.xdmf"
 if outname.is_file():
