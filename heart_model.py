@@ -33,12 +33,14 @@ class HeartModelPulse:
         if geo is None:
             self._get_geo_params(geo_params)
             self.geometry = self.get_ellipsoid_geometry(geo_folder, self.geo_params)
+            if geo_refinement is not None:
+                geo_refined = self.refine_geo(self.geometry, geo_refinement)
+                self.geometry = geo_refined
         else:
-            if geo_refinement is None:
-                self.geometry = geo
-            else:
-                geo._refine_geo(geo, geo_refinement)
-                self.geometry = geo
+            self.geometry = geo
+            if geo_refinement is not None:
+                geo_refined = self.refine_geo(self.geometry, geo_refinement)
+                self.geometry = geo_refined
 
         V = dolfin.FunctionSpace(self.geometry.mesh, "DG", 0)
         self.lv_pressure = dolfin.Constant(0.0, name="LV Pressure")
@@ -240,13 +242,27 @@ class HeartModelPulse:
             microstructure=microstructure,
         )
         
-    def _refine_geo(self, geo, geo_refinement):
+    def refine_geo(self, geo, geo_refinement):
         mesh, cfun, ffun = geo.mesh, geo.cfun, geo.ffun 
         dolfin.parameters["refinement_algorithm"] = "plaza_with_parent_facets"
         for _ in range(geo_refinement):
             mesh = dolfin.adapt(mesh)
             cfun = dolfin.adapt(cfun, mesh)
             ffun = dolfin.adapt(ffun, mesh)
+            
+        geo.f0.set_allow_extrapolation(True)
+        geo.s0.set_allow_extrapolation(True)
+        geo.n0.set_allow_extrapolation(True)
+
+        V_refined = dolfin.FunctionSpace(mesh, geo.f0.function_space().ufl_element())
+        
+        f0_refined = dolfin.Function(V_refined)
+        f0_refined.interpolate(geo.f0)    
+        s0_refined = dolfin.Function(V_refined)
+        s0_refined.interpolate(geo.s0)  
+        n0_refined = dolfin.Function(V_refined)
+        n0_refined.interpolate(geo.n0)  
+            
         marker_functions = pulse.MarkerFunctions(cfun=cfun, ffun=ffun)
         microstructure = pulse.Microstructure(f0=geo.f0, s0=geo.s0, n0=geo.n0)
         return pulse.HeartGeometry(
