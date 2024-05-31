@@ -137,7 +137,7 @@ geo = refine_mesh(fe_model.geometry)
 
 # %%
 fe_model_highres = HeartModelPulse(geo=geo, bc_params=bc_params)
-outdir_forward = Path("00_results/HighRes_mesh_refined/Forward")
+outdir_forward = Path("00_results/HighRes_mesh_refined/Forward_no_sampling")
 outname = Path(outdir_forward) / "results.xdmf"
 if outname.is_file():
     outname.unlink()
@@ -148,6 +148,21 @@ forward_solver(
     fe_model_highres,
     data_sampled["lv_pressure"],
     data_sampled["time"],
+    0.01,
+    collector_highres,
+)
+# %%
+outdir_forward = Path("00_results/HighRes_mesh_refined/Forward_no_sampling")
+outname = Path(outdir_forward) / "results.xdmf"
+if outname.is_file():
+    outname.unlink()
+    outname.with_suffix(".h5").unlink()
+collector_highres = DataCollector(outdir=outdir_forward, problem=fe_model)
+
+forward_solver(
+    fe_model_highres,
+    data["lv_pressure"],
+    data["time"],
     0.01,
     collector_highres,
 )
