@@ -265,7 +265,7 @@ class HeartModelPulse:
         n0_refined.interpolate(geo.n0)  
             
         marker_functions = pulse.MarkerFunctions(cfun=cfun, ffun=ffun)
-        microstructure = pulse.Microstructure(f0=geo.f0, s0=geo.s0, n0=geo.n0)
+        microstructure = pulse.Microstructure(f0=f0_refined, s0=s0_refined, n0=n0_refined)
         return pulse.HeartGeometry(
             mesh=mesh,
             markers=geo.markers,
