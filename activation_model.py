@@ -157,7 +157,7 @@ def compute_delayed_activations(
 
 
 def compute_segment_delayed_activation(mode, offset, t_span, t_eval):
-    valid_modes = ['delay', 'activation', 'decay','diastole_time', 'sysole_time']
+    valid_modes = ['delay', 'activation', 'decay','diastole_time', 'systole_time']
     
     if mode == valid_modes[0]:
         return process_delay(offset, t_span, t_eval)
