@@ -23,13 +23,14 @@ def main(
     num_time_step=1000,
     delay=0.01,
     geo_params={},
+    geo_folder=Path('lv'),
     circ_params={},
     bc_params={},
     outdir=Path("results"),
     mode='delay'
 ):
     logging.getLogger("pulse").setLevel(logging.WARNING)
-    fe_model = HeartModelPulse(geo_params=geo_params, bc_params=bc_params)
+    fe_model = HeartModelPulse(geo_params=geo_params,geo_folder=geo_folder, bc_params=bc_params)
     collector = DataCollector(outdir=outdir, problem=fe_model)
     delayed_activations = compute_delayed_activations(
         fe_model.geometry.cfun, num_time_step=num_time_step, std=delay, mode=mode
@@ -118,7 +119,7 @@ geo_params = {
     "r_short_epi": 3.75,
     "r_long_endo": 5,
     "r_long_epi": 5.75,
-    "mesh_size": .25,
+    "mesh_size": 3,
 }
 circ_params = {
     "aortic_resistance": 4,
@@ -133,16 +134,21 @@ bc_params = {"pericardium_spring": 0.0001}
 
 
 #%%
-outdir = Path("01_results/normal")
+# outdir = Path("01_results/normal_v3")
+# geo_folder = outdir / 'lv_highres'
+outdir = Path("dev_test/")
+geo_folder = outdir / 'lv'
 collector, fe_model, circ_model, delayed_activations = main(
     num_time_step=500,
     t_end=300,
     delay=0.0,
     geo_params=geo_params,
+    geo_folder=geo_folder,
     bc_params=bc_params,
     circ_params=circ_params,
     outdir=outdir,
     mode='delay'
 )
+#%%
 plot_strains_aha(fe_model.E_ff, num_time_step=500, outdir=outdir)
 plot_activation(delayed_activations[0], outdir=outdir)
