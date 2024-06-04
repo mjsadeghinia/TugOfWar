@@ -9,6 +9,8 @@ import cardiac_geometries
 import pulse
 import dolfin
 
+from segmentation import segmentation
+
 logger = get_logger()
 
 
@@ -21,6 +23,7 @@ class HeartModelPulse:
         geo_params: dict = None,
         geo_folder: Path = Path("lv"),
         bc_params: dict = None,
+        segmentation_schema: dict = None
     ):
         """
         Initializes the heart model with given geometrical parameters and folder for geometrical data.
@@ -32,7 +35,7 @@ class HeartModelPulse:
 
         if geo is None:
             self._get_geo_params(geo_params)
-            self.geometry = self.get_ellipsoid_geometry(geo_folder, self.geo_params)
+            self.geometry = self.get_ellipsoid_geometry(geo_folder, self.geo_params, segmentation_schema)
             if geo_refinement is not None:
                 geo_refined = self.refine_geo(self.geometry, geo_refinement)
                 self.geometry = geo_refined
@@ -197,7 +200,8 @@ class HeartModelPulse:
         V = dolfin.FunctionSpace(self.geometry.mesh, "DG", 0)
         Eff = dolfin.project(dolfin.inner(E * self.geometry.f0, self.geometry.f0), V)
         E_ff_segment = []
-        for n in range(17):
+        num_segments = len(set(self.problem.geometry.cfun.array()))
+        for n in range(num_segments):
             indices = np.where(self.problem.geometry.cfun.array() == n + 1)[0]
             E_ff_segment.append(Eff.vector()[indices])
         self.E_ff.append(E_ff_segment)
@@ -216,7 +220,8 @@ class HeartModelPulse:
         V = dolfin.FunctionSpace(self.problem.geometry.mesh, 'DG', 0)
         myocardial_work_values = dolfin.project(myocardial_work, V)
         myocardial_work_values_segment = []
-        for n in range(17):
+        num_segments = len(set(self.problem.geometry.cfun.array()))
+        for n in range(num_segments):
             indices = np.where(self.problem.geometry.cfun.array() == n + 1)[0]
             myocardial_work_values_segment.append(myocardial_work_values.vector()[indices])
         self.myocardial_work.append(myocardial_work_values_segment)
@@ -227,7 +232,7 @@ class HeartModelPulse:
         self.lv_pressure.assign(pressure_value)
         self.activation.assign(activation_value)
 
-    def get_ellipsoid_geometry(self, folder: Path, geo_props: dict):
+    def get_ellipsoid_geometry(self, folder: Path, geo_props: dict, segmentation_schema: dict):
         """
         Generates the ellipsoid geometry based on cardiac_geometries, for info look at caridiac_geometries.
 
@@ -239,6 +244,11 @@ class HeartModelPulse:
         A geometry object compatible with the pulse.MechanicsProblem.
         """
         # if not folder.exists():
+        if segmentation_schema is None:
+            aha_flag = True
+        else:
+            aha_flag = False
+        
         cardiac_geometries.mesh.create_lv_ellipsoid(
             outdir=folder,
             r_short_endo=geo_props["r_short_endo"],
@@ -258,15 +268,24 @@ class HeartModelPulse:
             fiber_angle_endo=-60,
             fiber_angle_epi=60,
             fiber_space="P_1",
-            aha=True,
+            aha=aha_flag,
         )
-        # Trying to force cardiac_geometries to read cfun, containing aha 17 segments
-        schema = cardiac_geometries.geometry.Geometry.default_schema()
-        cfun_schema = schema["cfun"]._asdict()
-        cfun_schema["fname"] = "cfun.xdmf:f"
-        schema["cfun"] = cardiac_geometries.geometry.H5Path(**cfun_schema)
-
-        geo = cardiac_geometries.geometry.Geometry.from_folder(folder, schema=schema)
+        if aha_flag:
+            # Trying to force cardiac_geometries to read cfun, containing aha 17 segments
+            schema = cardiac_geometries.geometry.Geometry.default_schema()
+            cfun_schema = schema["cfun"]._asdict()
+            cfun_schema["fname"] = "cfun.xdmf:f"
+            schema["cfun"] = cardiac_geometries.geometry.H5Path(**cfun_schema)
+            geo = cardiac_geometries.geometry.Geometry.from_folder(folder, schema=schema)
+        else:
+            geo = cardiac_geometries.geometry.Geometry.from_folder(folder)
+            mu_base_endo=-np.arccos(
+                geo_props["r_short_epi"] / geo_props["r_long_endo"] / 2
+            )
+            geo = segmentation(geo, geo_props["r_long_endo"],geo_props["r_short_endo"], mu_base_endo, segmentation_schema["num_circ_segments"], segmentation_schema["num_long_segments"])
+            with dolfin.XDMFFile((folder / "cfun.xdmf").as_posix()) as xdmf:
+                xdmf.write(geo.cfun)
+        
         marker_functions = pulse.MarkerFunctions(cfun=geo.cfun, ffun=geo.ffun)
         microstructure = pulse.Microstructure(f0=geo.f0, s0=geo.s0, n0=geo.n0)
         return pulse.HeartGeometry(

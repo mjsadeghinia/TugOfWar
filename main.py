@@ -29,12 +29,13 @@ def main(
     bc_params={},
     geo_folder=None,
     outdir=Path("results"),
+    segmentation_schema = None
 ):
     logging.getLogger("pulse").setLevel(logging.WARNING)
     if geo_folder is None:
         geo_folder = outdir / 'lv'
     fe_model = HeartModelPulse(
-        geo_params=geo_params, geo_folder=geo_folder, bc_params=bc_params
+        geo_params=geo_params, geo_folder=geo_folder, bc_params=bc_params, segmentation_schema=segmentation_schema
     )
     collector = DataCollector(outdir=outdir, problem=fe_model)
     delayed_activations = compute_delayed_activations(
@@ -116,7 +117,7 @@ geo_params = {
     "r_short_epi": 3.75,
     "r_long_endo": 5,
     "r_long_epi": 5.75,
-    "mesh_size": 5,
+    "mesh_size": 2.5,
 }
 circ_params = {
     "aortic_resistance": 10,
@@ -129,7 +130,12 @@ circ_params = {
 
 bc_params = {"pericardium_spring": 0.0001}
 
-outdir = Path("00_results/test/")
+outdir = Path("00_results/test_no_aha/")
+
+segmentation_schema = {
+    "num_circ_segments": 6,
+    "num_long_segments": 4,
+}
 
 collector, fe_model, circ_model, delayed_activations = main(
     num_time_step=500,
@@ -139,14 +145,15 @@ collector, fe_model, circ_model, delayed_activations = main(
     bc_params=bc_params,
     circ_params=circ_params,
     outdir=outdir,
+    segmentation_schema=segmentation_schema
 )
 plot_data_aha(fe_model.E_ff, num_time_step=500, plots_path=outdir / 'strains', ylim=0.35, ylabel_text="Green-Lagrange Fiber Strain (-)")
 plot_data_aha(fe_model.myocardial_work, num_time_step=500, plots_path=outdir / 'work', ylabel_text="Myocardial Work ()")
 # %%
-data = collector.read_csv()
+# data = collector.read_csv()
 
-data_sampled = data_sampleing(data, 50)
-data_plotting(data_sampled, "ko")
+# data_sampled = data_sampleing(data, 50)
+# data_plotting(data_sampled, "ko")
 
 # %%
 # fe_model_highres = HeartModelPulse(
