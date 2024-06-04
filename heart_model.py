@@ -47,6 +47,7 @@ class HeartModelPulse:
         self.activation = dolfin.Function(V, name="Activation")
 
         self.E_ff = []
+        self.myocardial_work = []
 
         self.material = self.get_material_model()
         self._get_bc_params(bc_params)
@@ -167,17 +168,10 @@ class HeartModelPulse:
                 results_u, "u", float(t + 1), dolfin.XDMFFile.Encoding.HDF5, True
             )
 
-        F = pulse.kinematics.DeformationGradient(results_u)
-        E = pulse.kinematics.GreenLagrangeStrain(F)
-        # Green strain normal to fiber direction
+        Eff_t = self._compute_fiber_strain(results_u)
+        myocardial_work_t = self._compute_myocardial_work(results_u)
+        
         V = dolfin.FunctionSpace(self.geometry.mesh, "DG", 0)
-        Eff_t = dolfin.project(dolfin.inner(E * self.geometry.f0, self.geometry.f0), V)
-        E_ff_segment = []
-        for n in range(17):
-            indices = np.where(self.problem.geometry.cfun.array() == n + 1)[0]
-            E_ff_segment.append(Eff_t.vector()[indices])
-        self.E_ff.append(E_ff_segment)
-
         results_activation = dolfin.project(self.activation, V)
         fname = outdir / "activation.xdmf"
         with dolfin.XDMFFile(fname.as_posix()) as xdmf:
@@ -189,6 +183,39 @@ class HeartModelPulse:
                 True,
             )
 
+    def _compute_fiber_strain(self,u):
+        F = pulse.kinematics.DeformationGradient(u)
+        E = pulse.kinematics.GreenLagrangeStrain(F)
+        # Green strain normal to fiber direction
+        V = dolfin.FunctionSpace(self.geometry.mesh, "DG", 0)
+        Eff = dolfin.project(dolfin.inner(E * self.geometry.f0, self.geometry.f0), V)
+        E_ff_segment = []
+        for n in range(17):
+            indices = np.where(self.problem.geometry.cfun.array() == n + 1)[0]
+            E_ff_segment.append(Eff.vector()[indices])
+        self.E_ff.append(E_ff_segment)
+        return Eff
+
+    def _compute_myocardial_work(self, u):
+        F = pulse.kinematics.DeformationGradient(u)
+        E = pulse.kinematics.GreenLagrangeStrain(F)
+        Eff = dolfin.inner(E * self.material.f0, self.material.f0) # Green Lagrange strain in fiber directions
+        sigma = self.problem.material.CauchyStress(F)   
+        f_current = F * self.material.f0                  # fiber directions in current configuration
+        t = sigma * f_current                       
+        tff = dolfin.inner(t, f_current)                  # traction, forces, in fiber direction
+        myocardial_work = tff * Eff
+        
+        V = dolfin.FunctionSpace(self.problem.geometry.mesh, 'DG', 0)
+        myocardial_work_values = dolfin.project(myocardial_work, V)
+        myocardial_work_values_segment = []
+        for n in range(17):
+            indices = np.where(self.problem.geometry.cfun.array() == n + 1)[0]
+            myocardial_work_values_segment.append(myocardial_work_values.vector()[indices])
+        self.myocardial_work.append(myocardial_work_values_segment)
+        return myocardial_work
+        
+    
     def assign_state_variables(self, activation_value, pressure_value):
         self.lv_pressure.assign(pressure_value)
         self.activation.assign(activation_value)
