@@ -21,35 +21,44 @@ from heart_model import HeartModelPulse
 def main(
     t_end=550,
     num_time_step=1000,
+    atrium_pressure=0.2,
     delay=0.01,
+    delay_mode='delay',
     geo_params={},
-    geo_folder=Path('lv'),
     circ_params={},
     bc_params={},
+    geo_folder=Path("results") / 'lv',
     outdir=Path("results"),
-    mode='delay'
 ):
     logging.getLogger("pulse").setLevel(logging.WARNING)
-    fe_model = HeartModelPulse(geo_params=geo_params,geo_folder=geo_folder, bc_params=bc_params)
+    fe_model = HeartModelPulse(geo_params=geo_params, geo_folder=geo_folder, bc_params=bc_params)
     collector = DataCollector(outdir=outdir, problem=fe_model)
     delayed_activations = compute_delayed_activations(
-        fe_model.geometry.cfun, num_time_step=num_time_step, std=delay, mode=mode
+        fe_model.geometry.cfun, num_time_step=num_time_step, std=delay, mode=delay_mode
     )
     circ_model = CirculationModel(params=circ_params)
+    # saving initial values
+    collector.collect(
+        time=0,
+        pressure=0,
+        volume=fe_model.compute_volume(activation_value=0,pressure_value=0),
+        activation=0.0,
+        flow=circ_model.flow,
+        p_ao=circ_model.aortic_pressure,
+    )
     # Increase to atrial pressure
-    for pressure in [0.0, 1]:
-        volume = fe_model.compute_volume(activation_value=0, pressure_value=pressure)
-        collector.collect(
-            time=0,
-            pressure=pressure,
-            volume=volume,
-            activation=0.0,
-            flow=circ_model.flow,
-            p_ao=circ_model.aortic_pressure,
-        )
+    volume = fe_model.initial_loading(atrium_pressure=atrium_pressure)
+    collector.collect(
+        time=0,
+        pressure=atrium_pressure,
+        volume=volume,
+        activation=0.0,
+        flow=circ_model.flow,
+        p_ao=circ_model.aortic_pressure,
+    )
     t_span = (0.0, 1.0)
     t_eval = np.linspace(*t_span, num_time_step)
-    #  we use only the first 700ms, as the relaxation is not yet implemented
+
     collector = circulation_solver(
         heart_model=fe_model,
         circulation_model=circ_model,
@@ -58,6 +67,7 @@ def main(
         collector=collector,
         start_time=2,
     )
+    
     return collector, fe_model, circ_model, delayed_activations
 
 

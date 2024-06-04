@@ -9,8 +9,6 @@ from circ.datacollector import DataCollector
 
 from activation_model import compute_delayed_activations
 from coupling_solver import circulation_solver
-from utils import data_sampleing, data_plotting
-from forward_problem import forward_solver
 from heart_model import HeartModelPulse
 
 # %%
@@ -29,13 +27,16 @@ def main(
     bc_params={},
     geo_folder=None,
     outdir=Path("results"),
-    segmentation_schema = None
+    segmentation_schema=None,
 ):
     logging.getLogger("pulse").setLevel(logging.WARNING)
     if geo_folder is None:
-        geo_folder = outdir / 'lv'
+        geo_folder = outdir / "lv"
     fe_model = HeartModelPulse(
-        geo_params=geo_params, geo_folder=geo_folder, bc_params=bc_params, segmentation_schema=segmentation_schema
+        geo_params=geo_params,
+        geo_folder=geo_folder,
+        bc_params=bc_params,
+        segmentation_schema=segmentation_schema,
     )
     collector = DataCollector(outdir=outdir, problem=fe_model)
     delayed_activations = compute_delayed_activations(
@@ -79,12 +80,18 @@ def main(
 # %%
 
 
-def plot_data_aha(result_data, num_time_step=1000, plots_path=Path("results"),ylabel_text = '', ylim = None):
+def plot_data(
+    result_data,
+    num_time_step=1000,
+    plots_path=Path("results"),
+    ylabel_text="",
+    ylim=None,
+):
     plots_path.mkdir(parents=True, exist_ok=True)
 
     total_time = len(result_data)
-    num_aha_segments = len(result_data[0])
-    for n in range(num_aha_segments):
+    num_segments = len(result_data[0])
+    for n in range(num_segments):
         data = [result_data[t][n] for t in range(total_time)]
         data_array = np.array(data)
         file_path = plots_path / f"strains_aha_{n + 1}.png"
@@ -110,17 +117,28 @@ def plot_data_aha(result_data, num_time_step=1000, plots_path=Path("results"),yl
         plt.close()
 
 
+def process_data(result_data, num_time_step=1000):
+    total_time = len(result_data)
+    num_segments = len(result_data[0])
+    data_segment = np.zeros((total_time, num_segments))
+    for n in range(num_segments):
+        data = [result_data[t][n] for t in range(total_time)]
+        data_array = np.array(data)
+        data_segment[:, n] = np.mean(data_array, axis=1)
+    return data_segment
+
+
 # %%
 
 geo_params = {
     "r_short_endo": 3,
     "r_short_epi": 3.75,
-    "r_long_endo": 5,
-    "r_long_epi": 5.75,
-    "mesh_size": 2.5,
+    "r_long_endo": 4.25,
+    "r_long_epi": 5,
+    "mesh_size": 5,
 }
 circ_params = {
-    "aortic_resistance": 10,
+    "aortic_resistance": 5,
     "systematic_resistance": 10,
     "systematic_compliance": 10,
     "aortic_pressure": 10,
@@ -139,16 +157,36 @@ segmentation_schema = {
 
 collector, fe_model, circ_model, delayed_activations = main(
     num_time_step=500,
-    t_end=260,
+    t_end=350,
     delay=0.01,
     geo_params=geo_params,
     bc_params=bc_params,
     circ_params=circ_params,
+    atrium_pressure=1,
     outdir=outdir,
-    segmentation_schema=segmentation_schema
+    segmentation_schema=segmentation_schema,
 )
-plot_data_aha(fe_model.E_ff, num_time_step=500, plots_path=outdir / 'strains', ylim=0.35, ylabel_text="Green-Lagrange Fiber Strain (-)")
-plot_data_aha(fe_model.myocardial_work, num_time_step=500, plots_path=outdir / 'work', ylabel_text="Myocardial Work ()")
+plot_data(
+    fe_model.E_ff,
+    num_time_step=500,
+    plots_path=outdir / "strains",
+    ylim=0.35,
+    ylabel_text="Green-Lagrange Fiber Strain (-)",
+)
+plot_data(
+    fe_model.myocardial_work,
+    num_time_step=500,
+    plots_path=outdir / "work",
+    ylabel_text="Myocardial Work ()",
+)
+
+E_ff_segment = process_data(fe_model.E_ff, num_time_step=500)
+myocardial_work_segment = process_data(fe_model.myocardial_work, num_time_step=500)
+fname = outdir / "strains.csv"
+np.savetxt(fname.as_posix(), E_ff_segment, delimiter=",")
+fname = outdir / "myocardial_work.csv"
+np.savetxt(fname.as_posix(), myocardial_work_segment, delimiter=",")
+
 # %%
 # data = collector.read_csv()
 

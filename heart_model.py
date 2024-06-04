@@ -23,7 +23,7 @@ class HeartModelPulse:
         geo_params: dict = None,
         geo_folder: Path = Path("lv"),
         bc_params: dict = None,
-        segmentation_schema: dict = None
+        segmentation_schema: dict = None,
     ):
         """
         Initializes the heart model with given geometrical parameters and folder for geometrical data.
@@ -35,7 +35,9 @@ class HeartModelPulse:
 
         if geo is None:
             self._get_geo_params(geo_params)
-            self.geometry = self.get_ellipsoid_geometry(geo_folder, self.geo_params, segmentation_schema)
+            self.geometry = self.get_ellipsoid_geometry(
+                geo_folder, self.geo_params, segmentation_schema
+            )
             if geo_refinement is not None:
                 geo_refined = self.refine_geo(self.geometry, geo_refinement)
                 self.geometry = geo_refined
@@ -151,8 +153,8 @@ class HeartModelPulse:
 
     def get_volume(self) -> float:
         return self.problem.geometry.cavity_volume(u=self.problem.state.sub(0))
-    
-    def initial_loading(self,atrium_pressure):
+
+    def initial_loading(self, atrium_pressure):
         volume = self.compute_volume(activation_value=0, pressure_value=atrium_pressure)
         results_u, _ = self.problem.state.split(deepcopy=True)
         self.F0 = pulse.kinematics.DeformationGradient(results_u)
@@ -178,9 +180,9 @@ class HeartModelPulse:
                 results_u, "u", float(t + 1), dolfin.XDMFFile.Encoding.HDF5, True
             )
 
-        Eff_t = self._compute_fiber_strain(results_u)
-        myocardial_work_t = self._compute_myocardial_work(results_u)
-        
+        self._compute_fiber_strain(results_u)
+        self._compute_myocardial_work(results_u)
+
         V = dolfin.FunctionSpace(self.geometry.mesh, "DG", 0)
         results_activation = dolfin.project(self.activation, V)
         fname = outdir / "activation.xdmf"
@@ -193,8 +195,8 @@ class HeartModelPulse:
                 True,
             )
 
-    def _compute_fiber_strain(self,u):
-        F = pulse.kinematics.DeformationGradient(u) * dolfin.inv(self.F0) 
+    def _compute_fiber_strain(self, u):
+        F = pulse.kinematics.DeformationGradient(u) * dolfin.inv(self.F0)
         E = pulse.kinematics.GreenLagrangeStrain(F)
         # Green strain normal to fiber direction
         V = dolfin.FunctionSpace(self.geometry.mesh, "DG", 0)
@@ -209,30 +211,35 @@ class HeartModelPulse:
 
     def _compute_myocardial_work(self, u):
         F = pulse.kinematics.DeformationGradient(u)
-        E = pulse.kinematics.GreenLagrangeStrain(F)
-        Eff = dolfin.inner(E * self.material.f0, self.material.f0) # Green Lagrange strain in fiber directions
-        sigma = self.problem.material.CauchyStress(F)   
-        f_current = F * self.material.f0                  # fiber directions in current configuration
-        t = sigma * f_current                       
-        tff = dolfin.inner(t, f_current)                  # traction, forces, in fiber direction
+        E = pulse.kinematics.GreenLagrangeStrain(F * dolfin.inv(self.F0))
+        Eff = dolfin.inner(
+            E * self.material.f0, self.material.f0
+        )  # Green Lagrange strain in fiber directions
+        sigma = self.problem.material.CauchyStress(F)
+        f_current = F * self.material.f0  # fiber directions in current configuration
+        t = sigma * f_current
+        tff = dolfin.inner(t, f_current)  # traction, forces, in fiber direction
         myocardial_work = tff * Eff
-        
-        V = dolfin.FunctionSpace(self.problem.geometry.mesh, 'DG', 0)
+
+        V = dolfin.FunctionSpace(self.problem.geometry.mesh, "DG", 0)
         myocardial_work_values = dolfin.project(myocardial_work, V)
         myocardial_work_values_segment = []
         num_segments = len(set(self.problem.geometry.cfun.array()))
         for n in range(num_segments):
             indices = np.where(self.problem.geometry.cfun.array() == n + 1)[0]
-            myocardial_work_values_segment.append(myocardial_work_values.vector()[indices])
+            myocardial_work_values_segment.append(
+                myocardial_work_values.vector()[indices]
+            )
         self.myocardial_work.append(myocardial_work_values_segment)
         return myocardial_work
-        
-    
+
     def assign_state_variables(self, activation_value, pressure_value):
         self.lv_pressure.assign(pressure_value)
         self.activation.assign(activation_value)
 
-    def get_ellipsoid_geometry(self, folder: Path, geo_props: dict, segmentation_schema: dict):
+    def get_ellipsoid_geometry(
+        self, folder: Path, geo_props: dict, segmentation_schema: dict
+    ):
         """
         Generates the ellipsoid geometry based on cardiac_geometries, for info look at caridiac_geometries.
 
@@ -248,7 +255,7 @@ class HeartModelPulse:
             aha_flag = True
         else:
             aha_flag = False
-        
+
         cardiac_geometries.mesh.create_lv_ellipsoid(
             outdir=folder,
             r_short_endo=geo_props["r_short_endo"],
@@ -276,16 +283,25 @@ class HeartModelPulse:
             cfun_schema = schema["cfun"]._asdict()
             cfun_schema["fname"] = "cfun.xdmf:f"
             schema["cfun"] = cardiac_geometries.geometry.H5Path(**cfun_schema)
-            geo = cardiac_geometries.geometry.Geometry.from_folder(folder, schema=schema)
+            geo = cardiac_geometries.geometry.Geometry.from_folder(
+                folder, schema=schema
+            )
         else:
             geo = cardiac_geometries.geometry.Geometry.from_folder(folder)
-            mu_base_endo=-np.arccos(
+            mu_base_endo = -np.arccos(
                 geo_props["r_short_epi"] / geo_props["r_long_endo"] / 2
             )
-            geo = segmentation(geo, geo_props["r_long_endo"],geo_props["r_short_endo"], mu_base_endo, segmentation_schema["num_circ_segments"], segmentation_schema["num_long_segments"])
+            geo = segmentation(
+                geo,
+                geo_props["r_long_endo"],
+                geo_props["r_short_endo"],
+                mu_base_endo,
+                segmentation_schema["num_circ_segments"],
+                segmentation_schema["num_long_segments"],
+            )
             with dolfin.XDMFFile((folder / "cfun.xdmf").as_posix()) as xdmf:
                 xdmf.write(geo.cfun)
-        
+
         marker_functions = pulse.MarkerFunctions(cfun=geo.cfun, ffun=geo.ffun)
         microstructure = pulse.Microstructure(f0=geo.f0, s0=geo.s0, n0=geo.n0)
         return pulse.HeartGeometry(
@@ -294,31 +310,33 @@ class HeartModelPulse:
             marker_functions=marker_functions,
             microstructure=microstructure,
         )
-        
+
     @staticmethod
     def refine_geo(geo, geo_refinement):
-        mesh, cfun, ffun = geo.mesh, geo.cfun, geo.ffun 
+        mesh, cfun, ffun = geo.mesh, geo.cfun, geo.ffun
         dolfin.parameters["refinement_algorithm"] = "plaza_with_parent_facets"
         for _ in range(geo_refinement):
             mesh = dolfin.adapt(mesh)
             cfun = dolfin.adapt(cfun, mesh)
             ffun = dolfin.adapt(ffun, mesh)
-            
+
         geo.f0.set_allow_extrapolation(True)
         geo.s0.set_allow_extrapolation(True)
         geo.n0.set_allow_extrapolation(True)
 
         V_refined = dolfin.FunctionSpace(mesh, geo.f0.function_space().ufl_element())
-        
+
         f0_refined = dolfin.Function(V_refined)
-        f0_refined.interpolate(geo.f0)    
+        f0_refined.interpolate(geo.f0)
         s0_refined = dolfin.Function(V_refined)
-        s0_refined.interpolate(geo.s0)  
+        s0_refined.interpolate(geo.s0)
         n0_refined = dolfin.Function(V_refined)
-        n0_refined.interpolate(geo.n0)  
-            
+        n0_refined.interpolate(geo.n0)
+
         marker_functions = pulse.MarkerFunctions(cfun=cfun, ffun=ffun)
-        microstructure = pulse.Microstructure(f0=f0_refined, s0=s0_refined, n0=n0_refined)
+        microstructure = pulse.Microstructure(
+            f0=f0_refined, s0=s0_refined, n0=n0_refined
+        )
         return pulse.HeartGeometry(
             mesh=mesh,
             markers=geo.markers,
