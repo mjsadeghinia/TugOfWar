@@ -46,6 +46,7 @@ class HeartModelPulse:
         self.lv_pressure = dolfin.Constant(0.0, name="LV Pressure")
         self.activation = dolfin.Function(V, name="Activation")
 
+        self.F0 = dolfin.Identity(self.geometry.mesh.geometric_dimension())
         self.E_ff = []
         self.myocardial_work = []
 
@@ -147,6 +148,12 @@ class HeartModelPulse:
 
     def get_volume(self) -> float:
         return self.problem.geometry.cavity_volume(u=self.problem.state.sub(0))
+    
+    def initial_loading(self,atrium_pressure):
+        volume = self.compute_volume(activation_value=0, pressure_value=atrium_pressure)
+        results_u, _ = self.problem.state.split(deepcopy=True)
+        self.F0 = pulse.kinematics.DeformationGradient(results_u)
+        return volume
 
     def save(self, t: float, outdir: Path = Path("results")):
         """
@@ -184,7 +191,7 @@ class HeartModelPulse:
             )
 
     def _compute_fiber_strain(self,u):
-        F = pulse.kinematics.DeformationGradient(u)
+        F = pulse.kinematics.DeformationGradient(u) * dolfin.inv(self.F0) 
         E = pulse.kinematics.GreenLagrangeStrain(F)
         # Green strain normal to fiber direction
         V = dolfin.FunctionSpace(self.geometry.mesh, "DG", 0)
