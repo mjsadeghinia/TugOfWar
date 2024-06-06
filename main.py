@@ -17,10 +17,10 @@ from heart_model import HeartModelPulse
 
 
 def main(
-    t_end=550,
-    num_time_step=1000,
-    atrium_pressure=0.2,
-    delay=0.01,
+    t_end=350,
+    num_time_step=500,
+    atrium_pressure=1,
+    delay=0.0,
     delay_mode="delay",
     geo_params={},
     circ_params={},
@@ -135,7 +135,7 @@ geo_params = {
     "r_short_epi": 3.75,
     "r_long_endo": 4.25,
     "r_long_epi": 5,
-    "mesh_size": 5,
+    "mesh_size": .5,
 }
 circ_params = {
     "aortic_resistance": 5,
@@ -148,17 +148,18 @@ circ_params = {
 
 bc_params = {"pericardium_spring": 0.0001}
 
-outdir = Path("00_results/test_no_aha/")
+outdir = Path("dev")
 
 segmentation_schema = {
-    "num_circ_segments": 6,
-    "num_long_segments": 4,
+    "num_circ_segments": 72,
+    "num_long_segments": 6,
 }
 
 collector, fe_model, circ_model, delayed_activations = main(
     num_time_step=500,
     t_end=350,
-    delay=0.01,
+    delay=0.03,
+    delay_mode='delay',
     geo_params=geo_params,
     bc_params=bc_params,
     circ_params=circ_params,

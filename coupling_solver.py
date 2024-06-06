@@ -73,15 +73,16 @@ def circulation_solver(
         collector = DataCollector(outdir=Path("results"), problem=heart_model)
 
     target_activation = dolfin.Function(heart_model.activation.ufl_function_space())
-    aha = heart_model.geometry.cfun
+    segments = heart_model.geometry.cfun
 
     for i, t in enumerate(time):
         # Getting state variable pressure and volume
         p_old = heart_model.get_pressure()
         v_old = heart_model.get_volume()
         # Current activation level
-        for n in range(17):
-            target_activation.vector()[get_elems(aha, n + 1)] = activation[n][i, :]
+        num_segments = len(set(segments.array()))
+        for n in range(num_segments):
+            target_activation.vector()[get_elems(segments, n + 1)] = activation[n][i, :]
 
         a_current_mean = np.round(np.mean(target_activation.vector()[:]), 3)
         logger.info("Current time", t=t, a_current=a_current_mean)

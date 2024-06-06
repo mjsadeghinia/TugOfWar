@@ -119,7 +119,6 @@ def get_elems(cfun, cfun_num):
 def compute_delayed_activations(
     cfun,
     std=0.01,
-    aha_segments_num=np.linspace(1, 17, 17),
     t_span=(0.0, 1.0),
     num_time_step=100,
     t_interp=None,
@@ -128,8 +127,10 @@ def compute_delayed_activations(
     t_eval = np.linspace(*t_span, num_time_step)
     # normal_activation_params = default_parameters()
     delayed_activations = []
+    cfun_num = len(set(cfun.array()))
+    segments_num = np.linspace(1, cfun_num, cfun_num)
     for n in tqdm(
-        aha_segments_num, desc="Creating Delayed Activation Curves", ncols=100
+        segments_num, desc="Creating Delayed Activation Curves", ncols=100
     ):
         elems = get_elems(cfun, n)
         num_elems = len(elems)
