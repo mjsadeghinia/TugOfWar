@@ -25,6 +25,7 @@ class HeartModelPulse:
         geo_folder: Path = Path("lv"),
         bc_params: dict = None,
         segmentation_schema: dict = None,
+        comm = None
     ):
         """
         Initializes the heart model with given geometrical parameters and folder for geometrical data.
@@ -46,6 +47,10 @@ class HeartModelPulse:
                 geo_refined = self.refine_geo(self.geometry, geo_refinement)
                 self.geometry = geo_refined
 
+        if comm is None:
+            comm = dolfin.MPI.comm_world
+        self.comm = comm
+        
         V = dolfin.FunctionSpace(self.geometry.mesh, "DG", 0)
         self.lv_pressure = dolfin.Constant(0.0, name="LV Pressure")
         self.activation = dolfin.Function(V, name="Activation")
@@ -92,11 +97,12 @@ class HeartModelPulse:
         # )
         pulse.iterate.iterate(self.problem, self.activation, activation_value)
         pulse.iterate.iterate(self.problem, self.lv_pressure, pressure_value)
-
+        # dolfin.MPI.barrier(self.comm)
         volume_current = self.problem.geometry.cavity_volume(
             u=self.problem.state.sub(0)
         )
-        logger.info("Computed volume", volume_current=volume_current)
+        if self.comm.rank == 0:
+            logger.info("Computed volume", volume_current=volume_current)
         return volume_current
 
     def dVdp(
@@ -116,11 +122,12 @@ class HeartModelPulse:
         Returns:
         float: The computed dV/dP .
         """
-        logger.info(
-            "Computing dV/dP",
-            activation_value=activation_value.vector()[0],
-            pressure_value=pressure_value,
-        )
+        if self.comm.rank == 0:
+            logger.info(
+                "Computing dV/dP",
+                activation_value=activation_value.vector()[0],
+                pressure_value=pressure_value,
+            )
         # Backing up the problem
         state_backup = self.problem.state.copy(deepcopy=True)
         pressure_backup = float(self.lv_pressure)
@@ -128,6 +135,9 @@ class HeartModelPulse:
         # Update the problem with the give activation and pressure and store the initial State of the problem
         self.assign_state_variables(activation_value, pressure_value)
         self.problem.solve()
+        
+        # dolfin.MPI.barrier(self.comm)
+
         p_i = self.get_pressure()
         v_i = self.get_volume()
 
@@ -136,10 +146,14 @@ class HeartModelPulse:
         # breakpoint()
         self.lv_pressure.assign(p_f)
         self.problem.solve()
+      
+        # dolfin.MPI.barrier(self.comm)
+
         v_f = self.get_volume()
 
         dV_dP = (v_f - v_i) / (p_f - p_i)
-        logger.info("Computed dV/dP", dV_dP=dV_dP)
+        if self.comm.rank == 0:
+            logger.info("Computed dV/dP", dV_dP=dV_dP)
 
         # reset the problem to its initial state
         self.problem.state.assign(state_backup)
@@ -168,10 +182,13 @@ class HeartModelPulse:
         outname (Path): The file path to save the model state.
         """
         fname = outdir / "results.xdmf"
-        if np.isclose(t, 0.0):
-            fname.unlink(missing_ok=True)
-            fname.with_suffix(".h5").unlink(missing_ok=True)
+        # if np.isclose(t, 0.0):
+        #     fname.unlink(missing_ok=True)
+        #     # fname.with_suffix(".h5").unlink(missing_ok=True)
 
+        # print('save xdmf bye from ', self.comm.rank)
+
+        
         results_u, _ = self.problem.state.split(deepcopy=True)
         results_u.t = t
         with dolfin.XDMFFile(fname.as_posix()) as xdmf:
