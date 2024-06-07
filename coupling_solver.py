@@ -48,6 +48,7 @@ def circulation_solver(
     time: np.ndarray,
     collector: DataCollector | None = None,
     start_time: int = 0,
+    comm = None
 ):
     """
     Solves the coupled cardiac and circulation model dynamics over a specified time period.
@@ -61,7 +62,8 @@ def circulation_solver(
     Raises:
     ValueError: If the lengths of time and activation arrays do not match.
     """
-
+    if comm is None:
+        comm = dolfin.MPI.comm_world
     # if not len(time) == len(activation[0][:,0]):
     #     raise ValueError(
     #         (
@@ -85,7 +87,8 @@ def circulation_solver(
             target_activation.vector()[get_elems(segments, n + 1)] = activation[n][i, :]
 
         a_current_mean = np.round(np.mean(target_activation.vector()[:]), 3)
-        logger.info("Current time", t=t, a_current=a_current_mean)
+        if comm.rank == 1:
+            logger.info("Current time", t=t, a_current=a_current_mean)
         # initial guess for the current pressure pressure
         if i == 0 or i == 1:
             p_current = p_old
@@ -106,15 +109,16 @@ def circulation_solver(
             outflow = circulation_model.Q(p_current, p_old, dt)
             v_current_circ = v_old - outflow * dt
             v_diff = v_current - v_current_circ
-            logger.info(
-                "Iteration",
-                v_diff=v_diff,
-                p_current=p_current,
-                v_current=v_current,
-                v_current_circ=v_current_circ,
-                dt=dt,
-                circ_iter=circ_iter,
-            )
+            if comm.rank == 1:
+                logger.info(
+                    "Iteration",
+                    v_diff=v_diff,
+                    p_current=p_current,
+                    v_current=v_current,
+                    v_current_circ=v_current_circ,
+                    dt=dt,
+                    circ_iter=circ_iter,
+                )
 
             # Updataing p_current based on relative error using newton method
             if abs(v_diff) > tol:
@@ -129,15 +133,15 @@ def circulation_solver(
         v_current = heart_model.get_volume()
         if circulation_model.valve_open:
             circulation_model.update_aortic_pressure()
-
-        collector.collect(
-            t + start_time,
-            a_current_mean,
-            v_current,
-            p_current,
-            outflow,
-            circulation_model.aortic_pressure,
-        )
+        if comm.rank == 1:
+            collector.collect(
+                t + start_time,
+                a_current_mean,
+                v_current,
+                p_current,
+                outflow,
+                circulation_model.aortic_pressure,
+            )
 
         if p_current < 0.01:
             break
