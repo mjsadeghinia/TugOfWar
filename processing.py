@@ -3,7 +3,7 @@ import numpy as np
 import logging
 from pathlib import Path
 import matplotlib.pyplot as plt
-from dolfin import MPI
+import dolfin 
 import pickle
 
 from circ.circulation_model import CirculationModel
@@ -17,7 +17,7 @@ from geometry import load_geo
 # %%
 # Dimensions
 # [ms] [cm] [ml] [kPa]
-comm = MPI.comm_world
+comm = dolfin.MPI.comm_world
 circ_params = {
     "aortic_resistance": 5,
     "systematic_resistance": 10,
@@ -36,6 +36,8 @@ t_end = 350
 
 outdir = Path('00_results/dev')
 
+delay = 0.03
+delay_mode = 'delay'
 
 fname  = outdir / 'lv/geo.h5'
 geo = load_geo(fname, comm=comm)
