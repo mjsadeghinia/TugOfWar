@@ -1,18 +1,14 @@
 # %%
 import numpy as np
-import logging
 from pathlib import Path
-import matplotlib.pyplot as plt
-import dolfin 
-import pickle
+import dolfin
+import cardiac_geometries 
 
 from circ.circulation_model import CirculationModel
 from circ.datacollector import DataCollector
 
-from activation_model import compute_delayed_activations
 from coupling_solver import circulation_solver
 from heart_model import HeartModelPulse
-from geometry import load_geo
 
 # %%
 # Dimensions
@@ -40,13 +36,14 @@ delay = 0.03
 delay_mode = 'delay'
 
 fname  = outdir / 'lv/geo.h5'
-geo = load_geo(fname, comm=comm)
+geo = cardiac_geometries.geometry.Geometry.from_file(fname.as_posix(), comm = comm)
 heart_model = HeartModelPulse(
         geo=geo,
         bc_params=bc_params,
         comm=comm
     )
-    
+
+
 circulation_model = CirculationModel(params=circ_params)
 collector = DataCollector(outdir=outdir, problem=heart_model)
 # saving initial values
