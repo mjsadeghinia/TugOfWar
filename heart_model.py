@@ -4,6 +4,7 @@ import numpy as np
 from pathlib import Path
 from structlog import get_logger
 from typing import Union
+import logging
 
 import pulse
 import dolfin
@@ -32,6 +33,7 @@ class HeartModelPulse:
         geo_params (dict, optional): Dictionary of geometric parameters.
         geo_folder (Path): Path object indicating the folder where geometry data is stored.
         """
+        logging.getLogger("pulse").setLevel(logging.WARNING)
 
         if geo is None:
             geo = create_ellipsoid_geometry(

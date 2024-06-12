@@ -30,7 +30,7 @@ atrium_pressure = 1
 num_time_step = 500
 t_end = 350
 
-outdir = Path("00_results/dev")
+outdir = Path("00_results/multi_core")
 
 delay = 0.03
 delay_mode = "delay"

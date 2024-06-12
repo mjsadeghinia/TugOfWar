@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 from circ.circulation_model import CirculationModel
 from circ.datacollector import DataCollector
 
-from activation_model import compute_delayed_activations
+from activation_model import compute_delayed_activations, save_activation_as_dolfin_function
 from coupling_solver import circulation_solver
 from heart_model import HeartModelPulse
 
@@ -42,6 +42,9 @@ def main(
     delayed_activations = compute_delayed_activations(
         fe_model.geometry.cfun, num_time_step=num_time_step, std=delay, mode=delay_mode
     )
+    fname = outdir / "activation.xdmf"
+    save_activation_as_dolfin_function(fe_model.geometry, delayed_activations, fname)
+    
     circ_model = CirculationModel(params=circ_params)
     # saving initial values
     collector.collect(
@@ -68,7 +71,7 @@ def main(
     collector = circulation_solver(
         heart_model=fe_model,
         circulation_model=circ_model,
-        activation=delayed_activations,
+        activation_fname=fname,
         time=t_eval[:t_end] * 1000,
         collector=collector,
         start_time=2,
@@ -135,7 +138,7 @@ geo_params = {
     "r_short_epi": 3.75,
     "r_long_endo": 4.25,
     "r_long_epi": 5,
-    "mesh_size": 0.5,
+    "mesh_size": 2.5,
 }
 circ_params = {
     "aortic_resistance": 5,
@@ -148,10 +151,10 @@ circ_params = {
 
 bc_params = {"pericardium_spring": 0.0001}
 
-outdir = Path("dev")
+outdir = Path("00_results/single_core")
 
 segmentation_schema = {
-    "num_circ_segments": 72,
+    "num_circ_segments": 7,
     "num_long_segments": 6,
 }
 

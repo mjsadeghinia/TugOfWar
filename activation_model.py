@@ -8,7 +8,7 @@ from tqdm import tqdm
 import numpy as np
 import scipy.integrate
 from scipy.interpolate import interp1d
-
+import dolfin
 
 def default_parameters() -> Dict[str, float]:
     r"""Default parameters for the activation model
@@ -266,3 +266,30 @@ def process_systole_time(offset, t_span, t_eval):
         / 1000.0
     )
     return segment_delayed_activation
+
+
+def save_activation_as_dolfin_function(geo, delayed_activations, fname):
+    V = dolfin.FunctionSpace(geo.mesh, "DG", 0)
+    delayed_activations_function = dolfin.Function(V)
+    segments = geo.cfun
+
+
+    def get_elems(cfun, cfun_num):
+        indices = np.where(cfun.array() == cfun_num)[0]
+        return indices
+
+
+    for t in range(len(delayed_activations[0])):
+        num_segments = len(set(segments.array()))
+        for n in range(num_segments):
+            delayed_activations_function.vector()[get_elems(segments, n + 1)] = (
+                delayed_activations[n][t, :]
+            )
+        with dolfin.XDMFFile(fname.as_posix()) as xdmf:
+            xdmf.write_checkpoint(
+                delayed_activations_function,
+                "activation",
+                float(t + 1),
+                dolfin.XDMFFile.Encoding.HDF5,
+                True,
+            )
