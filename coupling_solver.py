@@ -36,7 +36,6 @@ class CirculationModel(Protocol):
     def update_aortic_pressure(self) -> float: ...
 
 
-
 def circulation_solver(
     heart_model: HeartModel,
     circulation_model: CirculationModel,
@@ -44,7 +43,7 @@ def circulation_solver(
     time: np.ndarray,
     collector: DataCollector | None = None,
     start_time: int = 0,
-    comm = None
+    comm=None,
 ):
     """
     Solves the coupled cardiac and circulation model dynamics over a specified time period.
@@ -60,7 +59,7 @@ def circulation_solver(
     """
     if comm is None:
         comm = dolfin.MPI.comm_world
-        
+
     if collector is None:
         collector = DataCollector(outdir=Path("results"), problem=heart_model)
 
@@ -72,7 +71,7 @@ def circulation_solver(
         # Current activation level
         with dolfin.XDMFFile(comm, activation_fname.as_posix()) as xdmf:
             xdmf.read_checkpoint(target_activation, "activation", i)
-        
+
         a_current_mean = np.round(np.mean(target_activation.vector()[:]), 3)
         if comm.rank == 0:
             logger.info("Current time", t=t, a_current=a_current_mean)

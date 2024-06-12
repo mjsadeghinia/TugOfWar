@@ -2,7 +2,7 @@
 import numpy as np
 from pathlib import Path
 import dolfin
-import cardiac_geometries 
+import cardiac_geometries
 
 from circ.circulation_model import CirculationModel
 from circ.datacollector import DataCollector
@@ -30,18 +30,14 @@ atrium_pressure = 1
 num_time_step = 500
 t_end = 350
 
-outdir = Path('00_results/dev')
+outdir = Path("00_results/dev")
 
 delay = 0.03
-delay_mode = 'delay'
+delay_mode = "delay"
 
-fname  = outdir / 'lv/geo.h5'
-geo = cardiac_geometries.geometry.Geometry.from_file(fname.as_posix(), comm = comm)
-heart_model = HeartModelPulse(
-        geo=geo,
-        bc_params=bc_params,
-        comm=comm
-    )
+fname = outdir / "lv/geo.h5"
+geo = cardiac_geometries.geometry.Geometry.from_file(fname.as_posix(), comm=comm)
+heart_model = HeartModelPulse(geo=geo, bc_params=bc_params, comm=comm)
 
 
 circulation_model = CirculationModel(params=circ_params)
@@ -56,7 +52,7 @@ collector.collect(
     flow=circulation_model.flow,
     p_ao=circulation_model.aortic_pressure,
 )
-    
+
 volume = heart_model.initial_loading(atrium_pressure=atrium_pressure)
 collector.collect(
     time=0,
@@ -69,7 +65,7 @@ collector.collect(
 
 t_span = (0.0, 1.0)
 t_eval = np.linspace(*t_span, num_time_step)
-activation_fname = outdir / 'activation.xdmf'
+activation_fname = outdir / "activation.xdmf"
 
 collector = circulation_solver(
     heart_model=heart_model,
@@ -78,6 +74,6 @@ collector = circulation_solver(
     time=t_eval[:t_end] * 1000,
     collector=collector,
     start_time=2,
-    comm = comm
-)    
+    comm=comm,
+)
 # %%

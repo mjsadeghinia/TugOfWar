@@ -88,12 +88,12 @@ def data_segmenting(data):
 
 def filling_phase_sampling(data, start, end):
     return (
-        [data["time"][start],data["time"][end]],
-        [data["activation"][start],data["activation"][end]],
-        [data["volume"][start],data["volume"][end]],
-        [data["lv_pressure"][start],data["lv_pressure"][end]],
-        [data["aortic_pressure"][start],data["aortic_pressure"][end]],
-        [data["outflow"][start],data["outflow"][end]],
+        [data["time"][start], data["time"][end]],
+        [data["activation"][start], data["activation"][end]],
+        [data["volume"][start], data["volume"][end]],
+        [data["lv_pressure"][start], data["lv_pressure"][end]],
+        [data["aortic_pressure"][start], data["aortic_pressure"][end]],
+        [data["outflow"][start], data["outflow"][end]],
     )
 
 

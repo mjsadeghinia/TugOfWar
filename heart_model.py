@@ -5,12 +5,10 @@ from pathlib import Path
 from structlog import get_logger
 from typing import Union
 
-import cardiac_geometries
 import pulse
 import dolfin
 
-from segmentation import segmentation
-from geometry import create_ellipsoid_geometry, load_geo
+from geometry import create_ellipsoid_geometry
 
 logger = get_logger()
 
@@ -25,7 +23,7 @@ class HeartModelPulse:
         geo_folder: Path = Path("lv"),
         bc_params: dict = None,
         segmentation_schema: dict = None,
-        comm = None
+        comm=None,
     ):
         """
         Initializes the heart model with given geometrical parameters and folder for geometrical data.
@@ -36,7 +34,11 @@ class HeartModelPulse:
         """
 
         if geo is None:
-            geo = create_ellipsoid_geometry(folder=geo_folder, geo_params=geo_params, segmentation_schema=segmentation_schema)
+            geo = create_ellipsoid_geometry(
+                folder=geo_folder,
+                geo_params=geo_params,
+                segmentation_schema=segmentation_schema,
+            )
             self.geometry = self.create_pulse_geometry(geo)
             if geo_refinement is not None:
                 geo_refined = self.refine_geo(self.geometry, geo_refinement)
@@ -50,7 +52,7 @@ class HeartModelPulse:
         if comm is None:
             comm = dolfin.MPI.comm_world
         self.comm = comm
-        
+
         V = dolfin.FunctionSpace(self.geometry.mesh, "DG", 0)
         self.lv_pressure = dolfin.Constant(0.0, name="LV Pressure")
         self.activation = dolfin.Function(V, name="Activation")
@@ -135,7 +137,7 @@ class HeartModelPulse:
         # Update the problem with the give activation and pressure and store the initial State of the problem
         self.assign_state_variables(activation_value, pressure_value)
         self.problem.solve()
-        
+
         # dolfin.MPI.barrier(self.comm)
 
         p_i = self.get_pressure()
@@ -146,7 +148,7 @@ class HeartModelPulse:
         # breakpoint()
         self.lv_pressure.assign(p_f)
         self.problem.solve()
-      
+
         # dolfin.MPI.barrier(self.comm)
 
         v_f = self.get_volume()
@@ -188,7 +190,6 @@ class HeartModelPulse:
 
         # print('save xdmf bye from ', self.comm.rank)
 
-        
         results_u, _ = self.problem.state.split(deepcopy=True)
         results_u.t = t
         with dolfin.XDMFFile(fname.as_posix()) as xdmf:
@@ -441,7 +442,6 @@ class HeartModelPulse:
                     endo_ring_points.append(vertex.point().array())
         endo_ring_points = np.array(endo_ring_points)
         return endo_ring_points
-
 
     @staticmethod
     def get_default_bc_params():
