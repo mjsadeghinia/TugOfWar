@@ -135,7 +135,7 @@ geo_params = {
     "r_short_epi": 3.75,
     "r_long_endo": 4.25,
     "r_long_epi": 5,
-    "mesh_size": .5,
+    "mesh_size": 0.5,
 }
 circ_params = {
     "aortic_resistance": 5,
@@ -159,7 +159,7 @@ collector, fe_model, circ_model, delayed_activations = main(
     num_time_step=500,
     t_end=350,
     delay=0.03,
-    delay_mode='delay',
+    delay_mode="delay",
     geo_params=geo_params,
     bc_params=bc_params,
     circ_params=circ_params,

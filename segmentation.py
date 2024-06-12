@@ -28,9 +28,14 @@ def cartesian_to_prolate_ellipsoidal(x, y, z, a):
     return nu, mu, phi
 
 
-
 class segments(dolfin.UserExpression):
-    def __init__(self, foc: float, mu_base: float, num_circ_segments: int = 4, num_long_segments: int = 4) -> None:
+    def __init__(
+        self,
+        foc: float,
+        mu_base: float,
+        num_circ_segments: int = 4,
+        num_long_segments: int = 4,
+    ) -> None:
         super().__init__()
         self.mu_base = abs(mu_base)
         self.foc = foc
@@ -46,12 +51,12 @@ class segments(dolfin.UserExpression):
 
         # Calculate the size of each segment in radians
         segment_size = 2 * np.pi / self.num_circ_segments
-        
+
         for n in range(self.num_long_segments):
-            if self.mu_base + self.dmu * n < mu <= self.mu_base + self.dmu * (n+1):
+            if self.mu_base + self.dmu * n < mu <= self.mu_base + self.dmu * (n + 1):
                 for i in range(self.num_circ_segments):
                     if i * segment_size < phi <= (i + 1) * segment_size:
-                        value[0] = n*self.num_circ_segments + i + 1
+                        value[0] = n * self.num_circ_segments + i + 1
                         # break
 
     def value_shape(self):
@@ -70,8 +75,12 @@ def segmentation(
 
     V = dolfin.FunctionSpace(geometry.mesh, "DG", 0)
     # f = dolfin.Function(V)
-    expr = segments(foc=foc, mu_base=mu_base, num_circ_segments = num_circ_segments , num_long_segments = num_long_segments)
+    expr = segments(
+        foc=foc,
+        mu_base=mu_base,
+        num_circ_segments=num_circ_segments,
+        num_long_segments=num_long_segments,
+    )
     f = dolfin.interpolate(expr, V)
     geometry.cfun.array()[:] = f.vector().get_local()
     return geometry
-

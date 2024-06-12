@@ -5,11 +5,10 @@ from pathlib import Path
 from structlog import get_logger
 from typing import Union
 
-import cardiac_geometries
 import pulse
 import dolfin
 
-from segmentation import segmentation
+from geometry import create_ellipsoid_geometry
 
 logger = get_logger()
 
@@ -24,6 +23,7 @@ class HeartModelPulse:
         geo_folder: Path = Path("lv"),
         bc_params: dict = None,
         segmentation_schema: dict = None,
+        comm=None,
     ):
         """
         Initializes the heart model with given geometrical parameters and folder for geometrical data.
@@ -34,18 +34,24 @@ class HeartModelPulse:
         """
 
         if geo is None:
-            self._get_geo_params(geo_params)
-            self.geometry = self.get_ellipsoid_geometry(
-                geo_folder, self.geo_params, segmentation_schema
+            geo = create_ellipsoid_geometry(
+                folder=geo_folder,
+                geo_params=geo_params,
+                segmentation_schema=segmentation_schema,
             )
+            self.geometry = self.create_pulse_geometry(geo)
             if geo_refinement is not None:
                 geo_refined = self.refine_geo(self.geometry, geo_refinement)
                 self.geometry = geo_refined
         else:
-            self.geometry = geo
+            self.geometry = self.create_pulse_geometry(geo)
             if geo_refinement is not None:
                 geo_refined = self.refine_geo(self.geometry, geo_refinement)
                 self.geometry = geo_refined
+
+        if comm is None:
+            comm = dolfin.MPI.comm_world
+        self.comm = comm
 
         V = dolfin.FunctionSpace(self.geometry.mesh, "DG", 0)
         self.lv_pressure = dolfin.Constant(0.0, name="LV Pressure")
@@ -93,11 +99,12 @@ class HeartModelPulse:
         # )
         pulse.iterate.iterate(self.problem, self.activation, activation_value)
         pulse.iterate.iterate(self.problem, self.lv_pressure, pressure_value)
-
+        # dolfin.MPI.barrier(self.comm)
         volume_current = self.problem.geometry.cavity_volume(
             u=self.problem.state.sub(0)
         )
-        logger.info("Computed volume", volume_current=volume_current)
+        if self.comm.rank == 0:
+            logger.info("Computed volume", volume_current=volume_current)
         return volume_current
 
     def dVdp(
@@ -117,11 +124,12 @@ class HeartModelPulse:
         Returns:
         float: The computed dV/dP .
         """
-        logger.info(
-            "Computing dV/dP",
-            activation_value=activation_value.vector()[0],
-            pressure_value=pressure_value,
-        )
+        if self.comm.rank == 0:
+            logger.info(
+                "Computing dV/dP",
+                activation_value=activation_value.vector()[0],
+                pressure_value=pressure_value,
+            )
         # Backing up the problem
         state_backup = self.problem.state.copy(deepcopy=True)
         pressure_backup = float(self.lv_pressure)
@@ -129,6 +137,9 @@ class HeartModelPulse:
         # Update the problem with the give activation and pressure and store the initial State of the problem
         self.assign_state_variables(activation_value, pressure_value)
         self.problem.solve()
+
+        # dolfin.MPI.barrier(self.comm)
+
         p_i = self.get_pressure()
         v_i = self.get_volume()
 
@@ -137,10 +148,14 @@ class HeartModelPulse:
         # breakpoint()
         self.lv_pressure.assign(p_f)
         self.problem.solve()
+
+        # dolfin.MPI.barrier(self.comm)
+
         v_f = self.get_volume()
 
         dV_dP = (v_f - v_i) / (p_f - p_i)
-        logger.info("Computed dV/dP", dV_dP=dV_dP)
+        if self.comm.rank == 0:
+            logger.info("Computed dV/dP", dV_dP=dV_dP)
 
         # reset the problem to its initial state
         self.problem.state.assign(state_backup)
@@ -169,9 +184,11 @@ class HeartModelPulse:
         outname (Path): The file path to save the model state.
         """
         fname = outdir / "results.xdmf"
-        if np.isclose(t, 0.0):
-            fname.unlink(missing_ok=True)
-            fname.with_suffix(".h5").unlink(missing_ok=True)
+        # if np.isclose(t, 0.0):
+        #     fname.unlink(missing_ok=True)
+        #     # fname.with_suffix(".h5").unlink(missing_ok=True)
+
+        # print('save xdmf bye from ', self.comm.rank)
 
         results_u, _ = self.problem.state.split(deepcopy=True)
         results_u.t = t
@@ -237,71 +254,7 @@ class HeartModelPulse:
         self.lv_pressure.assign(pressure_value)
         self.activation.assign(activation_value)
 
-    def get_ellipsoid_geometry(
-        self, folder: Path, geo_props: dict, segmentation_schema: dict
-    ):
-        """
-        Generates the ellipsoid geometry based on cardiac_geometries, for info look at caridiac_geometries.
-
-        Parameters:
-        folder (Path): The directory to save or read the geometry.
-        geo_props (dict): Geometric properties for the ellipsoid model.
-
-        Returns:
-        A geometry object compatible with the pulse.MechanicsProblem.
-        """
-        # if not folder.exists():
-        if segmentation_schema is None:
-            aha_flag = True
-        else:
-            aha_flag = False
-
-        cardiac_geometries.mesh.create_lv_ellipsoid(
-            outdir=folder,
-            r_short_endo=geo_props["r_short_endo"],
-            r_short_epi=geo_props["r_short_epi"],
-            r_long_endo=geo_props["r_long_endo"],
-            r_long_epi=geo_props["r_long_epi"],
-            psize_ref=geo_props["mesh_size"],
-            mu_apex_endo=-np.pi,
-            mu_base_endo=-np.arccos(
-                geo_props["r_short_epi"] / geo_props["r_long_endo"] / 2
-            ),
-            mu_apex_epi=-np.pi,
-            mu_base_epi=-np.arccos(
-                geo_props["r_short_epi"] / geo_props["r_long_epi"] / 2
-            ),
-            create_fibers=True,
-            fiber_angle_endo=-60,
-            fiber_angle_epi=60,
-            fiber_space="P_1",
-            aha=aha_flag,
-        )
-        if aha_flag:
-            # Trying to force cardiac_geometries to read cfun, containing aha 17 segments
-            schema = cardiac_geometries.geometry.Geometry.default_schema()
-            cfun_schema = schema["cfun"]._asdict()
-            cfun_schema["fname"] = "cfun.xdmf:f"
-            schema["cfun"] = cardiac_geometries.geometry.H5Path(**cfun_schema)
-            geo = cardiac_geometries.geometry.Geometry.from_folder(
-                folder, schema=schema
-            )
-        else:
-            geo = cardiac_geometries.geometry.Geometry.from_folder(folder)
-            mu_base_endo = -np.arccos(
-                geo_props["r_short_epi"] / geo_props["r_long_endo"] / 2
-            )
-            geo = segmentation(
-                geo,
-                geo_props["r_long_endo"],
-                geo_props["r_short_endo"],
-                mu_base_endo,
-                segmentation_schema["num_circ_segments"],
-                segmentation_schema["num_long_segments"],
-            )
-            with dolfin.XDMFFile((folder / "cfun.xdmf").as_posix()) as xdmf:
-                xdmf.write(geo.cfun)
-
+    def create_pulse_geometry(self, geo):
         marker_functions = pulse.MarkerFunctions(cfun=geo.cfun, ffun=geo.ffun)
         microstructure = pulse.Microstructure(f0=geo.f0, s0=geo.s0, n0=geo.n0)
         return pulse.HeartGeometry(
@@ -489,19 +442,6 @@ class HeartModelPulse:
                     endo_ring_points.append(vertex.point().array())
         endo_ring_points = np.array(endo_ring_points)
         return endo_ring_points
-
-    @staticmethod
-    def get_default_geo_params():
-        """
-        Default geometrical parameter for the left ventricle
-        """
-        return {
-            "r_short_endo": 3,
-            "r_short_epi": 3.75,
-            "r_long_endo": 5,
-            "r_long_epi": 5.75,
-            "mesh_size": 2.5,
-        }
 
     @staticmethod
     def get_default_bc_params():
