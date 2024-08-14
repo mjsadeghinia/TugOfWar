@@ -2,6 +2,7 @@ import math
 from typing import Dict
 from typing import Optional
 from typing import Tuple
+from structlog import get_logger
 
 import scipy.stats as stats
 from tqdm import tqdm
@@ -9,6 +10,9 @@ import numpy as np
 import scipy.integrate
 from scipy.interpolate import interp1d
 import dolfin
+
+logger = get_logger()
+
 
 def default_parameters() -> Dict[str, float]:
     r"""Default parameters for the activation model
@@ -115,6 +119,48 @@ def activation_function(
 def get_elems(cfun, cfun_num):
     indices = np.where(cfun.array() == cfun_num)[0]
     return indices
+
+
+def compute_delayed_activations_single_compartment(
+    cfun,
+    delayed_cfun,
+    std=0.01,
+    t_span=(0.0, 1.0),
+    num_time_step=100,
+    t_interp=None,
+    mode="delay",
+):
+    t_eval = np.linspace(*t_span, num_time_step)
+    # normal_activation_params = default_parameters()
+    delayed_activations = []
+    cfun_num = len(set(cfun.array()))
+    segments_num = np.linspace(1, cfun_num, cfun_num)
+    for n in tqdm(segments_num, desc="Creating Delayed Activation Curves", ncols=100):
+        elems = get_elems(cfun, n)
+        num_elems = len(elems)
+        offsets = np.zeros(num_elems)
+        if n == delayed_cfun:
+            if std == 0:
+                logger.error("In single compartment the std should be larger than 0.0")
+            else:
+                offsets += std
+        if t_interp is None:
+            segment_delayed_activations = np.zeros((len(t_eval), num_elems))
+        else:
+            segment_delayed_activations = np.zeros((len(t_interp), num_elems))
+        for i, offset in enumerate(offsets):
+            segment_delayed_activation = compute_segment_delayed_activation(
+                mode, offset, t_span, t_eval
+            )
+            if t_interp is None:
+                segment_delayed_activations[:, i] = segment_delayed_activation
+            else:
+                interp = interp1d(t_eval, segment_delayed_activation)
+                segment_delayed_activation_interp = interp(t_interp)
+                segment_delayed_activations[:, i] = segment_delayed_activation_interp
+
+        delayed_activations.append(segment_delayed_activations)
+    return delayed_activations
 
 
 def compute_delayed_activations(
@@ -272,12 +318,12 @@ def save_activation_as_dolfin_function(geo, delayed_activations, fname):
     V = dolfin.FunctionSpace(geo.mesh, "DG", 0)
     delayed_activations_function = dolfin.Function(V)
     segments = geo.cfun
-
+    if fname.exists():
+        fname.unlink()
 
     def get_elems(cfun, cfun_num):
         indices = np.where(cfun.array() == cfun_num)[0]
         return indices
-
 
     for t in range(len(delayed_activations[0])):
         num_segments = len(set(segments.array()))

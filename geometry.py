@@ -115,6 +115,8 @@ def load_geo(fname: Union[str, Path], comm=None):
     geo = cardiac_geometries.geometry.Geometry.from_file(fname.as_posix(), comm=comm)
     return geo
 
+def get_cfun_for_altered_compartment(segmentation_schema):
+    return (int(segmentation_schema["num_long_segments"]/2)-1)*segmentation_schema["num_circ_segments"]+1
 
 # %%
 # comm = dolfin.MPI.comm_world
