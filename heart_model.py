@@ -199,7 +199,8 @@ class HeartModelPulse:
             )
 
         F = pulse.kinematics.DeformationGradient(results_u)
-        E = pulse.kinematics.GreenLagrangeStrain(F)
+        F_new = F * dolfin.inv(self.F0)  # Here we exclude the initial inflation part for calculation of strain values
+        E = pulse.kinematics.GreenLagrangeStrain(F_new)
         # Cauchy = self.problem.material.CauchyStress(F)
         # S = self.problem.material.SecondPiolaStress(F)
         # MW = dolfin.inner(S, E)
