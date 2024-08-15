@@ -200,21 +200,21 @@ class HeartModelPulse:
 
         F = pulse.kinematics.DeformationGradient(results_u)
         E = pulse.kinematics.GreenLagrangeStrain(F)
-        Cauchy = self.problem.material.CauchyStress(F)
-        S = self.problem.material.SecondPiolaStress(F)
-        MW = dolfin.inner(S, E)
+        # Cauchy = self.problem.material.CauchyStress(F)
+        # S = self.problem.material.SecondPiolaStress(F)
+        # MW = dolfin.inner(S, E)
 
         fname = outdir / "Green Lagrange Strain.xdmf"
-        self.save_tensor(E, fname, t, name="Deformation Gradiant")
+        self.save_tensor(E, fname, t, name="Green Lagrange Strain")
 
         # fname = outdir / "Deformation_Gradient.xdmf"
         # self.save_tensor(F, fname, t, name="Deformation Gradiant")
 
-        fname = outdir / "Cauchy_Stress.xdmf"
-        self.save_tensor(Cauchy, fname, t, name="Cauchy Stress")
+        # fname = outdir / "Cauchy_Stress.xdmf"
+        # self.save_tensor(Cauchy, fname, t, name="Cauchy Stress")
 
-        fname = outdir / "Myocardial_Work.xdmf"
-        self.save_scalar(MW, fname, t, name="Myocardium Work")
+        # fname = outdir / "Myocardial_Work.xdmf"
+        # self.save_scalar(MW, fname, t, name="Myocardium Work")
 
     def save_tensor(self, tensor, fname, t, name="tensor"):
         mesh = self.problem.geometry.mesh
