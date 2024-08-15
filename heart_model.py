@@ -185,72 +185,58 @@ class HeartModelPulse:
         t (float): The time at which to save the model state.
         outname (Path): The file path to save the model state.
         """
-        fname = outdir / "results.xdmf"
-        # if np.isclose(t, 0.0):
-        #     fname.unlink(missing_ok=True)
-        #     # fname.with_suffix(".h5").unlink(missing_ok=True)
-
-        # print('save xdmf bye from ', self.comm.rank)
+        fname = outdir / "displacement.xdmf"
 
         results_u, _ = self.problem.state.split(deepcopy=True)
         results_u.t = t
-        with dolfin.XDMFFile(fname.as_posix()) as xdmf:
+        with dolfin.XDMFFile(self.comm, fname.as_posix()) as xdmf:
             xdmf.write_checkpoint(
-                results_u, "u", float(t + 1), dolfin.XDMFFile.Encoding.HDF5, True
-            )
-
-        self._compute_fiber_strain(results_u)
-        self._compute_myocardial_work(results_u)
-
-        V = dolfin.FunctionSpace(self.geometry.mesh, "DG", 0)
-        results_activation = dolfin.project(self.activation, V)
-        fname = outdir / "activation.xdmf"
-        with dolfin.XDMFFile(fname.as_posix()) as xdmf:
-            xdmf.write_checkpoint(
-                results_activation,
-                "activation",
+                results_u,
+                "Displacement",
                 float(t + 1),
                 dolfin.XDMFFile.Encoding.HDF5,
                 True,
             )
 
-    def _compute_fiber_strain(self, u):
-        F = pulse.kinematics.DeformationGradient(u) * dolfin.inv(self.F0)
+        F = pulse.kinematics.DeformationGradient(results_u)
         E = pulse.kinematics.GreenLagrangeStrain(F)
-        # Green strain normal to fiber direction
-        V = dolfin.FunctionSpace(self.geometry.mesh, "DG", 0)
-        Eff = dolfin.project(dolfin.inner(E * self.geometry.f0, self.geometry.f0), V)
-        E_ff_segment = []
-        num_segments = len(set(self.problem.geometry.cfun.array()))
-        for n in range(num_segments):
-            indices = np.where(self.problem.geometry.cfun.array() == n + 1)[0]
-            E_ff_segment.append(Eff.vector()[indices])
-        self.E_ff.append(E_ff_segment)
-        return Eff
+        Cauchy = self.problem.material.CauchyStress(F)
+        S = self.problem.material.SecondPiolaStress(F)
+        MW = dolfin.inner(S, E)
 
-    def _compute_myocardial_work(self, u):
-        F = pulse.kinematics.DeformationGradient(u)
-        E = pulse.kinematics.GreenLagrangeStrain(F * dolfin.inv(self.F0))
-        Eff = dolfin.inner(
-            E * self.material.f0, self.material.f0
-        )  # Green Lagrange strain in fiber directions
-        sigma = self.problem.material.CauchyStress(F)
-        f_current = F * self.material.f0  # fiber directions in current configuration
-        t = sigma * f_current
-        tff = dolfin.inner(t, f_current)  # traction, forces, in fiber direction
-        myocardial_work = tff * Eff
+        fname = outdir / "Green Lagrange Strain.xdmf"
+        self.save_tensor(E, fname, t, name="Deformation Gradiant")
 
-        V = dolfin.FunctionSpace(self.problem.geometry.mesh, "DG", 0)
-        myocardial_work_values = dolfin.project(myocardial_work, V)
-        myocardial_work_values_segment = []
-        num_segments = len(set(self.problem.geometry.cfun.array()))
-        for n in range(num_segments):
-            indices = np.where(self.problem.geometry.cfun.array() == n + 1)[0]
-            myocardial_work_values_segment.append(
-                myocardial_work_values.vector()[indices]
+        # fname = outdir / "Deformation_Gradient.xdmf"
+        # self.save_tensor(F, fname, t, name="Deformation Gradiant")
+
+        fname = outdir / "Cauchy_Stress.xdmf"
+        self.save_tensor(Cauchy, fname, t, name="Cauchy Stress")
+
+        fname = outdir / "Myocardial_Work.xdmf"
+        self.save_scalar(MW, fname, t, name="Myocardium Work")
+
+    def save_tensor(self, tensor, fname, t, name="tensor"):
+        mesh = self.problem.geometry.mesh
+        tensor_element = dolfin.TensorElement("DG", mesh.ufl_cell(), 0)
+        function_space = dolfin.FunctionSpace(mesh, tensor_element)
+        tensor_proj = dolfin.project(tensor, function_space)
+        tensor_proj.t = t + 1
+        with dolfin.XDMFFile(self.comm, fname.as_posix()) as xdmf:
+            xdmf.write_checkpoint(
+                tensor_proj, name, float(t + 1), dolfin.XDMFFile.Encoding.HDF5, True
             )
-        self.myocardial_work.append(myocardial_work_values_segment)
-        return myocardial_work
+
+    def save_scalar(self, scalar, fname, t, name="scalar"):
+        mesh = self.problem.geometry.mesh
+        tensor_element = dolfin.FiniteElement("DG", mesh.ufl_cell(), 0)
+        function_space = dolfin.FunctionSpace(mesh, tensor_element)
+        tensor_proj = dolfin.project(scalar, function_space)
+        tensor_proj.t = t + 1
+        with dolfin.XDMFFile(self.comm, fname.as_posix()) as xdmf:
+            xdmf.write_checkpoint(
+                tensor_proj, name, float(t + 1), dolfin.XDMFFile.Encoding.HDF5, True
+            )
 
     def assign_state_variables(self, activation_value, pressure_value):
         self.lv_pressure.assign(pressure_value)
