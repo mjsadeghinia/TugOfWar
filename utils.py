@@ -259,3 +259,48 @@ def data_plotting(data, style="ro"):
         data["time"], pressures_mmHg, style, alpha=0
     )  # invisible plot just for axis
     ax4.set_ylabel("Pressure (mmHg)")
+
+
+def generate_symmetric_jet_colors(n, reverse=False):
+    if n % 2 == 0:
+        num_colors = n // 2
+    else:
+        num_colors = (n - 1) // 2 + 1
+    
+    cmap_name = 'jet_r' if reverse else 'jet'
+    cmap = plt.get_cmap(cmap_name)
+    base_colors = [cmap(i / (num_colors - 1)) for i in range(num_colors)]
+    
+    if n % 2 == 0:
+        final_colors = base_colors + base_colors[::-1]
+    else:
+        final_colors = base_colors + base_colors[-2::-1]
+    
+    return final_colors
+
+def plot_ring_with_white_center(n, ax=None, inner_radius=0.7, reverse=False):
+    colors = generate_symmetric_jet_colors(n, reverse)
+    
+    if ax is None:
+        fig, ax = plt.subplots(figsize=(5, 5))  
+    
+    # Generate the circular sectors
+    theta = np.linspace(0, 360, n+1)
+    start_index = n // 2 if n % 2 == 0 else (n - 1) // 2 + 1
+    for i in range(n):
+        wedge = Wedge(center=(0, 0), r=.85, theta1=theta[i], theta2=theta[i+1], 
+                      width=1-inner_radius, facecolor=colors[i], edgecolor='black')
+        ax.add_patch(wedge)
+        
+        # Calculate the position for the text
+        text_angle = (theta[i] + theta[i+1]) / 2
+        text_x = 0.7 * np.cos(np.radians(text_angle))
+        text_y = 0.7 * np.sin(np.radians(text_angle))
+        
+        # Calculate the number to display, starting from the middle segment
+        number_to_display = (i + start_index) % n
+        ax.text(text_x, text_y, str(number_to_display), ha='center', va='center', fontsize=12, color='white', weight='bold')
+    
+    ax.set_xlim(-1, 1)
+    ax.set_ylim(-1, 1)
+    ax.axis('off')
