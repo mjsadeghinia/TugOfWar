@@ -115,6 +115,14 @@ def load_geo(fname: Union[str, Path], comm=None):
     geo = cardiac_geometries.geometry.Geometry.from_file(fname.as_posix(), comm=comm)
     return geo
 
+def load_geo_with_cfun(geo_folder):
+    schema = cardiac_geometries.geometry.Geometry.default_schema()
+    cfun_schema = schema["cfun"]._asdict()
+    cfun_schema["fname"] = "cfun.xdmf:f"
+    schema["cfun"] = cardiac_geometries.geometry.H5Path(**cfun_schema)
+    geo = cardiac_geometries.geometry.Geometry.from_folder(geo_folder, schema=schema)
+    return geo
+
 def get_cfun_for_altered_compartment(segmentation_schema):
     return (int(segmentation_schema["num_long_segments"]/2)-1)*segmentation_schema["num_circ_segments"]+1
 
