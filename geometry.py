@@ -126,12 +126,12 @@ def load_geo_with_cfun(geo_folder):
 def get_cfun_for_altered_compartment(segmentation_schema):
     return (int(segmentation_schema["num_long_segments"]/2)-1)*segmentation_schema["num_circ_segments"]+1
 
-def get_cfun_for_adjacent_compartment(cfun, segmentation_schema, geo):
+def get_cfun_for_adjacent_compartment(cfun_num, segmentation_schema, geo):
     n = segmentation_schema["num_circ_segments"]
     compartments_indices = []
-    for i in range(n):
-        cfun += i
-        compartment_indices = np.where(geo.cfun.array() == cfun)[0]
+    for _ in range(n):
+        cfun_num += 1
+        compartment_indices = np.where(geo.cfun.array() == cfun_num)[0]
         compartments_indices.append(compartment_indices)
     return compartments_indices
 
