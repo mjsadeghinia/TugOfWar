@@ -123,10 +123,53 @@ def get_elems(cfun, cfun_num):
     return indices
 
 
+def compute_delayed_activation(
+    scenario,
+    cfun,
+    delayed_cfun,
+    std=0.01,
+    random_flag=True,
+    t_span=(0.0, 1.0),
+    num_time_step=100,
+    t_interp=None,
+    mode="delay",
+):
+    # Define a dictionary to map modes to corresponding functions
+    scenario_function_map = {
+        "single_compartment": compute_delayed_activations_single_compartment,
+        "homogenous_compartment": compute_delayed_activations_compartments,
+        "heterogenous_compartment": compute_delayed_activations_compartments,
+    }
+
+    # Check if the mode is valid and call the corresponding function
+    if scenario in scenario_function_map:
+        if scenario == "heterogenous_compartment":
+            std_compartment = 0.01
+        else:
+            std_compartment = 0
+        return scenario_function_map[scenario](
+            cfun,
+            delayed_cfun,
+            std=std,
+            std_compartment=std_compartment,
+            random_flag=random_flag,
+            t_span=t_span,
+            num_time_step=num_time_step,
+            t_interp=t_interp,
+            mode=mode,
+        )
+    else:
+        raise ValueError(
+            f"Invalid mode: {scenario}. Choose from {list(scenario_function_map.keys())}"
+        )
+
+
 def compute_delayed_activations_single_compartment(
     cfun,
     delayed_cfun,
     std=0.01,
+    std_compartment=0,
+    random_flag=True,
     t_span=(0.0, 1.0),
     num_time_step=100,
     t_interp=None,
@@ -143,7 +186,9 @@ def compute_delayed_activations_single_compartment(
         offsets = np.zeros(num_elems)
         if n == delayed_cfun:
             if std == 0:
-                logger.error("In single compartment the std should be larger than 0.0")
+                logger.warning(
+                    "In single compartment the std should be larger than 0.0"
+                )
             else:
                 offsets += std
         if t_interp is None:
@@ -161,6 +206,61 @@ def compute_delayed_activations_single_compartment(
                 segment_delayed_activation_interp = interp(t_interp)
                 segment_delayed_activations[:, i] = segment_delayed_activation_interp
 
+        delayed_activations.append(segment_delayed_activations)
+    return delayed_activations
+
+
+def compute_delayed_activations_compartments(
+    cfun,
+    delayed_cfun,
+    std=0.01,
+    std_compartment=0,
+    random_flag=True,
+    t_span=(0.0, 1.0),
+    num_time_step=100,
+    t_interp=None,
+    mode="delay",
+):
+    t_eval = np.linspace(*t_span, num_time_step)
+    delayed_activations = []
+    cfun_num = len(set(cfun.array()))
+    segments_num = np.linspace(1, cfun_num, cfun_num)
+    offsets = stats.norm.ppf(np.linspace(0.01, 0.99, cfun_num), loc=0, scale=std)
+
+    for n in tqdm(segments_num, desc="Creating Delayed Activation Curves", ncols=100):
+        elems = get_elems(cfun, n)
+        num_elems = len(elems)
+        if random_flag:
+            if len(offsets) == 1:
+                offset = offsets[0]
+            else:
+                offset_index = np.random.randint(0, len(offsets) - 1)
+                offset = offsets[offset_index]
+                offsets = np.delete(offsets, offset_index)
+        else:
+            offset = offsets[int(n - 1)]
+
+        if std_compartment == 0:
+            offsets_compartment = np.repeat(offset, num_elems)
+        else:
+            offsets_compartment = stats.norm.ppf(
+                np.linspace(0.01, 0.99, num_elems), loc=offset, scale=std_compartment
+            )
+
+        if t_interp is None:
+            segment_delayed_activations = np.zeros((len(t_eval), num_elems))
+        else:
+            segment_delayed_activations = np.zeros((len(t_interp), num_elems))
+        for i, offset_compartment in enumerate(offsets_compartment):
+            segment_delayed_activation = compute_segment_delayed_activation(
+                mode, offset_compartment, t_span, t_eval
+            )
+            if t_interp is None:
+                segment_delayed_activations[:, i] = segment_delayed_activation
+            else:
+                interp = interp1d(t_eval, segment_delayed_activation)
+                segment_delayed_activation_interp = interp(t_interp)
+                segment_delayed_activations[:, i] = segment_delayed_activation_interp
         delayed_activations.append(segment_delayed_activations)
     return delayed_activations
 
@@ -202,20 +302,22 @@ def compute_delayed_activations(
 
 
 def compute_segment_delayed_activation(mode, offset, t_span, t_eval):
-    valid_modes = ["delay", "activation", "decay", "diastole_time", "systole_time"]
+    # Define a dictionary to map modes to corresponding functions
+    mode_function_map = {
+        "delay": process_delay,
+        "activation": process_activation,
+        "decay": process_decay,
+        "diastole_time": process_diastole_time,
+        "systole_time": process_systole_time,
+    }
 
-    if mode == valid_modes[0]:
-        return process_delay(offset, t_span, t_eval)
-    elif mode == valid_modes[1]:
-        return process_activation(offset, t_span, t_eval)
-    elif mode == valid_modes[2]:
-        return process_decay(offset, t_span, t_eval)
-    elif mode == valid_modes[3]:
-        return process_diastole_time(offset, t_span, t_eval)
-    elif mode == valid_modes[4]:
-        return process_systole_time(offset, t_span, t_eval)
+    # Check if the mode is valid and call the corresponding function
+    if mode in mode_function_map:
+        return mode_function_map[mode](offset, t_span, t_eval)
     else:
-        raise ValueError(f"Invalid mode: {mode}. Choose from {valid_modes}")
+        raise ValueError(
+            f"Invalid mode: {mode}. Choose from {list(mode_function_map.keys())}"
+        )
 
 
 def process_delay(offset, t_span, t_eval):
@@ -343,24 +445,36 @@ def save_activation_as_dolfin_function(geo, delayed_activations, fname):
             )
 
 
-def plot_activation_single_compartment(mode, offset, num_time_step ,t_span = (0,1), outdir = None):
+def plot_activation_single_compartment(
+    mode, offset, num_time_step, t_span=(0, 1), outdir=None
+):
     t_eval = np.linspace(*t_span, num_time_step)
     segment_normal_activation = compute_segment_delayed_activation(
-                mode, 0, t_span, t_eval
-            )
+        mode, 0, t_span, t_eval
+    )
     segment_delayed_activation = compute_segment_delayed_activation(
-                mode, offset, t_span, t_eval
-            )
-    fig, ax = plt.subplots(figsize=(8, 6)) 
-    ax.plot(t_eval, segment_normal_activation, label='Normal Segements Activation', color = 'k')
-    ax.plot(t_eval, segment_delayed_activation, label='Delayed Segements Activation', color = 'r')
+        mode, offset, t_span, t_eval
+    )
+    fig, ax = plt.subplots(figsize=(8, 6))
+    ax.plot(
+        t_eval,
+        segment_normal_activation,
+        label="Normal Segements Activation",
+        color="k",
+    )
+    ax.plot(
+        t_eval,
+        segment_delayed_activation,
+        label="Delayed Segements Activation",
+        color="r",
+    )
     ax.legend()
-    plt.xlabel('Normalized Time [-]')
-    plt.ylabel('Myocard. Force Generation per Unit area (kPa)')
+    plt.xlabel("Normalized Time [-]")
+    plt.ylabel("Myocard. Force Generation per Unit area (kPa)")
     if outdir is None:
         plt.show()
     else:
-        outdir = Path(outdir) 
+        outdir = Path(outdir)
         outdir.mkdir(parents=True, exist_ok=True)
-        fname = outdir / 'activation_plot.png'
+        fname = outdir / "activation_plot.png"
         fig.savefig(fname=fname)
