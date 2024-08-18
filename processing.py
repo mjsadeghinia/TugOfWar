@@ -78,29 +78,95 @@ num_time_step = 500
 t_end = 500
 
 # %%
+# %%
+geo_params = {
+    "r_short_endo": 3,
+    "r_short_epi": 3.75,
+    "r_long_endo": 4.25,
+    "r_long_epi": 5,
+    "mesh_size": 0.35,
+}
+segmentation_schema = {
+    "num_circ_segments": 36,
+    "num_long_segments": 6,
+}
+num_time_step = 500
+# %%
+sceanrio = 'single_compartment'
 delay = 0
 delay_mode = "delay"
-outdir = Path("00_results/Level I/") / f"{delay_mode}_{delay}"
+outdir = Path("00_results/") / f"{sceanrio}/{delay_mode}_{delay}"
+process(outdir, num_time_step, t_end, circ_params, bc_params, atrium_pressure)
+
+delay = 0.03
+delay_mode = "delay"
+outdir = Path("00_results/") / f"{sceanrio}/{delay_mode}_{delay}"
 process(outdir, num_time_step, t_end, circ_params, bc_params, atrium_pressure)
 
 # %%
-delay = 0.05
+sceanrio = 'homogenous_compartment'
+delay = 0.03
 delay_mode = "delay"
-outdir = Path("00_results/Level I/") / f"{delay_mode}_{delay}"
+outdir = Path("00_results/") / f"{sceanrio}/{delay_mode}_{delay}"
 process(outdir, num_time_step, t_end, circ_params, bc_params, atrium_pressure)
+
 # %%
-delay = 0.05
+sceanrio = 'heterogenous_compartment'
+delay = 0.03
+delay_mode = "delay"
+outdir = Path("00_results/") / f"{sceanrio}/{delay_mode}_{delay}"
+process(outdir, num_time_step, t_end, circ_params, bc_params, atrium_pressure)
+
+# %%
+sceanrio = 'single_compartment'
+
+delay = 0.03
 delay_mode = "diastole_time"
-outdir = Path("00_results/Level I/") / f"{delay_mode}_{delay}"
+outdir = Path("00_results/") / f"{sceanrio}/{delay_mode}_{delay}"
 process(outdir, num_time_step, t_end, circ_params, bc_params, atrium_pressure)
-# %%
+
 delay = 1
 delay_mode = "decay"
-outdir = Path("00_results/Level I/") / f"{delay_mode}_{delay}"
+outdir = Path("00_results/") / f"{sceanrio}/{delay_mode}_{delay}"
+process(outdir, num_time_step, t_end, circ_params, bc_params, atrium_pressure)
+
+delay = 0.03
+delay_mode = "systole_time"
+outdir = Path("00_results/") / f"{sceanrio}/{delay_mode}_{delay}"
 process(outdir, num_time_step, t_end, circ_params, bc_params, atrium_pressure)
 
 # %%
-delay = 0.05
+sceanrio = 'homogenous_compartment'
+
+delay = 0.03
+delay_mode = "diastole_time"
+outdir = Path("00_results/") / f"{sceanrio}/{delay_mode}_{delay}"
+process(outdir, num_time_step, t_end, circ_params, bc_params, atrium_pressure)
+
+delay = 1
+delay_mode = "decay"
+outdir = Path("00_results/") / f"{sceanrio}/{delay_mode}_{delay}"
+process(outdir, num_time_step, t_end, circ_params, bc_params, atrium_pressure)
+
+delay = 0.03
 delay_mode = "systole_time"
-outdir = Path("00_results/Level I/") / f"{delay_mode}_{delay}"
+outdir = Path("00_results/") / f"{sceanrio}/{delay_mode}_{delay}"
+process(outdir, num_time_step, t_end, circ_params, bc_params, atrium_pressure)
+
+# %%
+sceanrio = 'heterogenous_compartment'
+
+delay = 0.03
+delay_mode = "diastole_time"
+outdir = Path("00_results/") / f"{sceanrio}/{delay_mode}_{delay}"
+process(outdir, num_time_step, t_end, circ_params, bc_params, atrium_pressure)
+
+delay = 1
+delay_mode = "decay"
+outdir = Path("00_results/") / f"{sceanrio}/{delay_mode}_{delay}"
+process(outdir, num_time_step, t_end, circ_params, bc_params, atrium_pressure)
+
+delay = 0.03
+delay_mode = "systole_time"
+outdir = Path("00_results/") / f"{sceanrio}/{delay_mode}_{delay}"
 process(outdir, num_time_step, t_end, circ_params, bc_params, atrium_pressure)

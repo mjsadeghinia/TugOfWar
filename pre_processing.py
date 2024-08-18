@@ -5,13 +5,13 @@ from geometry import create_ellipsoid_geometry, get_cfun_for_altered_compartment
 from activation_model import (
     plot_activation_single_compartment,
     save_activation_as_dolfin_function,
-    compute_delayed_activations_single_compartment,
+    compute_delayed_activation,
 )
 
 
 # %%
 def pre_process(
-    outdir, geo_params, segmentation_schema, num_time_step, delay_mode, delay
+    outdir, scenario, geo_params, segmentation_schema, num_time_step, delay_mode, delay, random_flag = True
 ):
     geo = create_ellipsoid_geometry(
         folder=outdir / "lv",
@@ -19,8 +19,8 @@ def pre_process(
         segmentation_schema=segmentation_schema,
     )
     delayed_cfun = get_cfun_for_altered_compartment(segmentation_schema)
-    delayed_activations = compute_delayed_activations_single_compartment(
-        geo.cfun, delayed_cfun, num_time_step=num_time_step, std=delay, mode=delay_mode
+    delayed_activations = compute_delayed_activation(
+        sceanrio, geo.cfun, delayed_cfun, num_time_step=num_time_step, std=delay, mode=delay_mode, random_flag=random_flag
     )
     fname = outdir / "activation.xdmf"
     save_activation_as_dolfin_function(geo, delayed_activations, fname)
@@ -39,37 +39,96 @@ segmentation_schema = {
     "num_long_segments": 6,
 }
 num_time_step = 500
-
+sceanrio = 'single_compartment'
 # %%
 delay = 0
 delay_mode = "delay"
-outdir = Path("00_results/Level I/") / f"{delay_mode}_{delay}"
+outdir = Path("00_results/") / f"{sceanrio}/{delay_mode}_{delay}"
 plot_activation_single_compartment(delay_mode, delay, num_time_step, outdir=outdir)
-pre_process(outdir, geo_params, segmentation_schema, num_time_step, delay_mode, delay)
-
+pre_process(outdir, sceanrio, geo_params, segmentation_schema, num_time_step, delay_mode, delay)
 # %%
-delay = 0.05
+delay = 0.03
 delay_mode = "delay"
-outdir = Path("00_results/Level I/") / f"{delay_mode}_{delay}"
+outdir = Path("00_results/") / f"{sceanrio}/{delay_mode}_{delay}"
 plot_activation_single_compartment(delay_mode, delay, num_time_step, outdir=outdir)
-pre_process(outdir, geo_params, segmentation_schema, num_time_step, delay_mode, delay)
+pre_process(outdir, sceanrio, geo_params, segmentation_schema, num_time_step, delay_mode, delay)
 
 # %%
-delay = 0.05
-delay_mode = "diastole_time"
-outdir = Path("00_results/Level I/") / f"{delay_mode}_{delay}"
+sceanrio = 'homogenous_compartment'
+delay = 0.03
+delay_mode = "delay"
+outdir = Path("00_results/") / f"{sceanrio}/{delay_mode}_{delay}"
 plot_activation_single_compartment(delay_mode, delay, num_time_step, outdir=outdir)
-pre_process(outdir, geo_params, segmentation_schema, num_time_step, delay_mode, delay)
+pre_process(outdir, sceanrio, geo_params, segmentation_schema, num_time_step, delay_mode, delay)
+
 # %%
+sceanrio = 'heterogenous_compartment'
+delay = 0.03
+delay_mode = "delay"
+outdir = Path("00_results/") / f"{sceanrio}/{delay_mode}_{delay}"
+plot_activation_single_compartment(delay_mode, delay, num_time_step, outdir=outdir)
+pre_process(outdir, sceanrio, geo_params, segmentation_schema, num_time_step, delay_mode, delay)
+
+# %%
+sceanrio = 'single_compartment'
+
+delay = 0.03
+delay_mode = "diastole_time"
+outdir = Path("00_results/") / f"{sceanrio}/{delay_mode}_{delay}"
+plot_activation_single_compartment(delay_mode, delay, num_time_step, outdir=outdir)
+pre_process(outdir, sceanrio, geo_params, segmentation_schema, num_time_step, delay_mode, delay)
+
 delay = 1
 delay_mode = "decay"
-outdir = Path("00_results/Level I/") / f"{delay_mode}_{delay}"
+outdir = Path("00_results/") / f"{sceanrio}/{delay_mode}_{delay}"
 plot_activation_single_compartment(delay_mode, delay, num_time_step, outdir=outdir)
-pre_process(outdir, geo_params, segmentation_schema, num_time_step, delay_mode, delay)
+pre_process(outdir, sceanrio, geo_params, segmentation_schema, num_time_step, delay_mode, delay)
+
+delay = 0.03
+delay_mode = "systole_time"
+outdir = Path("00_results/") / f"{sceanrio}/{delay_mode}_{delay}"
+plot_activation_single_compartment(delay_mode, delay, num_time_step, outdir=outdir)
+pre_process(outdir, sceanrio, geo_params, segmentation_schema, num_time_step, delay_mode, delay)
 
 # %%
-delay = 0.05
-delay_mode = "systole_time"
-outdir = Path("00_results/Level I/") / f"{delay_mode}_{delay}"
+sceanrio = 'homogenous_compartment'
+
+delay = 0.03
+delay_mode = "diastole_time"
+outdir = Path("00_results/") / f"{sceanrio}/{delay_mode}_{delay}"
 plot_activation_single_compartment(delay_mode, delay, num_time_step, outdir=outdir)
-pre_process(outdir, geo_params, segmentation_schema, num_time_step, delay_mode, delay)
+pre_process(outdir, sceanrio, geo_params, segmentation_schema, num_time_step, delay_mode, delay)
+
+delay = 1
+delay_mode = "decay"
+outdir = Path("00_results/") / f"{sceanrio}/{delay_mode}_{delay}"
+plot_activation_single_compartment(delay_mode, delay, num_time_step, outdir=outdir)
+pre_process(outdir, sceanrio, geo_params, segmentation_schema, num_time_step, delay_mode, delay)
+
+delay = 0.03
+delay_mode = "systole_time"
+outdir = Path("00_results/") / f"{sceanrio}/{delay_mode}_{delay}"
+plot_activation_single_compartment(delay_mode, delay, num_time_step, outdir=outdir)
+pre_process(outdir, sceanrio, geo_params, segmentation_schema, num_time_step, delay_mode, delay)
+
+# %%
+sceanrio = 'heterogenous_compartment'
+
+delay = 0.03
+delay_mode = "diastole_time"
+outdir = Path("00_results/") / f"{sceanrio}/{delay_mode}_{delay}"
+plot_activation_single_compartment(delay_mode, delay, num_time_step, outdir=outdir)
+pre_process(outdir, sceanrio, geo_params, segmentation_schema, num_time_step, delay_mode, delay)
+
+delay = 1
+delay_mode = "decay"
+outdir = Path("00_results/") / f"{sceanrio}/{delay_mode}_{delay}"
+plot_activation_single_compartment(delay_mode, delay, num_time_step, outdir=outdir)
+pre_process(outdir, sceanrio, geo_params, segmentation_schema, num_time_step, delay_mode, delay)
+
+delay = 0.03
+delay_mode = "systole_time"
+outdir = Path("00_results/") / f"{sceanrio}/{delay_mode}_{delay}"
+plot_activation_single_compartment(delay_mode, delay, num_time_step, outdir=outdir)
+pre_process(outdir, sceanrio, geo_params, segmentation_schema, num_time_step, delay_mode, delay)
+
