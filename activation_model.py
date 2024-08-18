@@ -2,7 +2,9 @@ import math
 from typing import Dict
 from typing import Optional
 from typing import Tuple
+from pathlib import Path
 from structlog import get_logger
+import matplotlib.pyplot as plt
 
 import scipy.stats as stats
 from tqdm import tqdm
@@ -339,3 +341,26 @@ def save_activation_as_dolfin_function(geo, delayed_activations, fname):
                 dolfin.XDMFFile.Encoding.HDF5,
                 True,
             )
+
+
+def plot_activation_single_compartment(mode, offset, num_time_step ,t_span = (0,1), outdir = None):
+    t_eval = np.linspace(*t_span, num_time_step)
+    segment_normal_activation = compute_segment_delayed_activation(
+                mode, 0, t_span, t_eval
+            )
+    segment_delayed_activation = compute_segment_delayed_activation(
+                mode, offset, t_span, t_eval
+            )
+    fig, ax = plt.subplots(figsize=(8, 6)) 
+    ax.plot(t_eval, segment_normal_activation, label='Normal Segements Activation', color = 'k')
+    ax.plot(t_eval, segment_delayed_activation, label='Delayed Segements Activation', color = 'r')
+    ax.legend()
+    plt.xlabel('Normalized Time [-]')
+    plt.ylabel('Myocard. Force Generation per Unit area (kPa)')
+    if outdir is None:
+        plt.show()
+    else:
+        outdir = Path(outdir) 
+        outdir.mkdir(parents=True, exist_ok=True)
+        fname = outdir / 'activation_plot.png'
+        fig.savefig(fname=fname)
