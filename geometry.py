@@ -24,6 +24,8 @@ def get_default_geo_params():
         "r_long_endo": 4.25,
         "r_long_epi": 5,
         "mesh_size": 1,
+        'fiber_angle_endo': -60,
+        'fiber_angle_epi': 60,
     }
 
 
@@ -77,8 +79,8 @@ def create_ellipsoid_geometry(
             geo_params["r_short_epi"] / geo_params["r_long_epi"] / 2
         ),
         create_fibers=True,
-        fiber_angle_endo=-60,
-        fiber_angle_epi=60,
+        fiber_angle_endo=geo_params["fiber_angle_endo"],
+        fiber_angle_epi=geo_params["fiber_angle_epi"],
         fiber_space="P_1",
         aha=aha_flag,
     )
