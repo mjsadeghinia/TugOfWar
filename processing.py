@@ -75,21 +75,32 @@ circ_params = {
 bc_params = {"pericardium_spring": 0.0001}
 atrium_pressure = 1
 num_time_step = 500
-t_end = 350
+t_end = 500
+
 # %%
-delay = 0.05
+delay = 0
 delay_mode = "delay"
 outdir = Path("00_results/Level I/") / f"{delay_mode}_{delay}"
 process(outdir, num_time_step, t_end, circ_params, bc_params, atrium_pressure)
 
 # %%
 delay = 0.05
-delay_mode = "activation"
+delay_mode = "delay"
+outdir = Path("00_results/Level I/") / f"{delay_mode}_{delay}"
+process(outdir, num_time_step, t_end, circ_params, bc_params, atrium_pressure)
+# %%
+delay = 0.05
+delay_mode = "diastole_time"
+outdir = Path("00_results/Level I/") / f"{delay_mode}_{delay}"
+process(outdir, num_time_step, t_end, circ_params, bc_params, atrium_pressure)
+# %%
+delay = 1
+delay_mode = "decay"
 outdir = Path("00_results/Level I/") / f"{delay_mode}_{delay}"
 process(outdir, num_time_step, t_end, circ_params, bc_params, atrium_pressure)
 
 # %%
 delay = 0.05
-delay_mode = "diastole_time"
+delay_mode = "systole_time"
 outdir = Path("00_results/Level I/") / f"{delay_mode}_{delay}"
 process(outdir, num_time_step, t_end, circ_params, bc_params, atrium_pressure)
