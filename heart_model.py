@@ -198,6 +198,16 @@ class HeartModelPulse:
                 True,
             )
 
+        fname = outdir / "Activation_results.xdmf"
+        with dolfin.XDMFFile(self.comm, fname.as_posix()) as xdmf:
+            xdmf.write_checkpoint(
+                self.activation,
+                "Activation",
+                float(t + 1),
+                dolfin.XDMFFile.Encoding.HDF5,
+                True,
+            )
+        
         F = pulse.kinematics.DeformationGradient(results_u)
         F_new = F * dolfin.inv(self.F0)  # Here we exclude the initial inflation part for calculation of strain values
         E = pulse.kinematics.GreenLagrangeStrain(F_new)
