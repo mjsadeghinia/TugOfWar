@@ -20,7 +20,7 @@ def pre_process(
     )
     delayed_cfun = get_cfun_for_altered_compartment(segmentation_schema)
     delayed_activations = compute_delayed_activation(
-        sceanrio, geo.cfun, delayed_cfun, num_time_step=num_time_step, std=delay, mode=delay_mode, random_flag=random_flag
+        scenario, geo.cfun, delayed_cfun, num_time_step=num_time_step, std=delay, mode=delay_mode, random_flag=random_flag
     )
     fname = outdir / "activation.xdmf"
     save_activation_as_dolfin_function(geo, delayed_activations, fname)
