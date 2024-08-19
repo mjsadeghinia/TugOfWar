@@ -128,7 +128,7 @@ def circulation_solver(
             circulation_model.aortic_pressure,
         )
 
-        if p_current < 0.01:
+        if p_current < 0.5 and p_current<p_old:
             break
     # for time, activation, vol, pres_val, ao_pres_val, flow in zip(time, activation, volumes, presures, aortic_pressures, outflows):
     # writer.writerow([time, activation, vol, pres_val,ao_pres_val, flow])
