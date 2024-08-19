@@ -35,21 +35,10 @@ class HeartModelPulse:
         """
         logging.getLogger("pulse").setLevel(logging.WARNING)
 
-        if geo is None:
-            geo = create_ellipsoid_geometry(
-                folder=geo_folder,
-                geo_params=geo_params,
-                segmentation_schema=segmentation_schema,
-            )
-            self.geometry = self.create_pulse_geometry(geo)
-            if geo_refinement is not None:
-                geo_refined = self.refine_geo(self.geometry, geo_refinement)
-                self.geometry = geo_refined
-        else:
-            self.geometry = self.create_pulse_geometry(geo)
-            if geo_refinement is not None:
-                geo_refined = self.refine_geo(self.geometry, geo_refinement)
-                self.geometry = geo_refined
+        self.geometry = self.create_pulse_geometry(geo)
+        if geo_refinement is not None:
+            geo_refined = self.refine_geo(self.geometry, geo_refinement)
+            self.geometry = geo_refined
 
         if comm is None:
             comm = dolfin.MPI.comm_world
