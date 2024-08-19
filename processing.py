@@ -27,7 +27,9 @@ def process(
     circulation_model = CirculationModel(params=circ_params)
     collector = DataCollector(outdir=outdir, problem=heart_model)
     # saving initial values
-    v = heart_model.compute_volume(activation_value=0, pressure_value=0)
+    target_activation = dolfin.Function(heart_model.activation.ufl_function_space())
+    target_activation.vector()[:] = 0
+    v = heart_model.compute_volume(activation_value=target_activation, pressure_value=0)
     collector.collect(
         time=0,
         pressure=0,
@@ -75,7 +77,7 @@ circ_params = {
 bc_params = {"pericardium_spring": 0.0001}
 atrium_pressure = 1
 num_time_step = 500
-t_end = 500
+t_end = 350
 
 # %%
 # %%
@@ -87,52 +89,54 @@ geo_params = {
     "mesh_size": 0.35,
 }
 segmentation_schema = {
-    "num_circ_segments": 36,
+    "num_circ_segments": 72,
     "num_long_segments": 6,
 }
 num_time_step = 500
+results_folder = "00_results/dev_mpi/"
+
 # %%
 sceanrio = 'single_compartment'
 delay = 0
 delay_mode = "delay"
-outdir = Path("00_results/") / f"{sceanrio}/{delay_mode}_{delay}"
+outdir = Path(results_folder) / f"{sceanrio}/{delay_mode}_{delay}"
 process(outdir, num_time_step, t_end, circ_params, bc_params, atrium_pressure)
 
-delay = 0.03
+delay = 0.05
 delay_mode = "delay"
-outdir = Path("00_results/") / f"{sceanrio}/{delay_mode}_{delay}"
+outdir = Path(results_folder) / f"{sceanrio}/{delay_mode}_{delay}"
 process(outdir, num_time_step, t_end, circ_params, bc_params, atrium_pressure)
 
-# %%
+#%%
 sceanrio = 'homogenous_compartment'
-delay = 0.03
+delay = 0.05
 delay_mode = "delay"
-outdir = Path("00_results/") / f"{sceanrio}/{delay_mode}_{delay}"
+outdir = Path(results_folder) / f"{sceanrio}/{delay_mode}_{delay}"
 process(outdir, num_time_step, t_end, circ_params, bc_params, atrium_pressure)
 
 # %%
 sceanrio = 'heterogenous_compartment'
-delay = 0.03
+delay = 0.05
 delay_mode = "delay"
-outdir = Path("00_results/") / f"{sceanrio}/{delay_mode}_{delay}"
-process(outdir, num_time_step, t_end, circ_params, bc_params, atrium_pressure)
+outdir = Path(results_folder) / f"{sceanrio}/{delay_mode}_{delay}"
+process(outdir, num_time_step, t_end, circ_params, bc_params, atrium_pressure, comm=comm)
 
 # %%
 sceanrio = 'single_compartment'
 
 delay = 0.03
 delay_mode = "diastole_time"
-outdir = Path("00_results/") / f"{sceanrio}/{delay_mode}_{delay}"
+outdir = Path(results_folder) / f"{sceanrio}/{delay_mode}_{delay}"
 process(outdir, num_time_step, t_end, circ_params, bc_params, atrium_pressure)
 
 delay = 1
 delay_mode = "decay"
-outdir = Path("00_results/") / f"{sceanrio}/{delay_mode}_{delay}"
+outdir = Path(results_folder) / f"{sceanrio}/{delay_mode}_{delay}"
 process(outdir, num_time_step, t_end, circ_params, bc_params, atrium_pressure)
 
 delay = 0.03
 delay_mode = "systole_time"
-outdir = Path("00_results/") / f"{sceanrio}/{delay_mode}_{delay}"
+outdir = Path(results_folder) / f"{sceanrio}/{delay_mode}_{delay}"
 process(outdir, num_time_step, t_end, circ_params, bc_params, atrium_pressure)
 
 # %%
@@ -140,17 +144,17 @@ sceanrio = 'homogenous_compartment'
 
 delay = 0.03
 delay_mode = "diastole_time"
-outdir = Path("00_results/") / f"{sceanrio}/{delay_mode}_{delay}"
+outdir = Path(results_folder) / f"{sceanrio}/{delay_mode}_{delay}"
 process(outdir, num_time_step, t_end, circ_params, bc_params, atrium_pressure)
 
 delay = 1
 delay_mode = "decay"
-outdir = Path("00_results/") / f"{sceanrio}/{delay_mode}_{delay}"
+outdir = Path(results_folder) / f"{sceanrio}/{delay_mode}_{delay}"
 process(outdir, num_time_step, t_end, circ_params, bc_params, atrium_pressure)
 
 delay = 0.03
 delay_mode = "systole_time"
-outdir = Path("00_results/") / f"{sceanrio}/{delay_mode}_{delay}"
+outdir = Path(results_folder) / f"{sceanrio}/{delay_mode}_{delay}"
 process(outdir, num_time_step, t_end, circ_params, bc_params, atrium_pressure)
 
 # %%
@@ -158,15 +162,15 @@ sceanrio = 'heterogenous_compartment'
 
 delay = 0.03
 delay_mode = "diastole_time"
-outdir = Path("00_results/") / f"{sceanrio}/{delay_mode}_{delay}"
+outdir = Path(results_folder) / f"{sceanrio}/{delay_mode}_{delay}"
 process(outdir, num_time_step, t_end, circ_params, bc_params, atrium_pressure)
 
 delay = 1
 delay_mode = "decay"
-outdir = Path("00_results/") / f"{sceanrio}/{delay_mode}_{delay}"
+outdir = Path(results_folder) / f"{sceanrio}/{delay_mode}_{delay}"
 process(outdir, num_time_step, t_end, circ_params, bc_params, atrium_pressure)
 
 delay = 0.03
 delay_mode = "systole_time"
-outdir = Path("00_results/") / f"{sceanrio}/{delay_mode}_{delay}"
+outdir = Path(results_folder) / f"{sceanrio}/{delay_mode}_{delay}"
 process(outdir, num_time_step, t_end, circ_params, bc_params, atrium_pressure)
