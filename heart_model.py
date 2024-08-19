@@ -172,7 +172,9 @@ class HeartModelPulse:
         return self.problem.geometry.cavity_volume(u=self.problem.state.sub(0))
 
     def initial_loading(self, atrium_pressure):
-        volume = self.compute_volume(activation_value=0, pressure_value=atrium_pressure)
+        target_activation = dolfin.Function(self.activation.ufl_function_space())
+        target_activation.vector()[:] = 0
+        volume = self.compute_volume(activation_value=target_activation, pressure_value=atrium_pressure)
         results_u, _ = self.problem.state.split(deepcopy=True)
         self.F0 = pulse.kinematics.DeformationGradient(results_u)
         return volume
