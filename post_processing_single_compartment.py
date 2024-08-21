@@ -36,12 +36,68 @@ def load_E(fname: Path, t: float, mesh: dolfin.mesh):
         xdmf.read_checkpoint(E, "Green Lagrange Strain", t)
     return E
 
+def load_activation(fname: Path, t: float, mesh: dolfin.mesh):
+    element = dolfin.FiniteElement("DG", mesh.ufl_cell(), 0)
+    function_space = dolfin.FunctionSpace(mesh, element)
+    activation = dolfin.Function(function_space)
+    with dolfin.XDMFFile(fname.as_posix()) as xdmf:
+        xdmf.read_checkpoint(activation, "Activation", t)
+    return activation
 
 def compute_fiber_strain(E: dolfin.Function, fib0: dolfin.Function, mesh: dolfin.mesh):
     V = dolfin.FunctionSpace(mesh, "DG", 0)
     Eff = dolfin.project(dolfin.inner(E * fib0, fib0), V)
     return Eff
 
+def find_all_compartments_indices(cfun):
+    compartments_indices = []
+    cfun_num = len(set(cfun.array()))
+    for n in range(cfun_num):
+        compartment_indices = np.where(cfun.array() == n + 1 )[0]
+        compartments_indices.append(compartment_indices)
+    return compartments_indices
+
+def compute_all_strain_ave_std(compartments_indices, Eff_value_arr):
+    Eff_ave = []
+    Eff_std = []
+    for indices in compartments_indices:
+        Eff_compartment = Eff_value_arr[:, indices]
+        Eff_ave.append(Eff_compartment.mean(axis=1))
+        Eff_std.append(Eff_compartment.std(axis=1))
+    return Eff_ave, Eff_std
+
+
+def export_all_strain_ave_std(Eff_ave, Eff_std, results_folder,scenario,delay,delay_mode,num_time_step, plot_flag=False):
+    stacked_array = np.column_stack(Eff_ave)
+    rows = stacked_array.shape[0]
+    time_columns = np.linspace(0, rows/num_time_step, rows)
+    final_array = np.column_stack((time_columns, stacked_array))
+    # Create the header
+    num_columns = stacked_array.shape[1]
+    header = ['Normalized time'] + [f'comp.{i+1}' for i in range(num_columns)]
+    outdir = Path(f"{results_folder}/strain curves/")
+    outdir.mkdir(parents=True, exist_ok=True)
+    fname = outdir / f'{scenario}_{delay_mode}_{delay}.csv'
+    np.savetxt(fname, final_array, delimiter=',',header=','.join(header), fmt='%.8f')
+    
+    if plot_flag:
+        time = final_array[:, 0]
+        fig, ax = plt.subplots(figsize=(8, 6))
+        for i in range(1, num_columns + 1):
+            ax.plot(time, final_array[:, i], label=f'comp.{i}', color='black', linewidth=0.1)
+        ax.set_xlabel("Normalized time (-)")
+        ax.set_ylabel('Strain (-)')
+        ax.set_xlim([0, 1])
+        fname = outdir / f'{scenario}_{delay_mode}_{delay}.png'
+        ax.set_ylim([-.3, .2])
+        fig.savefig(fname=fname)
+        plt.close(fig)
+        
+    stacked_array = np.column_stack(Eff_std)
+    rows = stacked_array.shape[0]
+    final_array = np.column_stack((time_columns, stacked_array))
+    fname = outdir / f'{scenario}_{delay_mode}_{delay}_std.csv'
+    np.savetxt(fname, final_array, delimiter=',',header=','.join(header), fmt='%.8f')
 
 # %%
 def plot_strain_result(
@@ -81,12 +137,11 @@ def plot_strain_result(
 
 
 # %%
-def main(outdir, num_time_step, segmentation_schema):
+def main(outdir, num_time_step, segmentation_schema, results_folder, scenario, delay, delay_mode):
     geo_folder = Path(outdir) / "lv"
     geo = load_geo_with_cfun(geo_folder)
 
     E_fname = outdir / "Green Lagrange Strain.xdmf"
-    Eff_value = np.zeros((num_time_step, geo.mesh.num_cells()))
     Eff_value = []
     for t in range(num_time_step):
         try:
@@ -95,10 +150,23 @@ def main(outdir, num_time_step, segmentation_schema):
             Eff_value.append(Eff_t.vector()[:])
         except:
             break
+        
+    # a_fname = outdir / "Activation_results.xdmf"
+    # a_value = []
+    # for t in range(num_time_step):
+    #     try:
+    #         a_t = load_activation(a_fname, t, geo.mesh)
+    #         a_value.append(a_t.vector()[:])
+    #     except:
+    #         break
 
     t_tot = len(Eff_value)
     Eff_value_arr = np.array(Eff_value)
-
+    
+    # Exporting all the strain curve average per compartment
+    all_compartments_indices = find_all_compartments_indices(geo.cfun)
+    Eff_ave,  Eff_std = compute_all_strain_ave_std(all_compartments_indices, Eff_value_arr)
+    export_all_strain_ave_std(Eff_ave, Eff_std, results_folder,scenario,delay,delay_mode, num_time_step, plot_flag=True)
     altered_compartment_cfun = get_cfun_for_altered_compartment(segmentation_schema)
     compartments_indices = get_cfun_for_adjacent_compartment(
         altered_compartment_cfun, segmentation_schema, geo
@@ -111,23 +179,33 @@ def main(outdir, num_time_step, segmentation_schema):
     plots_folder.mkdir(exist_ok=True)
 
     fig, ax = plt.subplots(figsize=(8, 6))
-    ylim = [np.min(Eff_value_arr), np.max(Eff_value_arr)]
+    combined_Eff_value_arr = [item for sublist in compartments_indices for item in sublist]
+    ylim = [np.min(Eff_value_arr[:, combined_Eff_value_arr]), np.max(Eff_value_arr[:, combined_Eff_value_arr])]
+    rounded_ylim = [np.floor(ylim[0]*100)/100, np.ceil(ylim[1]*100)/100]
+
+    handles = []
+    labels = []
     for i, indices in enumerate(compartments_indices):
         Eff_compartment = Eff_value_arr[:, indices]
         if i > int(num_compartments / 2):
             style = "--"
-        plot_strain_result(
+        ax = plot_strain_result(
             Eff_compartment,
             ax,
             data_label="Compartment no. " + str(i),
             ylabel="Strain (-)",
             color=colors[i],
             style=style,
-            ylim=ylim,
+            ylim=rounded_ylim,
             t_end=t_tot / num_time_step,
             alpha=0,
         )
 
+        # Collect the current handle for the legend
+        line = ax.get_lines()[-1]  # Get the last line added to the axis
+        handles.append(line)
+        labels.append("Compartment no. " + str(i))
+        
         fig2, ax2 = plt.subplots(figsize=(8, 6))
         plot_strain_result(
             Eff_compartment,
@@ -136,59 +214,86 @@ def main(outdir, num_time_step, segmentation_schema):
             ylabel="Strain (-)",
             color=colors[i],
             style=style,
-            ylim=ylim,
+            ylim=rounded_ylim,
             t_end=t_tot / num_time_step,
         )
         ax2.legend()
         fname = plots_folder / f"Green-Lagrange Strain {i}"
         fig2.savefig(fname=fname)
-        fig2.clear()
-    ax.legend()
+        plt.close(fig2)
+    # Select every 6th plot for the legend
+    selected_handles = handles[::6]
+    selected_labels = labels[::6]
+
+    # Add the legend to the main axis with the selected handles and labels
+    ax.legend(selected_handles, selected_labels)
     fname = plots_folder / "Green-Lagrange Strains"
     fig.savefig(fname=fname)
-    fig.clear()
+    plt.close(fig)
 
 
 # %%
+geo_params = {
+    "r_short_endo": 3,
+    "r_short_epi": 3.75,
+    "r_long_endo": 4.25,
+    "r_long_epi": 5,
+    "mesh_size": .5,
+}
 segmentation_schema = {
-    "num_circ_segments": 18,
+    "num_circ_segments": 72,
     "num_long_segments": 6,
 }
 num_time_step = 500
-
-# %%
+results_folder = "01_results_24_08_19/"
+#%%
+scenario = 'single_compartment'
 delay = 0
 delay_mode = "delay"
-outdir = Path("00_results/Level I/") / f"{delay_mode}_{delay}"
-main(outdir, num_time_step, segmentation_schema)
+outdir = Path(results_folder) / f"{scenario}/{delay_mode}_{delay}"
+main(outdir, num_time_step, segmentation_schema, results_folder, scenario, delay, delay_mode)
 
-# %%
 delay = 0.05
 delay_mode = "delay"
-outdir = Path("00_results/Level I/") / f"{delay_mode}_{delay}"
-main(outdir, num_time_step, segmentation_schema)
-# %%
-delay = 0.05
+outdir = Path(results_folder) / f"{scenario}/{delay_mode}_{delay}"
+main(outdir, num_time_step, segmentation_schema, results_folder, scenario, delay, delay_mode)
+
+delay = 0.03
 delay_mode = "diastole_time"
-outdir = Path("00_results/Level I/") / f"{delay_mode}_{delay}"
-main(outdir, num_time_step, segmentation_schema)
-# %%
-delay = 1
-delay_mode = "decay"
-outdir = Path("00_results/Level I/") / f"{delay_mode}_{delay}"
-main(outdir, num_time_step, segmentation_schema)
-# %%
+outdir = Path(results_folder) / f"{scenario}/{delay_mode}_{delay}"
+main(outdir, num_time_step, segmentation_schema, results_folder, scenario, delay, delay_mode)
+
+scenario = 'homogenous_compartment'
+
 delay = 0.05
-delay_mode = "systole_time"
-outdir = Path("00_results/Level I/") / f"{delay_mode}_{delay}"
-main(outdir, num_time_step, segmentation_schema)
+delay_mode = "delay"
+outdir = Path(results_folder) / f"{scenario}/{delay_mode}_{delay}"
+main(outdir, num_time_step, segmentation_schema, results_folder, scenario, delay, delay_mode)
+
+delay = 0.03
+delay_mode = "diastole_time"
+outdir = Path(results_folder) / f"{scenario}/{delay_mode}_{delay}"
+main(outdir, num_time_step, segmentation_schema, results_folder, scenario, delay, delay_mode)
+
+scenario = 'heterogenous_compartment'
+
+delay = 0.05
+delay_mode = "delay"
+outdir = Path(results_folder) / f"{scenario}/{delay_mode}_{delay}"
+main(outdir, num_time_step, segmentation_schema, results_folder, scenario, delay, delay_mode)
+
+delay = 0.03
+delay_mode = "diastole_time"
+outdir = Path(results_folder) / f"{scenario}/{delay_mode}_{delay}"
+main(outdir, num_time_step, segmentation_schema, results_folder, scenario, delay, delay_mode)
+
 # %%
 # Saving a ring for presentation purposes
 fig, ax = plt.subplots(figsize=(5, 5))
 plot_ring_with_white_center(
     segmentation_schema["num_circ_segments"], ax=ax, section_num_flag=True
 )
-outdir = Path("00_results/Level I/")
+outdir = Path(results_folder) 
 fname = Path(outdir) / "Segments.png"
 fig.savefig(fname=fname)
 # %%
