@@ -221,7 +221,6 @@ def compute_delayed_activations_compartments(
     t_interp=None,
     mode="delay",
 ):
-    breakpoint()
     t_eval = np.linspace(*t_span, num_time_step)
     delayed_activations = []
     cfun_num = len(set(cfun.array()))
