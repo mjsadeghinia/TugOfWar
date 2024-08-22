@@ -13,6 +13,8 @@ import scipy.integrate
 from scipy.interpolate import interp1d
 import dolfin
 
+from geometry import get_cfun_for_altered_compartment
+
 logger = get_logger()
 
 
@@ -121,6 +123,35 @@ def activation_function(
 def get_elems(cfun, cfun_num):
     indices = np.where(cfun.array() == cfun_num)[0]
     return indices
+
+
+def create_activation_function(
+    outdir,
+    geo,
+    segmentation_schema,
+    scenario,
+    activation_mode,
+    activation_variation,
+    num_time_step,
+    random_flag=True,
+):
+    try:
+        delayed_cfun = get_cfun_for_altered_compartment(segmentation_schema)
+        delayed_activations = compute_delayed_activation(
+            scenario,
+            geo.cfun,
+            delayed_cfun,
+            num_time_step=num_time_step,
+            std=activation_variation,
+            mode=activation_mode,
+            random_flag=random_flag,
+        )
+        fname = outdir / "activation.xdmf"
+        save_activation_as_dolfin_function(geo, delayed_activations, fname)
+        return fname
+    except Exception as e:
+        logger.error(f"Failed to create activation function: {e}")
+        raise
 
 
 def compute_delayed_activation(
