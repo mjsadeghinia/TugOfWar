@@ -5,7 +5,8 @@ import argparse
 import logging
 from structlog import get_logger
 
-import geometry, activation_model
+import geometry
+import activation_model
 
 from circ.circulation_model import CirculationModel
 from circ.datacollector import DataCollector
@@ -216,6 +217,29 @@ def create_geo_params(args):
     }
 
 
+def create_bc_params(args):
+    """
+    Create a dictionary of B.C. parameters from the parsed arguments.
+    """
+    return {
+        "pericardium_spring": args.pericardium_spring,
+        "base_spring": args.base_spring,
+    }
+
+
+def create_circ_params(args):
+    """
+    Create a dictionary of geometry parameters from the parsed arguments.
+    """
+    return {
+        "aortic_resistance": args.aortic_resistance,
+        "systematic_resistance": args.systematic_resistance,
+        "systematic_compliance": args.systematic_compliance,
+        "aortic_pressure": args.aortic_pressure,
+        "diastolic_pressure": args.diastolic_pressure,
+    }
+
+
 def create_segmentation_schema(args):
     """
     Create a dictionary of segmentation schema from the parsed arguments.
@@ -321,9 +345,12 @@ def main(args=None) -> int:
         random_flag=True,
     )
 
+    bc_params = create_bc_params(args)
     heart_model = HeartModelPulse(geo=geo, bc_params=bc_params)
 
+    circ_params = create_circ_params(args)
     circulation_model = CirculationModel(params=circ_params)
+
     collector = DataCollector(outdir=outdir, problem=heart_model)
 
 
