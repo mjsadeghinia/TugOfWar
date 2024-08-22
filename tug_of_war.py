@@ -5,12 +5,24 @@ import argparse
 import logging
 from structlog import get_logger
 
-import geometry
+import geometry, activation_model
 
 logger = get_logger()
 
 
 # %%
+def update_arguments(args):
+    # If args is provided, merge with defaults
+    default_args = parse_arguments()
+    # Convert to namespace and update the defaults with provided args
+    default_args = vars(default_args)
+    for key, value in vars(args).items():
+        if value is not None:
+            default_args[key] = value
+    args = argparse.Namespace(**default_args)
+    return args
+
+
 def parse_arguments(args=None):
     """
     Parse the command-line arguments.
@@ -79,7 +91,7 @@ def parse_arguments(args=None):
         default="homogenous_compartment",
         type=str,
         help="The scenario for the alteration of material properties. Must be one of: "
-             + ", ".join(valid_scenarios),
+        + ", ".join(valid_scenarios),
     )
 
     valid_params = [
@@ -95,7 +107,7 @@ def parse_arguments(args=None):
         default="activation",
         type=str,
         help="The parameter of study to be modified. Must be one of: "
-             + ", ".join(valid_params),
+        + ", ".join(valid_params),
     )
 
     # Additional arguments for 'activation'
@@ -130,6 +142,7 @@ def parse_arguments(args=None):
 
     return parser.parse_args(args)
 
+
 def create_geo_params(args):
     """
     Create a dictionary of geometry parameters from the parsed arguments.
@@ -142,6 +155,7 @@ def create_geo_params(args):
         "mesh_size": args.mesh_size,
     }
 
+
 def create_segmentation_schema(args):
     """
     Create a dictionary of segmentation schema from the parsed arguments.
@@ -151,6 +165,7 @@ def create_segmentation_schema(args):
         "num_long_segments": args.num_long_segments,
     }
 
+
 def prepare_output_directory(args):
     """
     Prepare the output directory, ensuring it exists.
@@ -158,6 +173,7 @@ def prepare_output_directory(args):
     outdir_path = Path(args.outdir)
     outdir_path.mkdir(exist_ok=True)
     return outdir_path
+
 
 def check_parmas_activation(args):
     """
@@ -177,16 +193,49 @@ def check_parmas_activation(args):
     return args
 
 
+def create_activation_function(
+    outdir,
+    geo,
+    segmentation_schema,
+    scenario,
+    activation_mode,
+    activation_variation,
+    num_time_step,
+    random_flag=True,
+):
+    try:
+        delayed_cfun = geometry.get_cfun_for_altered_compartment(segmentation_schema)
+        delayed_activations = activation_model.compute_delayed_activation(
+            scenario,
+            geo.cfun,
+            delayed_cfun,
+            num_time_step=num_time_step,
+            std=activation_variation,
+            mode=activation_mode,
+            random_flag=random_flag,
+        )
+        fname = outdir / "activation.xdmf"
+        activation_model.save_activation_as_dolfin_function(
+            geo, delayed_activations, fname
+        )
+        return fname
+    except Exception as e:
+        logger.error(f"Failed to create activation function: {e}")
+        raise
+
+
 def main(args=None) -> int:
     if args is None:
         args = parse_arguments(args)
+    else:
+        args = update_arguments(args)
 
     geo_params = create_geo_params(args)
 
     segmentation_schema = create_segmentation_schema(args)
 
     outdir = prepare_output_directory(args)
-    
+
     ## Creating Geometry
     geo = geometry.create_ellipsoid_geometry(
         folder=outdir / "lv",
@@ -200,6 +249,17 @@ def main(args=None) -> int:
     activation_variation = args.activation_variation
     scenario = args.scenario
     num_time_step = args.num_time_step
+
+    fname = create_activation_function(
+        outdir,
+        geo,
+        segmentation_schema,
+        scenario,
+        activation_mode,
+        activation_variation,
+        num_time_step,
+        random_flag=True,
+    )
 
 
 # %%

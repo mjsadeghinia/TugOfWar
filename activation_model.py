@@ -221,11 +221,15 @@ def compute_delayed_activations_compartments(
     t_interp=None,
     mode="delay",
 ):
+    breakpoint()
     t_eval = np.linspace(*t_span, num_time_step)
     delayed_activations = []
     cfun_num = len(set(cfun.array()))
     segments_num = np.linspace(1, cfun_num, cfun_num)
-    offsets = stats.norm.ppf(np.linspace(0.01, 0.99, cfun_num), loc=0, scale=std)
+    if std == 0:
+        offsets = np.zeros(cfun_num)
+    else:
+        offsets = stats.norm.ppf(np.linspace(0.01, 0.99, cfun_num), loc=0, scale=std)
 
     for n in tqdm(segments_num, desc="Creating Delayed Activation Curves", ncols=100):
         elems = get_elems(cfun, n)
