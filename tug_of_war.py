@@ -2,9 +2,10 @@
 
 from pathlib import Path
 import argparse
-import logging
+import numpy as np
 from structlog import get_logger
 
+import dolfin
 import geometry
 import activation_model
 
@@ -308,6 +309,21 @@ def create_activation_function(
         raise
 
 
+def model_initialization(heart_model, circulation_model, collector):
+    target_activation = dolfin.Function(heart_model.activation.ufl_function_space())
+    target_activation.vector()[:] = 0
+    v = heart_model.compute_volume(activation_value=target_activation, pressure_value=0)
+    collector.collect(
+        time=0,
+        pressure=0,
+        volume=v,
+        activation=0.0,
+        flow=circulation_model.flow,
+        p_ao=circulation_model.aortic_pressure,
+    )
+    return v
+
+
 def main(args=None) -> int:
     if args is None:
         args = parse_arguments(args)
@@ -334,7 +350,7 @@ def main(args=None) -> int:
     scenario = args.scenario
     num_time_step = args.num_time_step
 
-    fname = create_activation_function(
+    activation_fname = create_activation_function(
         outdir,
         geo,
         segmentation_schema,
@@ -345,6 +361,7 @@ def main(args=None) -> int:
         random_flag=True,
     )
 
+    # Model Generation
     bc_params = create_bc_params(args)
     heart_model = HeartModelPulse(geo=geo, bc_params=bc_params)
 
@@ -352,6 +369,33 @@ def main(args=None) -> int:
     circulation_model = CirculationModel(params=circ_params)
 
     collector = DataCollector(outdir=outdir, problem=heart_model)
+
+    # Initializing the model with zero pressure and activaiton
+    v = model_initialization(heart_model, circulation_model, collector)
+
+    # Initial loading of the model to atrium pressure with zero activation
+    atrium_pressure = args.atrium_pressure
+    volume = heart_model.initial_loading(atrium_pressure=atrium_pressure)
+    collector.collect(
+        time=1,
+        pressure=atrium_pressure,
+        volume=volume,
+        activation=0.0,
+        flow=circulation_model.flow,
+        p_ao=circulation_model.aortic_pressure,
+    )
+
+    # Solving for the model for the time span of 0 to 1. The model stops if the pressure<0.5
+    t_span = (0.0, 1.0)
+    t_eval = np.linspace(*t_span, num_time_step)
+    collector = circulation_solver(
+        heart_model=heart_model,
+        circulation_model=circulation_model,
+        activation_fname=activation_fname,
+        time=t_eval * 1000,
+        collector=collector,
+        start_time=2,
+    )
 
 
 # %%
