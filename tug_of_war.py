@@ -7,6 +7,12 @@ from structlog import get_logger
 
 import geometry, activation_model
 
+from circ.circulation_model import CirculationModel
+from circ.datacollector import DataCollector
+
+from coupling_solver import circulation_solver
+from heart_model import HeartModelPulse
+
 logger = get_logger()
 
 
@@ -122,6 +128,60 @@ def parse_arguments(args=None):
         "--activation_variation",
         type=float,
         help="The amount of activation variation (required if 'activation' is chosen as parameter).",
+    )
+
+    # Arguments for circulation model
+    parser.add_argument(
+        "--aortic_resistance",
+        default=5,
+        type=float,
+        help="The aortic resistance in the circulation model.",
+    )
+    parser.add_argument(
+        "--systematic_resistance",
+        default=10,
+        type=float,
+        help="The systematic resistance in the circulation model.",
+    )
+    parser.add_argument(
+        "--systematic_compliance",
+        default=10,
+        type=float,
+        help="The systematic compliance in the circulation model.",
+    )
+    parser.add_argument(
+        "--aortic_pressure",
+        default=10,
+        type=float,
+        help="The pressure requires to open the aortic valve.",
+    )
+    parser.add_argument(
+        "--diastolic_pressure",
+        default=10,
+        type=float,
+        help="The pressure at the prepheries defined as boundary condition.",
+    )
+
+    # Arguments for HeartModel boundary conditions
+    parser.add_argument(
+        "--pericardium_spring",
+        default=0.0001,
+        type=float,
+        help="HeartModel BC: The stiffness of the spring on the pericardium.",
+    )
+    parser.add_argument(
+        "--base_spring",
+        default=0,
+        type=float,
+        help="HeartModel BC: The stiffness of the spring at the base.",
+    )
+
+    # Additional arguments for HeartModel
+    parser.add_argument(
+        "--atrium_pressure",
+        default=1,
+        type=float,
+        help="HeartModel: The pressure for initial loading of HeartModel.",
     )
 
     # Additional settings
@@ -260,6 +320,11 @@ def main(args=None) -> int:
         num_time_step,
         random_flag=True,
     )
+
+    heart_model = HeartModelPulse(geo=geo, bc_params=bc_params)
+
+    circulation_model = CirculationModel(params=circ_params)
+    collector = DataCollector(outdir=outdir, problem=heart_model)
 
 
 # %%
