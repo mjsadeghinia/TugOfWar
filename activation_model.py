@@ -13,7 +13,7 @@ import scipy.integrate
 from scipy.interpolate import interp1d
 import dolfin
 
-from geometry import get_cfun_for_altered_compartment
+import geometry
 
 logger = get_logger()
 
@@ -136,7 +136,7 @@ def create_activation_function(
     random_flag=True,
 ):
     try:
-        delayed_cfun = get_cfun_for_altered_compartment(segmentation_schema)
+        delayed_cfun = geometry.get_cfun_for_altered_compartment(segmentation_schema)
         delayed_activations = compute_delayed_activation(
             scenario,
             geo.cfun,
@@ -512,3 +512,99 @@ def plot_activation_single_compartment(
         outdir.mkdir(parents=True, exist_ok=True)
         fname = outdir / "activation_plot.png"
         fig.savefig(fname=fname)
+
+
+def load_activation_function_from_file(
+    activation_fname: Path, t: float, mesh: dolfin.mesh
+):
+    activation_fname = Path(activation_fname)
+    element = dolfin.FiniteElement("DG", mesh.ufl_cell(), 0)
+    function_space = dolfin.FunctionSpace(mesh, element)
+    activation_function = dolfin.Function(function_space)
+    activation_function.vector()[:] = 0
+    with dolfin.XDMFFile(activation_fname.as_posix()) as xdmf:
+        xdmf.read_checkpoint(activation_function, "activation", t)
+    return activation_function
+
+
+def load_activation_values_from_file(
+    activation_fname: Path, mesh: dolfin.mesh, num_time_step: int = 1000
+):
+    a_value = []
+    for t in range(num_time_step):
+        try:
+            activation_function = load_activation_function_from_file(
+                activation_fname, t, mesh
+            )
+            a_value.append(activation_function.vector()[:])
+        except:
+            break
+    return a_value
+
+
+def load_activation_compartment_from_file(
+    geo_folder, activation_fname, num_time_step: int = 1000
+):
+    geo_folder = Path(geo_folder)
+    activation_fname = Path(activation_fname)
+    geo = geometry.load_geo_with_cfun(geo_folder)
+    activation_values = load_activation_values_from_file(
+        activation_fname, geo.mesh, num_time_step
+    )
+    activation_values_array = np.array(activation_values)
+    cfuns = set(geo.cfun.array())
+    activation_compartments = []
+    for cfun in cfuns:
+        num_elem = get_elems(geo.cfun, cfun)
+        activation_compartments.append(activation_values_array[:, num_elem])
+
+    return activation_compartments
+
+
+def plot_average_activation_compartments(
+    outdir: str, geo_folder: str, activation_fname: str, num_time_step: int = 1000
+):
+    outdir = Path(outdir)
+    activation_compartments = load_activation_compartment_from_file(
+        geo_folder, activation_fname, num_time_step
+    )
+    t_end = activation_compartments[0].shape[0]
+    t_values = np.linspace(0, t_end / num_time_step, t_end)
+    fig, ax = plt.subplots(figsize=(8, 6))
+    for activation in activation_compartments:
+        activation_average = np.average(activation, axis=1)
+        ax.plot(t_values, activation_average, "k", linewidth=0.03)
+        ax.set_xlabel("Normalized time (-)")
+        ax.set_ylabel("Activation Parameter (kPa)")
+        ax.set_xlim([0, 1])
+    fname = outdir / "Average_activations"
+    fig.savefig(fname=fname)
+    plt.close(fig)
+
+
+def plot_activation_within_compartment(
+    outdir: str,
+    geo_folder: str,
+    activation_fname: str,
+    compartment_num: int = 0,
+    num_time_step: int = 1000,
+):
+    outdir = Path(outdir)
+    activation_compartments = load_activation_compartment_from_file(
+        geo_folder, activation_fname, num_time_step
+    )
+    t_end = activation_compartments[0].shape[0]
+    t_values = np.linspace(0, t_end / num_time_step, t_end)
+    fig, ax = plt.subplots(figsize=(8, 6))
+    num_elem = activation_compartments[compartment_num].shape[1]
+    for n in range(num_elem):
+        print(num_elem)
+        activation = activation_compartments[compartment_num][:,n]
+        
+        ax.plot(t_values, activation, "k", linewidth=0.03)
+        ax.set_xlabel("Normalized time (-)")
+        ax.set_ylabel("Activation Parameter (kPa)")
+        ax.set_xlim([0, 1])
+    fname = outdir / f"Activation_compartment_{compartment_num}"
+    fig.savefig(fname=fname)
+    plt.close(fig)
