@@ -65,7 +65,7 @@ def parse_arguments(args=None):
         help="The number of circumferential compartments per slice",
     )
     parser.add_argument(
-        "-r",
+        "-l",
         "--num_long_segments",
         default=6,
         type=int,
@@ -242,7 +242,7 @@ def prepare_output_directory(args):
     Prepare the output directory, ensuring it exists.
     """
     outdir_path = Path(args.outdir)
-    outdir_path.mkdir(exist_ok=True)
+    outdir_path.mkdir(exist_ok=True, parents=True)
     return outdir_path
 
 
