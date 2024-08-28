@@ -27,7 +27,7 @@ def parse_arguments(args=None):
     parser.add_argument(
         "-m",
         "--mesh_size",
-        default=2,
+        default=0.5,
         type=float,
         help="The mesh size, approximate length of the edge for tetrahedrons [in cm]",
     )
@@ -60,7 +60,7 @@ def parse_arguments(args=None):
     parser.add_argument(
         "-c",
         "--num_circ_segments",
-        default=18,
+        default=72,
         type=int,
         help="The number of circumferential compartments per slice",
     )
@@ -181,6 +181,12 @@ def parse_arguments(args=None):
         help="The number of time steps between 0 and 1",
     )
     parser.add_argument(
+        "--postprocessing",
+        default=False,
+        type=bool,
+        help="The flag for postprocessing",
+    )
+    parser.add_argument(
         "-o",
         "--outdir",
         default=str(Path.cwd()) + "/output",
@@ -237,11 +243,11 @@ def create_segmentation_schema(args):
     }
 
 
-def prepare_output_directory(args):
+def prepare_output_directory(outdir):
     """
     Prepare the output directory, ensuring it exists.
     """
-    outdir_path = Path(args.outdir)
+    outdir_path = Path(outdir)
     outdir_path.mkdir(exist_ok=True, parents=True)
     return outdir_path
 
@@ -261,4 +267,65 @@ def check_parmas_activation(args):
             logger.warning(
                 f"--activation_variation not provided for 'activation'; using default value: {args.activation_variation}"
             )
+    return args
+
+def parse_arguments_post(args=None):
+    parser = argparse.ArgumentParser()
+    # Segmentation parameters
+    parser.add_argument(
+        "-c",
+        "--num_circ_segments",
+        default=72,
+        type=int,
+        help="The number of circumferential compartments per slice",
+    )
+    parser.add_argument(
+        "-l",
+        "--num_long_segments",
+        default=6,
+        type=int,
+        help="The number of slices (longitudinal)",
+    )
+    # activation file name
+    parser.add_argument(
+        "--activation_fname",
+        default="activation.xdmf",
+        type=str,
+        help="The file name of activation",
+    )
+    # Data folder
+    parser.add_argument(
+        "-f",
+        "--folder_data",
+        default=Path.cwd(),
+        type=Path,
+        help="The directory of the data to be post processed",
+    )
+    # Output folder
+    parser.add_argument(
+        "-o",
+        "--outdir",
+        default='plots',
+        type=Path,
+        help="The directory of the data to be post processed",
+    )
+    # Additional settings
+    parser.add_argument(
+        "-t",
+        "--num_time_step",
+        default=500,
+        type=float,
+        help="The number of time steps between 0 and 1",
+    )
+    return parser.parse_args(args)
+    
+def update_arguments_post(args):
+    # If args is provided, merge with defaults
+    default_args = parse_arguments_post()
+    # Convert to namespace and update the defaults with provided args
+    default_args = vars(default_args)
+    for key, value in vars(args).items():
+        if value is not None:
+            default_args[key] = value
+    args = argparse.Namespace(**default_args)
     return args
