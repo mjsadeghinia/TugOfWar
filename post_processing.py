@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 import dolfin
 import geometry
 import arg_parser
+import argparse
 import activation_model
 import utils
 
@@ -128,8 +129,6 @@ def main(args=None) -> int:
     # Getting the arguments
     if args is None:
         args = arg_parser.parse_arguments_post(args)
-    else:
-        args = arg_parser.update_arguments_post(args)
 
     segmentation_schema = arg_parser.create_segmentation_schema(args)
     activation_fname = args.activation_fname
