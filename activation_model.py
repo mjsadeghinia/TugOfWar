@@ -570,7 +570,7 @@ def plot_average_activation_compartments(
         ax.set_xlabel("Normalized time (-)")
         ax.set_ylabel("Activation Parameter (kPa)")
         ax.set_xlim([0, 1])
-    fname = outdir / "Average_activations"
+    fname = outdir / "activations"
     fig.savefig(fname=fname)
     plt.close(fig)
 
@@ -591,9 +591,7 @@ def plot_activation_within_compartment(
     fig, ax = plt.subplots(figsize=(8, 6))
     num_elem = activation_compartments[compartment_num].shape[1]
     for n in range(num_elem):
-        print(num_elem)
         activation = activation_compartments[compartment_num][:,n]
-        
         ax.plot(t_values, activation, "k", linewidth=0.03)
         ax.set_xlabel("Normalized time (-)")
         ax.set_ylabel("Activation Parameter (kPa)")
