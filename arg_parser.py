@@ -182,7 +182,7 @@ def parse_arguments(args=None):
     )
     parser.add_argument(
         "--postprocessing",
-        default=False,
+        default=True,
         type=bool,
         help="The flag for postprocessing",
     )
