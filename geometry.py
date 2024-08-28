@@ -128,6 +128,10 @@ def load_geo_with_cfun(geo_folder):
 def get_cfun_for_altered_compartment(segmentation_schema):
     return (int(segmentation_schema["num_long_segments"]/2)-1)*segmentation_schema["num_circ_segments"]+1
 
+def get_first_compartment_midslice(segmentation_schema):
+    return (int(segmentation_schema["num_long_segments"]/2)-1)*segmentation_schema["num_circ_segments"]+1
+
+
 def get_cfun_for_adjacent_compartment(cfun_num, segmentation_schema, geo):
     n = segmentation_schema["num_circ_segments"]
     compartments_indices = []
