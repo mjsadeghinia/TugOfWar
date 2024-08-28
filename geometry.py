@@ -137,5 +137,6 @@ def get_cfun_for_adjacent_compartment(cfun_num, segmentation_schema, geo):
         compartments_indices.append(compartment_indices)
     return compartments_indices
 
-# %%
-# comm = dolfin.MPI.comm_world
+def get_elems(cfun, cfun_num):
+    indices = np.where(cfun.array() == cfun_num)[0]
+    return indices

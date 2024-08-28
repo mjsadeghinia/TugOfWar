@@ -120,9 +120,6 @@ def activation_function(
     return res.y.squeeze()
 
 
-def get_elems(cfun, cfun_num):
-    indices = np.where(cfun.array() == cfun_num)[0]
-    return indices
 
 
 def create_activation_function(
@@ -212,7 +209,7 @@ def compute_delayed_activations_single_compartment(
     cfun_num = len(set(cfun.array()))
     segments_num = np.linspace(1, cfun_num, cfun_num)
     for n in tqdm(segments_num, desc="Creating Delayed Activation Curves", ncols=100):
-        elems = get_elems(cfun, n)
+        elems = geometry.get_elems(cfun, n)
         num_elems = len(elems)
         offsets = np.zeros(num_elems)
         if n == delayed_cfun:
@@ -262,7 +259,7 @@ def compute_delayed_activations_compartments(
         offsets = stats.norm.ppf(np.linspace(0.01, 0.99, cfun_num), loc=0, scale=std)
 
     for n in tqdm(segments_num, desc="Creating Delayed Activation Curves", ncols=100):
-        elems = get_elems(cfun, n)
+        elems = geometry.get_elems(cfun, n)
         num_elems = len(elems)
         if random_flag:
             if len(offsets) == 1:
@@ -308,7 +305,7 @@ def compute_delayed_activations(
     cfun_num = len(set(cfun.array()))
     segments_num = np.linspace(1, cfun_num, cfun_num)
     for n in tqdm(segments_num, desc="Creating Delayed Activation Curves", ncols=100):
-        elems = get_elems(cfun, n)
+        elems = geometry.get_elems(cfun, n)
         num_elems = len(elems)
         if std == 0:
             offsets = np.zeros(num_elems)
@@ -459,14 +456,10 @@ def save_activation_as_dolfin_function(geo, delayed_activations, fname):
     if fname.exists():
         fname.unlink()
 
-    def get_elems(cfun, cfun_num):
-        indices = np.where(cfun.array() == cfun_num)[0]
-        return indices
-
     for t in range(len(delayed_activations[0])):
         num_segments = len(set(segments.array()))
         for n in range(num_segments):
-            delayed_activations_function.vector()[get_elems(segments, n + 1)] = (
+            delayed_activations_function.vector()[geometry.get_elems(segments, n + 1)] = (
                 delayed_activations[n][t, :]
             )
         with dolfin.XDMFFile(fname.as_posix()) as xdmf:
@@ -555,7 +548,7 @@ def load_activation_compartment_from_file(
     cfuns = set(geo.cfun.array())
     activation_compartments = []
     for cfun in cfuns:
-        num_elem = get_elems(geo.cfun, cfun)
+        num_elem = geometry.get_elems(geo.cfun, cfun)
         activation_compartments.append(activation_values_array[:, num_elem])
 
     return activation_compartments
