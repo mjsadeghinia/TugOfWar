@@ -5,7 +5,9 @@ import numpy as np
 from structlog import get_logger
 import dolfin
 
+import argparse
 import arg_parser
+import post_processing
 from geometry import create_ellipsoid_geometry
 from activation_model import create_activation_function
 
@@ -43,7 +45,7 @@ def main(args=None) -> int:
 
     geo_params = arg_parser.create_geo_params(args)
     segmentation_schema = arg_parser.create_segmentation_schema(args)
-    outdir = arg_parser.prepare_output_directory(args)
+    outdir = arg_parser.prepare_output_directory(args.outdir)
     args = arg_parser.check_parmas_activation(args)
     parameter = args.parameter
     activation_mode = args.activation_mode
@@ -52,6 +54,7 @@ def main(args=None) -> int:
     circ_params = arg_parser.create_circ_params(args)
     scenario = args.scenario
     num_time_step = args.num_time_step
+    postprocessing_flag = args.postprocessing
 
     ## Creating Geometry
     geo = create_ellipsoid_geometry(
@@ -103,6 +106,18 @@ def main(args=None) -> int:
         collector=collector,
         start_time=2,
     )
+    if postprocessing_flag:
+        num_circ_segments = segmentation_schema["num_circ_segments"]
+        num_long_segments = segmentation_schema["num_long_segments"]
+        args_post = argparse.Namespace(
+            num_circ_segments=num_circ_segments,
+            num_long_segments=num_long_segments,
+            activation_fname=activation_fname,
+            folder_data=outdir,
+            outdir='plots',
+            num_time_step=num_time_step,
+        )
+        post_processing.main(args_post)
 
 
 # %%
