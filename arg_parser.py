@@ -319,13 +319,3 @@ def parse_arguments_post(args=None):
     )
     return parser.parse_args(args)
     
-def update_arguments_post(args):
-    # If args is provided, merge with defaults
-    default_args = parse_arguments_post()
-    # Convert to namespace and update the defaults with provided args
-    default_args = vars(default_args)
-    for key, value in vars(args).items():
-        if value is not None:
-            default_args[key] = value
-    args = argparse.Namespace(**default_args)
-    return args
