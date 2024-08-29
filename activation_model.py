@@ -13,6 +13,8 @@ import scipy.integrate
 from scipy.interpolate import interp1d
 import dolfin
 
+import geometry
+
 logger = get_logger()
 
 
@@ -118,9 +120,35 @@ def activation_function(
     return res.y.squeeze()
 
 
-def get_elems(cfun, cfun_num):
-    indices = np.where(cfun.array() == cfun_num)[0]
-    return indices
+
+
+def create_activation_function(
+    outdir,
+    geo,
+    segmentation_schema,
+    scenario,
+    activation_mode,
+    activation_variation,
+    num_time_step,
+    random_flag=True,
+):
+    try:
+        delayed_cfun = geometry.get_cfun_for_altered_compartment(segmentation_schema)
+        delayed_activations = compute_delayed_activation(
+            scenario,
+            geo.cfun,
+            delayed_cfun,
+            num_time_step=num_time_step,
+            std=activation_variation,
+            mode=activation_mode,
+            random_flag=random_flag,
+        )
+        fname = outdir / "activation.xdmf"
+        save_activation_as_dolfin_function(geo, delayed_activations, fname)
+        return fname
+    except Exception as e:
+        logger.error(f"Failed to create activation function: {e}")
+        raise
 
 
 def compute_delayed_activation(
@@ -181,7 +209,7 @@ def compute_delayed_activations_single_compartment(
     cfun_num = len(set(cfun.array()))
     segments_num = np.linspace(1, cfun_num, cfun_num)
     for n in tqdm(segments_num, desc="Creating Delayed Activation Curves", ncols=100):
-        elems = get_elems(cfun, n)
+        elems = geometry.get_elems(cfun, n)
         num_elems = len(elems)
         offsets = np.zeros(num_elems)
         if n == delayed_cfun:
@@ -225,10 +253,13 @@ def compute_delayed_activations_compartments(
     delayed_activations = []
     cfun_num = len(set(cfun.array()))
     segments_num = np.linspace(1, cfun_num, cfun_num)
-    offsets = stats.norm.ppf(np.linspace(0.01, 0.99, cfun_num), loc=0, scale=std)
+    if std == 0:
+        offsets = np.zeros(cfun_num)
+    else:
+        offsets = stats.norm.ppf(np.linspace(0.01, 0.99, cfun_num), loc=0, scale=std)
 
     for n in tqdm(segments_num, desc="Creating Delayed Activation Curves", ncols=100):
-        elems = get_elems(cfun, n)
+        elems = geometry.get_elems(cfun, n)
         num_elems = len(elems)
         if random_flag:
             if len(offsets) == 1:
@@ -274,7 +305,7 @@ def compute_delayed_activations(
     cfun_num = len(set(cfun.array()))
     segments_num = np.linspace(1, cfun_num, cfun_num)
     for n in tqdm(segments_num, desc="Creating Delayed Activation Curves", ncols=100):
-        elems = get_elems(cfun, n)
+        elems = geometry.get_elems(cfun, n)
         num_elems = len(elems)
         if std == 0:
             offsets = np.zeros(num_elems)
@@ -425,14 +456,10 @@ def save_activation_as_dolfin_function(geo, delayed_activations, fname):
     if fname.exists():
         fname.unlink()
 
-    def get_elems(cfun, cfun_num):
-        indices = np.where(cfun.array() == cfun_num)[0]
-        return indices
-
     for t in range(len(delayed_activations[0])):
         num_segments = len(set(segments.array()))
         for n in range(num_segments):
-            delayed_activations_function.vector()[get_elems(segments, n + 1)] = (
+            delayed_activations_function.vector()[geometry.get_elems(segments, n + 1)] = (
                 delayed_activations[n][t, :]
             )
         with dolfin.XDMFFile(fname.as_posix()) as xdmf:
@@ -478,3 +505,97 @@ def plot_activation_single_compartment(
         outdir.mkdir(parents=True, exist_ok=True)
         fname = outdir / "activation_plot.png"
         fig.savefig(fname=fname)
+
+
+def load_activation_function_from_file(
+    activation_fname: Path, t: float, mesh: dolfin.mesh
+):
+    activation_fname = Path(activation_fname)
+    element = dolfin.FiniteElement("DG", mesh.ufl_cell(), 0)
+    function_space = dolfin.FunctionSpace(mesh, element)
+    activation_function = dolfin.Function(function_space)
+    activation_function.vector()[:] = 0
+    with dolfin.XDMFFile(activation_fname.as_posix()) as xdmf:
+        xdmf.read_checkpoint(activation_function, "activation", t)
+    return activation_function
+
+
+def load_activation_values_from_file(
+    activation_fname: Path, mesh: dolfin.mesh, num_time_step: int = 1000
+):
+    a_value = []
+    for t in range(num_time_step):
+        try:
+            activation_function = load_activation_function_from_file(
+                activation_fname, t, mesh
+            )
+            a_value.append(activation_function.vector()[:])
+        except:
+            break
+    return a_value
+
+
+def load_activation_compartment_from_file(
+    geo_folder, activation_fname, num_time_step: int = 1000
+):
+    geo_folder = Path(geo_folder)
+    activation_fname = Path(activation_fname)
+    geo = geometry.load_geo_with_cfun(geo_folder)
+    activation_values = load_activation_values_from_file(
+        activation_fname, geo.mesh, num_time_step
+    )
+    activation_values_array = np.array(activation_values)
+    cfuns = set(geo.cfun.array())
+    activation_compartments = []
+    for cfun in cfuns:
+        num_elem = geometry.get_elems(geo.cfun, cfun)
+        activation_compartments.append(activation_values_array[:, num_elem])
+
+    return activation_compartments
+
+
+def plot_average_activation_compartments(
+    outdir: str, geo_folder: str, activation_fname: str, num_time_step: int = 1000
+):
+    outdir = Path(outdir)
+    activation_compartments = load_activation_compartment_from_file(
+        geo_folder, activation_fname, num_time_step
+    )
+    t_end = activation_compartments[0].shape[0]
+    t_values = np.linspace(0, t_end / num_time_step, t_end)
+    fig, ax = plt.subplots(figsize=(8, 6))
+    for activation in activation_compartments:
+        activation_average = np.average(activation, axis=1)
+        ax.plot(t_values, activation_average, "k", linewidth=0.03)
+        ax.set_xlabel("Normalized time (-)")
+        ax.set_ylabel("Activation Parameter (kPa)")
+        ax.set_xlim([0, 1])
+    fname = outdir / "activations"
+    fig.savefig(fname=fname)
+    plt.close(fig)
+
+
+def plot_activation_within_compartment(
+    outdir: str,
+    geo_folder: str,
+    activation_fname: str,
+    compartment_num: int = 0,
+    num_time_step: int = 1000,
+):
+    outdir = Path(outdir)
+    activation_compartments = load_activation_compartment_from_file(
+        geo_folder, activation_fname, num_time_step
+    )
+    t_end = activation_compartments[0].shape[0]
+    t_values = np.linspace(0, t_end / num_time_step, t_end)
+    fig, ax = plt.subplots(figsize=(8, 6))
+    num_elem = activation_compartments[compartment_num].shape[1]
+    for n in range(num_elem):
+        activation = activation_compartments[compartment_num][:,n]
+        ax.plot(t_values, activation, "k", linewidth=0.03)
+        ax.set_xlabel("Normalized time (-)")
+        ax.set_ylabel("Activation Parameter (kPa)")
+        ax.set_xlim([0, 1])
+    fname = outdir / f"Activation_compartment_{compartment_num}"
+    fig.savefig(fname=fname)
+    plt.close(fig)
