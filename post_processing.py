@@ -89,6 +89,16 @@ def extract_midslice_compartment_data(data, segmentation_schema):
     ind_f = ind_i + num_compartments
     return data[ind_i:ind_f]
 
+#%%
+def export_results(outdir, data_ave, data_std, num_time_step):
+    outdir = Path(outdir)
+    num_compartments, num_time_simulation = data_ave.shape
+    time_column = np.linspace(0, num_time_simulation/num_time_step, num_time_simulation)
+    data_ave_with_time = np.column_stack((time_column, data_ave.T))
+    data_std_with_time = np.column_stack((time_column, data_std.T))
+    header = ['Normalized time'] + [f'comp.{i+1}' for i in range(num_compartments)]
+    np.savetxt(outdir.as_posix()+'/data_ave.csv', data_ave_with_time, delimiter=',',header=','.join(header), fmt='%.8f')
+    np.savetxt(outdir.as_posix()+'/data_std.csv', data_std_with_time, delimiter=',',header=','.join(header), fmt='%.8f')
 
 # %%
 def plot_comapartment_data(
@@ -183,6 +193,7 @@ def main(args=None) -> int:
     fname = outdir / "Green-Lagrange Strains Midslice"
     plt.savefig(fname=fname)
 
+    export_results(outdir, Eff_comp_ave, Eff_comp_std, num_time_step)
 
 if __name__ == "__main__":
     main()
