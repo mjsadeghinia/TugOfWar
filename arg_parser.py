@@ -307,7 +307,7 @@ def parse_arguments_post(args=None):
         "--outdir",
         default='plots',
         type=Path,
-        help="The directory of the data to be post processed",
+        help="The output directory in the folder_data",
     )
     # Additional settings
     parser.add_argument(
