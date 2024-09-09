@@ -296,7 +296,7 @@ def parse_arguments_post(args=None):
     # Data folder
     parser.add_argument(
         "-f",
-        "--folder_data",
+        "--data_folder",
         default=Path.cwd(),
         type=Path,
         help="The directory of the data to be post processed",

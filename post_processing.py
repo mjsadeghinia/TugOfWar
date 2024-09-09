@@ -142,15 +142,15 @@ def main(args=None) -> int:
 
     segmentation_schema = arg_parser.create_segmentation_schema(args)
     activation_fname = args.activation_fname
-    folder_data = args.folder_data
-    outdir = folder_data / args.outdir
+    data_folder = args.data_folder
+    outdir = data_folder / args.outdir
     outdir = arg_parser.prepare_output_directory(outdir)
     num_time_step = args.num_time_step
 
-    geo_folder = Path(folder_data) / "lv"
+    geo_folder = Path(data_folder) / "lv"
     geo = geometry.load_geo_with_cfun(geo_folder)
 
-    activation_fname = Path(folder_data) / activation_fname
+    activation_fname = Path(data_folder) / activation_fname
     compartment_num = geometry.get_first_compartment_midslice(segmentation_schema)
     activation_model.plot_average_activation_compartments(
         outdir, geo_folder, activation_fname, num_time_step
@@ -163,7 +163,7 @@ def main(args=None) -> int:
         compartment_num=compartment_num,
     )
 
-    E_fname = folder_data / "Green Lagrange Strain.xdmf"
+    E_fname = data_folder / "Green Lagrange Strain.xdmf"
     Eff_value = compute_fiber_strain_values_from_file(
         E_fname, geo.mesh, geo.f0, num_time_step=num_time_step
     )
