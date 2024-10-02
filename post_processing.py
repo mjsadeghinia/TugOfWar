@@ -75,7 +75,7 @@ def compute_active_passive_stress(u, heart_model):
     Cauchy_passive = pulse.kinematics.InversePiolaTransform(P1_passive, F)
     return Cauchy_active, Cauchy_passive
 
-def compute_active_passive_stress_values_from_file(displacement_fname, heart_model, num_time_step: int = 1000):
+def compute_active_passive_stress_values_from_file(displacement_fname, activation_fname, heart_model, num_time_step: int = 1000):
     Cauchy_active_ff_value = []
     Cauchy_passive_ff_value = []
     V = dolfin.FunctionSpace(heart_model.geometry.mesh, "DG", 0)
@@ -83,6 +83,9 @@ def compute_active_passive_stress_values_from_file(displacement_fname, heart_mod
     for t in range(num_time_step):
         try:
             u = load_displacement_function_from_file(displacement_fname, t, heart_model.geometry.mesh)
+            activation = activation_model.load_activation_function_from_file(activation_fname, t, heart_model.geometry.mesh)
+            heart_model.problem.material.activation.vector()[:] = activation.vector()[:]
+            heart_model.material.activation.vector()[:] = activation.vector()[:]
             Cauchy_active, Cauchy_passive = compute_active_passive_stress(u, heart_model)
             Cauchy_active_ff = dolfin.project(dolfin.inner(Cauchy_active * fib0, fib0), V)
             Cauchy_passive_ff = dolfin.project(dolfin.inner(Cauchy_passive * fib0, fib0), V)
@@ -213,18 +216,22 @@ def plot_and_save_compartment_stresses(
         fig, ax1 = plt.subplots()
         ax1.plot(t_values, Eff[:, i], linewidth=0.5, label='Fiber Strain', color='b')
         ax1.set_xlabel(xlabel)
-        ax1.set_ylabel('Fiber Strain (-)', color='k')
-        ax1.tick_params(axis='y', labelcolor='k')
+        ax1.set_ylabel('Fiber Strain (-)', color='b')
+        ax1.tick_params(axis='y', labelcolor='b')
 
         # Create a second y-axis for the stress values
         ax2 = ax1.twinx()
-        # ax2.plot(t_values, stress_passive[:, i], linewidth=0.5, label='Passive Stress - Load (kPa)', color='r')
-        ax2.plot(t_values, stress_active[:, i], linewidth=0.5, label='Active Stress - Force (kPa)', color='g')
+        # ax2.plot(t_values, stress_active[:, i]/np.max(stress_active[:, i]), linewidth=0.5, label='Active Stress - Force (kPa)', color='k', linestyle = '-')
+        # ax2.plot(t_values, stress_passive[:, i]/np.max(stress_passive[:, i]), linewidth=0.5, label='Passive Stress - Load (kPa)', color='k', linestyle = '--')
+        ax2.plot(t_values, stress_active[:, i], linewidth=0.5, label='Active Stress - Force (kPa)', color='k', linestyle = '-')
+        ax2.plot(t_values, stress_passive[:, i], linewidth=0.5, label='Passive Stress - Load (kPa)', color='k', linestyle = '--')
         ax2.set_ylabel('Stress (kPa)', color='k')
         ax2.tick_params(axis='y', labelcolor='k')
         # Optional: Add legends
         ax1.legend(loc='upper left')
-        ax2.legend(loc='upper right')
+        ax2.legend(loc='upper left', bbox_to_anchor=(0, 0.9 ))
+        ax1.set_ylim((-.3,.15))
+        ax2.set_ylim((0,500))
         fname = outdir / f'Cell_{i}.png'
         plt.savefig(fname, dpi=300, bbox_inches='tight')
         plt.close(fig=fig)
@@ -248,13 +255,6 @@ def main(args=None) -> int:
     geo = recreate_cfun(geo, segmentation_schema, outdir)
     heart_model = load_heart_model(geo)
     
-    displacement_fname = Path(data_folder) / "displacement.xdmf"
-    stress_active_value, stress_passive_value = compute_active_passive_stress_values_from_file(displacement_fname, heart_model, num_time_step = num_time_step)
-    stress_active_compartment = compute_value_compartment(stress_active_value, geo.cfun)
-    stress_passive_compartment = compute_value_compartment(stress_passive_value, geo.cfun)
-    stress_active_comp_midslice = extract_midslice_compartment_data(stress_active_compartment, segmentation_schema)
-    stress_passive_comp_midslice = extract_midslice_compartment_data(stress_passive_compartment, segmentation_schema)
-    
     
     activation_fname = Path(data_folder) / activation_fname
     compartment_num = geometry.get_first_compartment_midslice(segmentation_schema)
@@ -269,6 +269,15 @@ def main(args=None) -> int:
         compartment_num=compartment_num,
     )
 
+    
+    displacement_fname = Path(data_folder) / "displacement.xdmf"
+    stress_active_value, stress_passive_value = compute_active_passive_stress_values_from_file(displacement_fname,activation_fname, heart_model, num_time_step = num_time_step)
+    stress_active_compartment = compute_value_compartment(stress_active_value, geo.cfun)
+    stress_passive_compartment = compute_value_compartment(stress_passive_value, geo.cfun)
+    stress_active_comp_midslice = extract_midslice_compartment_data(stress_active_compartment, segmentation_schema)
+    stress_passive_comp_midslice = extract_midslice_compartment_data(stress_passive_compartment, segmentation_schema)
+    
+    
     E_fname = data_folder / "Green Lagrange Strain.xdmf"
     Eff_value = compute_fiber_strain_values_from_file(
         E_fname, geo.mesh, geo.f0, num_time_step=num_time_step
