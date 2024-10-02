@@ -442,3 +442,57 @@ class HeartModelPulse:
             "pericardium_spring": 0,
             "base_spring": 0,
         }
+        
+    def passive_strain_energy(self, F):
+        r"""
+        COPIED from pulse.material.HolzapfelOgden()
+        
+        Strain-energy density function.
+
+        .. math::
+
+           \mathcal{W} = \mathcal{W}_1 + \mathcal{W}_{4f}
+           + \mathcal{W}_{\mathrm{active}}
+
+        where
+
+        .. math::
+
+           \mathcal{W}_{\mathrm{active}} =
+           \begin{cases}
+             0 & \text{if acitve strain} \\
+             \gamma I_{4f} & \text{if active stress}
+           \end{cases}
+
+
+        :param F: Deformation gradient
+        :type F: :py:class:`dolfin.Function`
+
+        """        
+        
+        # Invariants
+        I1 = pulse.kinematics.I1(F)
+        I4f = pulse.kinematics.I4(F, self.geometry.f0)
+        
+        a = self.material.parameters["a"]
+        b = self.material.parameters["b"]
+        a_f = self.material.parameters["a_f"]
+        b_f = self.material.parameters["b_f"]
+        
+        
+        W1 = a / (2.0 * b) * (dolfin.exp(b * (I1 - 3)) - 1.0)
+        def subplus(x):
+            r"""
+            Ramp function
+
+            .. math::
+
+            \max\{x,0\}
+
+            """
+
+            return dolfin.conditional(dolfin.ge(x, 0.0), x, 0.0)
+        W4f = a_f / (2.0 * b_f) * (dolfin.exp(b_f * subplus(I4f - 1) ** 2) - 1.0)
+        return W1 + W4f 
+
+# %%
