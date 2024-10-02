@@ -10,7 +10,8 @@ import activation_model
 import utils
 from segmentation import segmentation
 from dolfin import XDMFFile
-
+from heart_model import HeartModelPulse
+import pulse
 
 # %%
 def load_mesh_from_file(mesh_fname: Path):
@@ -44,6 +45,7 @@ def recreate_cfun(geo, segmentation_schema, folder):
     )
     with XDMFFile((folder / "cfun.xdmf").as_posix()) as xdmf:
         xdmf.write(geo.cfun)
+    return geo
 
 def load_displacement_function_from_file(
     displacement_fname: Path, t: float, mesh: dolfin.mesh
@@ -54,6 +56,49 @@ def load_displacement_function_from_file(
     with dolfin.XDMFFile(displacement_fname.as_posix()) as xdmf:
         xdmf.read_checkpoint(u, "Displacement", t)
     return u
+
+def load_heart_model(geo):
+    bc_params = {
+        "pericardium_spring": 0.0001,
+        "base_spring": 0,
+    }
+    heart_model = HeartModelPulse(geo=geo, bc_params=bc_params)
+    return heart_model
+
+def compute_active_passive_stress_from_file(displacement_fname, u, heart_model):
+    F = dolfin.variable(pulse.kinematics.DeformationGradient(u))
+    Cauchy = heart_model.problem.material.CauchyStress(F)
+    W_a = heart_model.material.Wactive(F)
+    P1_active = dolfin.diff(W_a, F)
+    Cauchy_active = pulse.kinematics.InversePiolaTransform(P1_active, F)
+    Cauchy_passive = Cauchy - Cauchy_active
+    return Cauchy_active, Cauchy_passive
+
+def compute_active_passive_stress_values_from_file(displacement_fname, heart_model, num_time_step: int = 1000):
+    Cauchy_active_ff_value = []
+    Cauchy_passive_ff_value = []
+    V = dolfin.FunctionSpace(heart_model.geometry.mesh, "DG", 0)
+    fib0 = heart_model.geometry.f0
+    for t in range(num_time_step):
+        try:
+            u = load_displacement_function_from_file(displacement_fname, t, heart_model.geometry.mesh)
+            Cauchy_active, Cauchy_passive = compute_active_passive_stress_from_file(displacement_fname, u, heart_model)
+            Cauchy_active_ff = dolfin.project(dolfin.inner(Cauchy_active * fib0, fib0), V)
+            Cauchy_passive_ff = dolfin.project(dolfin.inner(Cauchy_passive * fib0, fib0), V)
+            Cauchy_active_ff_value.append(Cauchy_active_ff.vector()[:])
+            Cauchy_passive_ff_value.append(Cauchy_passive_ff.vector()[:])
+        except:
+            break
+    return Cauchy_active_ff_value, Cauchy_passive_ff_value
+    
+def compute_value_compartment(value: list, cfun: dolfin.MeshFunction):
+    value_array = np.array(value)
+    cfuns = set(cfun.array())
+    value_compartments = []
+    for c in cfuns:
+        num_elem = geometry.get_elems(cfun, c)
+        value_compartments.append(value_array[:, num_elem])
+    return value_compartments
 
 
 def load_strain_function_from_file(E_fname: Path, t: float, mesh: dolfin.mesh):
@@ -87,16 +132,6 @@ def compute_fiber_strain_values_from_file(
     return Eff_value
 
 
-def compute_fiber_strain_compartment(Eff_value: list, cfun: dolfin.MeshFunction):
-    Eff_value_array = np.array(Eff_value)
-    cfuns = set(cfun.array())
-    Eff_compartments = []
-    for c in cfuns:
-        num_elem = geometry.get_elems(cfun, c)
-        Eff_compartments.append(Eff_value_array[:, num_elem])
-    return Eff_compartments
-
-
 def compute_average_std_compartment_value(values):
     num_compartments = len(values)
     num_time_steps = len(values[0])
@@ -114,7 +149,6 @@ def extract_midslice_compartment_data(data, segmentation_schema):
     ind_f = ind_i + num_compartments
     return data[ind_i:ind_f]
 
-#%%
 def export_results(outdir, data_ave, data_std, num_time_step):
     outdir = Path(outdir)
     num_compartments, num_time_simulation = data_ave.shape
@@ -125,7 +159,6 @@ def export_results(outdir, data_ave, data_std, num_time_step):
     np.savetxt(outdir.as_posix()+'/data_ave.csv', data_ave_with_time, delimiter=',',header=','.join(header), fmt='%.8f')
     np.savetxt(outdir.as_posix()+'/data_std.csv', data_std_with_time, delimiter=',',header=','.join(header), fmt='%.8f')
 
-# %%
 def plot_comapartment_data(
     data,
     num_time_step,
@@ -174,7 +207,16 @@ def main(args=None) -> int:
 
     geo_folder = Path(data_folder) / "lv"
     geo = geometry.load_geo_with_cfun(geo_folder)
-    recreate_cfun(geo, segmentation_schema, outdir)
+    geo = recreate_cfun(geo, segmentation_schema, outdir)
+    heart_model = load_heart_model(geo)
+    
+    displacement_fname = Path(data_folder) / "displacement.xdmf"
+    stress_active_value, stress_passive_value = compute_active_passive_stress_values_from_file(displacement_fname, heart_model, num_time_step = num_time_step)
+    stress_active_compartment = compute_value_compartment(stress_active_value, geo.cfun)
+    stress_passive_compartment = compute_value_compartment(stress_passive_value, geo.cfun)
+    stress_active_midslice = extract_midslice_compartment_data(stress_active_compartment, segmentation_schema)
+    stress_passive_midslice = extract_midslice_compartment_data(stress_passive_compartment, segmentation_schema)
+    
     activation_fname = Path(data_folder) / activation_fname
     compartment_num = geometry.get_first_compartment_midslice(segmentation_schema)
     activation_model.plot_average_activation_compartments(
@@ -192,7 +234,7 @@ def main(args=None) -> int:
     Eff_value = compute_fiber_strain_values_from_file(
         E_fname, geo.mesh, geo.f0, num_time_step=num_time_step
     )
-    Eff_comp = compute_fiber_strain_compartment(Eff_value, geo.cfun)
+    Eff_comp = compute_value_compartment(Eff_value, geo.cfun)
     Eff_comp_midslice = extract_midslice_compartment_data(Eff_comp, segmentation_schema)
 
     Eff_comp_ave, Eff_comp_std = compute_average_std_compartment_value(Eff_comp)
