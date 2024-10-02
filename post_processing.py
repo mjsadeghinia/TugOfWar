@@ -8,6 +8,8 @@ import arg_parser
 import argparse
 import activation_model
 import utils
+from segmentation import segmentation
+from dolfin import XDMFFile
 
 
 # %%
@@ -19,6 +21,29 @@ def load_mesh_from_file(mesh_fname: Path):
         xdmf.read(mesh)
     return mesh
 
+def recreate_cfun(geo, segmentation_schema, folder):
+    geo_params = {
+        "r_short_endo": 3,
+        "r_short_epi": 3.75,
+        "r_long_endo": 4.25,
+        "r_long_epi": 5,
+        "mesh_size": 1,
+        'fiber_angle_endo': -60,
+        'fiber_angle_epi': 60,
+    }
+    mu_base_endo = -np.arccos(
+    geo_params["r_short_epi"] / geo_params["r_long_endo"] / 2
+    )   
+    geo = segmentation(
+        geo,
+        geo_params["r_long_endo"],
+        geo_params["r_short_endo"],
+        mu_base_endo,
+        segmentation_schema["num_circ_segments"],
+        segmentation_schema["num_long_segments"],
+    )
+    with XDMFFile((folder / "cfun.xdmf").as_posix()) as xdmf:
+        xdmf.write(geo.cfun)
 
 def load_displacement_function_from_file(
     displacement_fname: Path, t: float, mesh: dolfin.mesh
@@ -149,7 +174,7 @@ def main(args=None) -> int:
 
     geo_folder = Path(data_folder) / "lv"
     geo = geometry.load_geo_with_cfun(geo_folder)
-
+    recreate_cfun(geo, segmentation_schema, outdir)
     activation_fname = Path(data_folder) / activation_fname
     compartment_num = geometry.get_first_compartment_midslice(segmentation_schema)
     activation_model.plot_average_activation_compartments(
