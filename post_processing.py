@@ -136,6 +136,23 @@ def compute_fiber_strain_values_from_file(
     return Eff_value
 
 
+def compute_MW_value_from_file(E_fname, displacement_fname, activation_fname, heart_model, num_time_step=1000):
+    MW = []
+    V = dolfin.FunctionSpace(heart_model.geometry.mesh, "DG", 0)
+    for t in range(num_time_step):
+        try:
+            activation = activation_model.load_activation_function_from_file(activation_fname, t, heart_model.geometry.mesh)
+            heart_model.problem.material.activation.vector()[:] = activation.vector()[:]
+            heart_model.material.activation.vector()[:] = activation.vector()[:]
+            u = load_displacement_function_from_file(displacement_fname, t, heart_model.geometry.mesh)
+            F = pulse.kinematics.DeformationGradient(u)
+            S = heart_model.material.SecondPiolaStress(F)
+            E = load_strain_function_from_file(E_fname, t, heart_model.geometry.mesh)
+            MW_t = dolfin.project(dolfin.inner(S, E), V)
+            MW.append(MW_t.vector()[:])
+        except:
+            break
+    return MW
 def compute_average_std_compartment_value(values):
     num_compartments = len(values)
     num_time_steps = len(values[0])
@@ -237,6 +254,42 @@ def plot_and_save_compartment_stresses(
         plt.close(fig=fig)
 
 
+def plot_and_save_compartment_MW(
+    outdir,
+    Eff_comp_midslice,
+    MW_comp_midslice,
+    num_time_step=1000,
+    xlabel="Normalized Time [-]",
+):
+    outdir = Path(outdir)
+    Eff = Eff_comp_midslice[5]
+    MW = MW_comp_midslice[5]
+    
+    num_time_simulation, num_cells = Eff.shape
+    t_values = np.linspace(0, num_time_simulation / num_time_step, num_time_simulation)
+    
+    for i in range(num_cells):
+        fig, ax1 = plt.subplots()
+        ax1.plot(t_values, Eff[:, i], linewidth=0.5, label='Fiber Strain', color='b')
+        ax1.set_xlabel(xlabel)
+        ax1.set_ylabel('Fiber Strain (-)', color='b')
+        ax1.tick_params(axis='y', labelcolor='b')
+
+        # Create a second y-axis for the stress values
+        ax2 = ax1.twinx()
+        ax2.plot(t_values, MW[:, i]-MW[0, i], linewidth=0.5, label='Myocardial Work', color='k', linestyle = '-')
+        # ax2.plot(t_values[:-1], np.diff(MW[:, i]), linewidth=0.5, label='Myocardial Power', color='k', linestyle = '--')
+        ax2.set_ylabel('Myocardial Work (kJ)', color='k')
+        ax2.tick_params(axis='y', labelcolor='k')
+        # Optional: Add legends
+        ax1.legend(loc='upper left')
+        ax2.legend(loc='upper left', bbox_to_anchor=(0, 0.9 ))
+        ax1.set_ylim((-.3,.15))
+        ax2.set_ylim((-50,25))
+        fname = outdir / f'Cell_{i}.png'
+        plt.savefig(fname, dpi=300, bbox_inches='tight')
+        plt.close(fig=fig)
+
 # %%
 def main(args=None) -> int:
     # Getting the arguments
@@ -284,8 +337,12 @@ def main(args=None) -> int:
     )
     Eff_comp = compute_value_compartment(Eff_value, geo.cfun)
     Eff_comp_midslice = extract_midslice_compartment_data(Eff_comp, segmentation_schema)
-
     Eff_comp_ave, Eff_comp_std = compute_average_std_compartment_value(Eff_comp)
+    
+    MW_value = compute_MW_value_from_file(E_fname, displacement_fname, activation_fname, heart_model, num_time_step=num_time_step)
+    MW_comp = compute_value_compartment(MW_value, geo.cfun)
+    MW_ff_comp_midslice = extract_midslice_compartment_data(MW_comp, segmentation_schema)
+    
     plot_comapartment_data(
         Eff_comp_ave,
         num_time_step,
@@ -318,6 +375,15 @@ def main(args=None) -> int:
         num_time_step=num_time_step,
     )
 
+    outdir_work = outdir / 'work'
+    outdir_work.mkdir(exist_ok=True)
+    plot_and_save_compartment_MW(
+        outdir_work,
+        Eff_comp_midslice,
+        MW_ff_comp_midslice,
+        num_time_step=num_time_step,
+    )
+    
     export_results(outdir, Eff_comp_ave, Eff_comp_std, num_time_step)
 
 if __name__ == "__main__":
