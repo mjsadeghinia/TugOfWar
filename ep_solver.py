@@ -4,10 +4,12 @@ import numpy as np
 import matplotlib.pyplot as plt
 import dolfin
 import logging
+import argparse
+import arg_parser
+import geometry
 
 import beat
 import beat.viz
-import gotranx
 import ORdmm_Land
 
 def load_geo_with_cfun(geo_folder):
@@ -48,7 +50,7 @@ def refine_geo(geo, geo_refinement):
         
         return geo
 
-def solve(outdir, geo_folder, mesh_unit = "cm"):
+def solve(outdir, geo_folder, stimulus_amplitude=1000, mesh_unit = "cm"):
     ep_dir = outdir / 'EP'
     ep_dir.mkdir(exist_ok=True, parents=True)
     
@@ -114,7 +116,7 @@ def solve(outdir, geo_folder, mesh_unit = "cm"):
         time=time,
         subdomain_data=subdomain_data,
         marker=marker,
-        amplitude=500.0,
+        amplitude=1000.0,
     )
     
     
@@ -175,3 +177,105 @@ def solve(outdir, geo_folder, mesh_unit = "cm"):
         solver.step((t, t + dt))
         i += 1
         t += dt
+        
+
+def main(args=None) -> int:
+    # Getting the arguments
+
+    parser = argparse.ArgumentParser()
+    
+    # Geometry parameters
+    parser.add_argument(
+        "-m",
+        "--mesh_size",
+        default=0.5,
+        type=float,
+        help="The mesh size, approximate length of the edge for tetrahedrons [in cm]",
+    )
+    parser.add_argument(
+        "--r_short_endo",
+        default=3,
+        type=float,
+        help="The short radius of endocardium [in cm] for generating a simplified ellipsoid left ventricle model",
+    )
+    parser.add_argument(
+        "--r_short_epi",
+        default=3.75,
+        type=float,
+        help="The short radius of epicardium [in cm] for generating a simplified ellipsoid left ventricle model",
+    )
+    parser.add_argument(
+        "--r_long_endo",
+        default=4.25,
+        type=float,
+        help="The long radius of endocardium [in cm] for generating a simplified ellipsoid left ventricle model",
+    )
+    parser.add_argument(
+        "--r_long_epi",
+        default=5,
+        type=float,
+        help="The long radius of epicardium [in cm] for generating a simplified ellipsoid left ventricle model",
+    )
+    # Segmentation parameters
+    parser.add_argument(
+        "-c",
+        "--num_circ_segments",
+        default=72,
+        type=int,
+        help="The number of circumferential compartments per slice",
+    )
+    parser.add_argument(
+        "-l",
+        "--num_long_segments",
+        default=6,
+        type=int,
+        help="The number of slices (longitudinal)",
+    )
+
+    # Modeling and export parameters
+    parser.add_argument(
+        "-r",
+        "--refinement",
+        default=1,
+        type=int,
+        help="The number of refinement for the mesh",
+    )
+    parser.add_argument(
+        "-s",
+        "--stimulus_amplitude",
+        default=1000,
+        type=float,
+        help="The amplitude of the stimulus",
+    )
+    
+    parser.add_argument(
+        "-o",
+        "--outdir",
+        default=Path.cwd() / "output",
+        type=Path,
+        help="The output directory to save the files.",
+    )
+    
+    parser.add_argument(
+        "-g",
+        "--geo_folder",
+        default="lv",
+        type=str,
+        help="The folder containing the geometry",
+    )
+    args = parser.parse_args(args)
+    geo_params = arg_parser.create_geo_params(args)
+    segmentation_schema = arg_parser.create_segmentation_schema(args)
+    
+    ## Creating Geometry
+    outdir = args.outdir
+    geo_folder = outdir / args.geo_folder
+    geo = geometry.create_ellipsoid_geometry(
+        folder=geo_folder,
+        geo_params=geo_params,
+        segmentation_schema=segmentation_schema,
+    )
+    solve(outdir, geo_folder, mesh_unit = "cm")
+  
+if __name__ == "__main__":
+    main()
