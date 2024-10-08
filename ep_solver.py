@@ -5,7 +5,6 @@ import matplotlib.pyplot as plt
 import dolfin
 import logging
 
-
 import beat
 import beat.viz
 import gotranx
@@ -19,10 +18,49 @@ def load_geo_with_cfun(geo_folder):
     geo = cardiac_geometries.geometry.Geometry.from_folder(geo_folder, schema=schema)
     return geo
 
+def refine_geo(geo, geo_refinement):
+        mesh, cfun, ffun = geo.mesh, geo.cfun, geo.ffun
+        dolfin.parameters["refinement_algorithm"] = "plaza_with_parent_facets"
+        for _ in range(geo_refinement):
+            mesh = dolfin.adapt(mesh)
+            cfun = dolfin.adapt(cfun, mesh)
+            ffun = dolfin.adapt(ffun, mesh)
+
+        geo.f0.set_allow_extrapolation(True)
+        geo.s0.set_allow_extrapolation(True)
+        geo.n0.set_allow_extrapolation(True)
+
+        V_refined = dolfin.FunctionSpace(mesh, geo.f0.function_space().ufl_element())
+
+        f0_refined = dolfin.Function(V_refined)
+        f0_refined.interpolate(geo.f0)
+        s0_refined = dolfin.Function(V_refined)
+        s0_refined.interpolate(geo.s0)
+        n0_refined = dolfin.Function(V_refined)
+        n0_refined.interpolate(geo.n0)
+
+        geo.mesh = mesh
+        geo.cfun = cfun
+        geo.ffun = ffun
+        geo.f0 = f0_refined
+        geo.s0 = s0_refined
+        geo.n0 = n0_refined
+        
+        return geo
+
 def solve(outdir, geo_folder, mesh_unit = "cm"):
+    ep_dir = outdir / 'EP'
+    ep_dir.mkdir(exist_ok=True, parents=True)
+    
     model = ORdmm_Land.__dict__
     # data = load_geo_with_cfun(geo_folder)
+    data_coarse = cardiac_geometries.geometry.Geometry.from_folder(geo_folder)
     data = cardiac_geometries.geometry.Geometry.from_folder(geo_folder)
+    data = refine_geo(data, 2)
+    # Saving ffun
+    fname = ep_dir /  "ffun_refined.xdmf"
+    with dolfin.XDMFFile(fname.as_posix()) as infile:
+        infile.write(data.ffun)
     
     V = dolfin.FunctionSpace(data.mesh, "Lagrange", 1)
     markers = beat.utils.expand_layer(
@@ -115,8 +153,7 @@ def solve(outdir, geo_folder, mesh_unit = "cm"):
     beat_logger = logging.getLogger("beat")
     beat_logger.setLevel(logging.WARNING)
         
-    ep_dir = outdir / 'EP'
-    ep_dir.mkdir(exist_ok=True, parents=True)
+    
     fname = ep_dir / "state.xdmf"
     if fname.exists():
         fname.unlink()
