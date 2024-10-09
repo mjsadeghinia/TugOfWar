@@ -7,11 +7,18 @@ import logging
 import argparse
 import arg_parser
 import geometry
+import stl
+import gmsh
+import math
+import os
+from structlog import get_logger
 
 import beat
 import beat.viz
 import ORdmm_Land
 
+
+logger = get_logger()
 
 def load_geo_with_cfun(geo_folder):
     schema = cardiac_geometries.geometry.Geometry.default_schema()
@@ -51,6 +58,183 @@ def refine_geo(geo, geo_refinement):
     geo.n0 = n0_refined
 
     return geo
+def remesh_surface(stl_fname, mesh_size=1):
+    """
+    Remeshes a 3D surface mesh from an STL file with a specified mesh size
+    and saves the output in STL format with a "_coarse" suffix.
+
+    Parameters:
+    - stl_fname: str to the input STL file.
+    - mesh_size: float, characteristic length for mesh elements (higher values for coarser mesh).
+
+    Returns:
+    - vertices: numpy array of shape (n_nodes, 3)
+    - faces: numpy array of shape (n_faces, 3), indices into vertices
+    """
+    # Check if the file exists
+    if not os.path.isfile(stl_fname):
+        logger.error(f"Error: File '{stl_fname}' not found.")
+        return None, None
+
+    # Initialize Gmsh
+    gmsh.initialize()
+    gmsh.option.setNumber("General.Terminal", 0)  # Enable terminal output
+
+    try:
+        gmsh.merge(stl_fname)
+        # Classify surfaces to create geometry
+        angle = 60 # Angle threshold for feature detection in degrees
+        force_parametrizable_patches = True
+        include_boundary = True
+        curve_angle = 180  # For sewing surfaces
+
+        gmsh.model.mesh.classifySurfaces(
+            angle * math.pi / 180.0, include_boundary,
+            force_parametrizable_patches,
+            curve_angle * math.pi / 180.0
+        )
+
+        # Create geometry from the classified surfaces
+        gmsh.model.mesh.createGeometry()
+
+        # Synchronize the model
+        gmsh.model.geo.synchronize()
+
+        # Set the specified mesh size
+        gmsh.model.mesh.setSize(gmsh.model.getEntities(0), mesh_size)
+
+        # Generate the 2D mesh
+        gmsh.model.mesh.generate(2)
+
+        # Extract nodes and elements
+        node_tags, node_coords, _ = gmsh.model.mesh.getNodes()
+        vertices = np.array(node_coords).reshape(-1, 3)
+
+        # Create a mapping from node tags to indices
+        node_index = {tag: idx for idx, tag in enumerate(node_tags)}
+
+        elementType = 2  # 3-node triangle
+        _, element_node_tags = gmsh.model.mesh.getElementsByType(elementType)
+        element_node_tags = np.array(element_node_tags).reshape(-1, 3)
+
+        # Map node tags to indices to create faces array
+        faces = np.array([[node_index[tag] for tag in tri] for tri in element_node_tags])
+
+        # Save the mesh in STL format
+        gmsh.write(stl_fname)
+        # Return vertices and faces
+        return vertices, faces
+
+    except Exception as e:
+        logger.error(f"An error occurred: {e}")
+        return None, None
+
+    finally:
+        # Finalize Gmsh
+        gmsh.finalize()
+        
+        
+def generate_3d_mesh_from_seperate_stl(mesh_epi, mesh_endo, mesh_base, output_mesh_filename,  MeshSizeMin=None, MeshSizeMax=None):
+    # Initialize Gmsh
+    gmsh.initialize()
+    gmsh.model.add("3D Mesh")
+    gmsh.option.setNumber("General.Verbosity", 0)
+
+    # Merge the STL files
+    gmsh.merge(mesh_epi)
+    gmsh.merge(mesh_endo)
+    gmsh.merge(mesh_base)
+
+    gmsh.model.mesh.removeDuplicateNodes()
+    gmsh.model.mesh.create_geometry()
+    gmsh.model.mesh.create_topology()
+    surfaces = gmsh.model.getEntities(2)
+    
+    gmsh.model.geo.addSurfaceLoop([s[1] for s in surfaces], 1)
+    vol = gmsh.model.geo.addVolume([1], 1)
+    
+    physical_groups = {
+        "Epi": [1],
+        "Endo": [2],
+        "Base": [3],
+    }
+    for name, tag in physical_groups.items():
+        p = gmsh.model.addPhysicalGroup(2, tag)
+        gmsh.model.setPhysicalName(2, p, name)
+
+    p = gmsh.model.addPhysicalGroup(3, [vol], 9)
+    gmsh.model.setPhysicalName(3, p, "Wall")
+
+    if MeshSizeMin is not None:
+        gmsh.option.setNumber('Mesh.MeshSizeMin', MeshSizeMin)
+    if MeshSizeMax is not None:
+        gmsh.option.setNumber('Mesh.MeshSizeMax', MeshSizeMax)
+            
+    gmsh.model.geo.synchronize()
+    gmsh.model.mesh.generate(3)
+    # Save the mesh to the specified file
+    gmsh.write(output_mesh_filename)
+    # Finalize Gmsh
+    gmsh.finalize()
+    
+    
+def export_facet_as_stl(geo, facet_number, fname):
+    vertices = []
+    triangles = []
+    vertex_map = {}  # To map old node numbers to new ones
+    next_vertex_id = 0  # Counter for new vertices
+
+    facets = dolfin.facets(geo.mesh)
+    # Iterate over the facets of the mesh
+    for facet in facets:
+        if geo.ffun[facet] == facet_number:
+            # Get the original global node numbers for this facet
+            nodes_number = facet.entities(0)
+            # Array to store the local (new) node numbers for this facet
+            local_triangle = []
+            # Iterate over each node in the facet
+            for node in nodes_number:
+                if node not in vertex_map:
+                    # If the node is not yet mapped, add it to vertices and map it
+                    vertex_map[node] = next_vertex_id
+                    vertices.append(geo.mesh.coordinates()[node])
+                    next_vertex_id += 1
+
+                # Add the mapped vertex to the local triangle
+                local_triangle.append(vertex_map[node])
+
+            # Append the triangle (facet) to the triangles list
+            triangles.append(local_triangle)
+    
+    # Convert the vertices and triangles to numpy arrays for STL export
+    vertices = np.array(vertices)
+    triangles = np.array(triangles)
+    stl_mesh = stl.mesh.Mesh(np.zeros(triangles.shape[0], dtype=stl.mesh.Mesh.dtype))
+    # Assign vertices and triangles to the STL mesh
+    for i, triangle in enumerate(triangles):
+        for j in range(3):  # Loop over the three vertices of the triangle
+            stl_mesh.vectors[i][j] = vertices[triangle[j]]
+    
+    # Save the STL file
+    stl_mesh.save(fname)
+
+    
+def refine_goe_gmsh(geo, outdir, surface_mesh_size=.2, MeshSizeMin=.1, MeshSizeMax=.3):
+    geo_folder = outdir / 'lv_refined'
+    geo_folder.mkdir(exist_ok = True)
+    epi_stl_fname = geo_folder / 'epi.stl'
+    endo_stl_fname = geo_folder / 'endo.stl'
+    base_stl_fname = geo_folder / 'base.stl'
+    export_facet_as_stl(geo, 7, epi_stl_fname.as_posix())
+    export_facet_as_stl(geo, 6, endo_stl_fname.as_posix())
+    export_facet_as_stl(geo, 5, base_stl_fname.as_posix())
+    remesh_surface(epi_stl_fname.as_posix(), mesh_size=surface_mesh_size)
+    remesh_surface(endo_stl_fname.as_posix(), mesh_size=surface_mesh_size)
+    remesh_surface(base_stl_fname.as_posix(), mesh_size=surface_mesh_size)
+    breakpoint()
+    output_mesh_filename = geo_folder / '3D_Mesh.stl'
+    generate_3d_mesh_from_seperate_stl(epi_stl_fname.as_posix(), endo_stl_fname.as_posix(), base_stl_fname.as_posix(), output_mesh_filename,  MeshSizeMin=MeshSizeMin, MeshSizeMax=MeshSizeMax)
+    return
 
 class Interpolator:
     def __init__(self, src: dolfin.FunctionSpace, dst: dolfin.FunctionSpace) -> None:
@@ -107,6 +291,8 @@ def solve(outdir, geo_folder, stimulus_amplitude=1000, mesh_unit="cm"):
     # data = load_geo_with_cfun(geo_folder)
     data_coarse = cardiac_geometries.geometry.Geometry.from_folder(geo_folder)
     data = cardiac_geometries.geometry.Geometry.from_folder(geo_folder)
+    #data = geometry.load_geo_with_cfun(geo_folder)
+    refine_goe_gmsh(data, outdir)
     data = refine_geo(data, 2)
     # Saving ffun
     fname = ep_dir / "ffun_refined.xdmf"
@@ -329,6 +515,7 @@ def main(args=None) -> int:
         geo_params=geo_params,
         segmentation_schema=segmentation_schema,
     )
+    
     solve(outdir, geo_folder, mesh_unit="cm")
 
 
