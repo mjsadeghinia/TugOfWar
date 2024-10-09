@@ -283,7 +283,7 @@ def save_xdmf(fname, name, t, func):
         )
 
 
-def solve(outdir, geo_folder, stimulus_amplitude=1000, mesh_unit="cm"):
+def solve(outdir, geo_folder, refinement=1, stimulus_amplitude=1000, mesh_unit="cm"):
     ep_dir = outdir / "EP"
     ep_dir.mkdir(exist_ok=True, parents=True)
 
@@ -291,9 +291,7 @@ def solve(outdir, geo_folder, stimulus_amplitude=1000, mesh_unit="cm"):
     # data = load_geo_with_cfun(geo_folder)
     data_coarse = cardiac_geometries.geometry.Geometry.from_folder(geo_folder)
     data = cardiac_geometries.geometry.Geometry.from_folder(geo_folder)
-    #data = geometry.load_geo_with_cfun(geo_folder)
-    refine_goe_gmsh(data, outdir)
-    data = refine_geo(data, 2)
+    data = refine_geo(data, refinement)
     # Saving ffun
     fname = ep_dir / "ffun_refined.xdmf"
     with dolfin.XDMFFile(fname.as_posix()) as infile:
@@ -506,7 +504,7 @@ def main(args=None) -> int:
     args = parser.parse_args(args)
     geo_params = arg_parser.create_geo_params(args)
     segmentation_schema = arg_parser.create_segmentation_schema(args)
-
+    refinement = args.refinement
     ## Creating Geometry
     outdir = args.outdir
     geo_folder = outdir / args.geo_folder
@@ -516,7 +514,7 @@ def main(args=None) -> int:
         segmentation_schema=segmentation_schema,
     )
     
-    solve(outdir, geo_folder, mesh_unit="cm")
+    solve(outdir, geo_folder, refinement=refinement, mesh_unit="cm")
 
 
 if __name__ == "__main__":
