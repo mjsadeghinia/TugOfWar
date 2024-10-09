@@ -12,6 +12,7 @@ import beat
 import beat.viz
 import ORdmm_Land
 
+
 def load_geo_with_cfun(geo_folder):
     schema = cardiac_geometries.geometry.Geometry.default_schema()
     cfun_schema = schema["cfun"]._asdict()
@@ -20,50 +21,52 @@ def load_geo_with_cfun(geo_folder):
     geo = cardiac_geometries.geometry.Geometry.from_folder(geo_folder, schema=schema)
     return geo
 
+
 def refine_geo(geo, geo_refinement):
-        mesh, cfun, ffun = geo.mesh, geo.cfun, geo.ffun
-        dolfin.parameters["refinement_algorithm"] = "plaza_with_parent_facets"
-        for _ in range(geo_refinement):
-            mesh = dolfin.adapt(mesh)
-            cfun = dolfin.adapt(cfun, mesh)
-            ffun = dolfin.adapt(ffun, mesh)
+    mesh, cfun, ffun = geo.mesh, geo.cfun, geo.ffun
+    dolfin.parameters["refinement_algorithm"] = "plaza_with_parent_facets"
+    for _ in range(geo_refinement):
+        mesh = dolfin.adapt(mesh)
+        cfun = dolfin.adapt(cfun, mesh)
+        ffun = dolfin.adapt(ffun, mesh)
 
-        geo.f0.set_allow_extrapolation(True)
-        geo.s0.set_allow_extrapolation(True)
-        geo.n0.set_allow_extrapolation(True)
+    geo.f0.set_allow_extrapolation(True)
+    geo.s0.set_allow_extrapolation(True)
+    geo.n0.set_allow_extrapolation(True)
 
-        V_refined = dolfin.FunctionSpace(mesh, geo.f0.function_space().ufl_element())
+    V_refined = dolfin.FunctionSpace(mesh, geo.f0.function_space().ufl_element())
 
-        f0_refined = dolfin.Function(V_refined)
-        f0_refined.interpolate(geo.f0)
-        s0_refined = dolfin.Function(V_refined)
-        s0_refined.interpolate(geo.s0)
-        n0_refined = dolfin.Function(V_refined)
-        n0_refined.interpolate(geo.n0)
+    f0_refined = dolfin.Function(V_refined)
+    f0_refined.interpolate(geo.f0)
+    s0_refined = dolfin.Function(V_refined)
+    s0_refined.interpolate(geo.s0)
+    n0_refined = dolfin.Function(V_refined)
+    n0_refined.interpolate(geo.n0)
 
-        geo.mesh = mesh
-        geo.cfun = cfun
-        geo.ffun = ffun
-        geo.f0 = f0_refined
-        geo.s0 = s0_refined
-        geo.n0 = n0_refined
-        
-        return geo
+    geo.mesh = mesh
+    geo.cfun = cfun
+    geo.ffun = ffun
+    geo.f0 = f0_refined
+    geo.s0 = s0_refined
+    geo.n0 = n0_refined
 
-def solve(outdir, geo_folder, stimulus_amplitude=1000, mesh_unit = "cm"):
-    ep_dir = outdir / 'EP'
+    return geo
+
+
+def solve(outdir, geo_folder, stimulus_amplitude=1000, mesh_unit="cm"):
+    ep_dir = outdir / "EP"
     ep_dir.mkdir(exist_ok=True, parents=True)
-    
+
     model = ORdmm_Land.__dict__
     # data = load_geo_with_cfun(geo_folder)
     data_coarse = cardiac_geometries.geometry.Geometry.from_folder(geo_folder)
     data = cardiac_geometries.geometry.Geometry.from_folder(geo_folder)
     data = refine_geo(data, 2)
     # Saving ffun
-    fname = ep_dir /  "ffun_refined.xdmf"
+    fname = ep_dir / "ffun_refined.xdmf"
     with dolfin.XDMFFile(fname.as_posix()) as infile:
         infile.write(data.ffun)
-    
+
     V = dolfin.FunctionSpace(data.mesh, "Lagrange", 1)
     markers = beat.utils.expand_layer(
         V=V,
@@ -73,8 +76,8 @@ def solve(outdir, geo_folder, stimulus_amplitude=1000, mesh_unit = "cm"):
         endo_size=0.3,
         epi_size=0.3,
     )
-    
-    #parameters
+
+    # parameters
     init_states = {
         0: model["init_state_values"](),
         1: model["init_state_values"](),
@@ -101,8 +104,7 @@ def solve(outdir, geo_folder, stimulus_amplitude=1000, mesh_unit = "cm"):
     chi = 140.0 * beat.units.ureg("mm**-1")
     # Membrane capacitance
     C_m = 0.01 * beat.units.ureg("uF/mm**2")
-    
-    
+
     time = dolfin.Constant(0.0)
 
     subdomain_data = dolfin.MeshFunction("size_t", data.mesh, 2)
@@ -118,9 +120,7 @@ def solve(outdir, geo_folder, stimulus_amplitude=1000, mesh_unit = "cm"):
         marker=marker,
         amplitude=1000.0,
     )
-    
-    
-        
+
     M = beat.conductivities.define_conductivity_tensor(
         chi=chi, f0=data.f0, g_il=0.17, g_it=0.019, g_el=0.62, g_et=0.24
     )
@@ -150,15 +150,21 @@ def solve(outdir, geo_folder, stimulus_amplitude=1000, mesh_unit = "cm"):
     t = 0.0
     dt = 0.05
     solver = beat.MonodomainSplittingSolver(pde=pde, ode=ode)
-    
-    
+
     beat_logger = logging.getLogger("beat")
     beat_logger.setLevel(logging.WARNING)
-        
-    
+
+    Ta = dolfin.Function(pde.V)
+    Ta_index = model["monitor_index"]("Ta")
+
     fname = ep_dir / "state.xdmf"
     if fname.exists():
         fname.unlink()
+
+    fname_Ta = ep_dir / "activation.xdmf"
+    if fname.exists():
+        fname.unlink()
+
     i = 0
     while t < T + 1e-12:
         if i % 20 == 0:
@@ -174,16 +180,33 @@ def solve(outdir, geo_folder, stimulus_amplitude=1000, mesh_unit = "cm"):
                     dolfin.XDMFFile.Encoding.HDF5,
                     True,
                 )
+            arr = Ta.vector().get_local().copy()
+            for marker in solver.ode._marker_values:
+                monitor_values = model["monitor_values"](
+                    t, solver.ode.values(marker=marker), solver.ode.parameters[marker]
+                )
+                arr[solver.ode._inds[marker]] = monitor_values[Ta_index]
+            Ta.vector().set_local(arr)
+            with dolfin.XDMFFile(dolfin.MPI.comm_world, fname_Ta.as_posix()) as xdmf:
+                xdmf.parameters["functions_share_mesh"] = True
+                xdmf.parameters["rewrite_function_mesh"] = False
+                xdmf.write_checkpoint(
+                    Ta,
+                    "activation",
+                    float(t),
+                    dolfin.XDMFFile.Encoding.HDF5,
+                    True,
+                )
         solver.step((t, t + dt))
         i += 1
         t += dt
-        
+
 
 def main(args=None) -> int:
     # Getting the arguments
 
     parser = argparse.ArgumentParser()
-    
+
     # Geometry parameters
     parser.add_argument(
         "-m",
@@ -247,7 +270,7 @@ def main(args=None) -> int:
         type=float,
         help="The amplitude of the stimulus",
     )
-    
+
     parser.add_argument(
         "-o",
         "--outdir",
@@ -255,7 +278,7 @@ def main(args=None) -> int:
         type=Path,
         help="The output directory to save the files.",
     )
-    
+
     parser.add_argument(
         "-g",
         "--geo_folder",
@@ -266,7 +289,7 @@ def main(args=None) -> int:
     args = parser.parse_args(args)
     geo_params = arg_parser.create_geo_params(args)
     segmentation_schema = arg_parser.create_segmentation_schema(args)
-    
+
     ## Creating Geometry
     outdir = args.outdir
     geo_folder = outdir / args.geo_folder
@@ -275,7 +298,8 @@ def main(args=None) -> int:
         geo_params=geo_params,
         segmentation_schema=segmentation_schema,
     )
-    solve(outdir, geo_folder, mesh_unit = "cm")
-  
+    solve(outdir, geo_folder, mesh_unit="cm")
+
+
 if __name__ == "__main__":
     main()
