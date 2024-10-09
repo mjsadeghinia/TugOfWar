@@ -52,6 +52,52 @@ def refine_geo(geo, geo_refinement):
 
     return geo
 
+class Interpolator:
+    def __init__(self, src: dolfin.FunctionSpace, dst: dolfin.FunctionSpace) -> None:
+        self.transfer_matrix = dolfin.PETScDMCollection.create_transfer_matrix(src, dst).mat()
+
+    def assign(self, src: dolfin.Function, dst: dolfin.Function) -> None:
+        x = dolfin.as_backend_type(src.vector()).vec()
+        a, temp = self.transfer_matrix.getVecs()
+        self.transfer_matrix.mult(x, temp)
+        dst.vector().vec().aypx(0.0, temp)
+        dst.vector().apply("")
+
+        # Remember to free memory allocated by petsc: https://gitlab.com/petsc/petsc/-/issues/1309
+        x.destroy()
+        a.destroy()
+        temp.destroy()
+
+def interpolate(function, data, data_coarse):
+    V_coarse = dolfin.FunctionSpace(data_coarse.mesh, "DG", 0)
+    V = dolfin.FunctionSpace(data.mesh, "Lagrange", 1)
+    function_coarse = dolfin.Function(V_coarse)
+    interpolator_dg0 = Interpolator(V, V_coarse)
+    interpolator_dg0.assign(function, function_coarse)
+    return function_coarse
+
+def compute_activation(Ta, Ta_index, ode, model, t):
+    arr = Ta.vector().get_local().copy()
+    for marker in ode._marker_values:
+        monitor_values = model["monitor_values"](
+            t, ode.values(marker=marker), ode.parameters[marker]
+        )
+        arr[ode._inds[marker]] = monitor_values[Ta_index]
+    Ta.vector().set_local(arr)
+    return Ta
+
+def save_xdmf(fname, name, t, func):
+    with dolfin.XDMFFile(fname) as xdmf:
+        xdmf.parameters["functions_share_mesh"] = True
+        xdmf.parameters["rewrite_function_mesh"] = False
+        xdmf.write_checkpoint(
+            func,
+            name,
+            float(t),
+            dolfin.XDMFFile.Encoding.HDF5,
+            True,
+        )
+
 
 def solve(outdir, geo_folder, stimulus_amplitude=1000, mesh_unit="cm"):
     ep_dir = outdir / "EP"
@@ -118,7 +164,7 @@ def solve(outdir, geo_folder, stimulus_amplitude=1000, mesh_unit="cm"):
         time=time,
         subdomain_data=subdomain_data,
         marker=marker,
-        amplitude=1000.0,
+        amplitude=stimulus_amplitude,
     )
 
     M = beat.conductivities.define_conductivity_tensor(
@@ -156,47 +202,32 @@ def solve(outdir, geo_folder, stimulus_amplitude=1000, mesh_unit="cm"):
 
     Ta = dolfin.Function(pde.V)
     Ta_index = model["monitor_index"]("Ta")
+    V_coarse = dolfin.FunctionSpace(data_coarse.mesh, "DG", 0)
+    Ta_coarse = dolfin.Function(V_coarse)
 
-    fname = ep_dir / "state.xdmf"
-    if fname.exists():
-        fname.unlink()
+    fname_state = ep_dir / "state.xdmf"
+    if fname_state.exists():
+        fname_state.unlink()
 
     fname_Ta = ep_dir / "activation.xdmf"
-    if fname.exists():
-        fname.unlink()
+    if fname_Ta.exists():
+        fname_Ta.unlink()
 
+    fname_Ta_coarse = ep_dir / "activation_coarse.xdmf"
+    if fname_Ta_coarse.exists():
+        fname_Ta_coarse.unlink()
+        
     i = 0
     while t < T + 1e-12:
         if i % 20 == 0:
             v = solver.pde.state.vector().get_local()
             print(f"Solve for {t=:.2f}, {v.max() =}, {v.min() = }")
-            with dolfin.XDMFFile(dolfin.MPI.comm_world, fname.as_posix()) as xdmf:
-                xdmf.parameters["functions_share_mesh"] = True
-                xdmf.parameters["rewrite_function_mesh"] = False
-                xdmf.write_checkpoint(
-                    solver.pde.state,
-                    "V",
-                    float(t),
-                    dolfin.XDMFFile.Encoding.HDF5,
-                    True,
-                )
-            arr = Ta.vector().get_local().copy()
-            for marker in solver.ode._marker_values:
-                monitor_values = model["monitor_values"](
-                    t, solver.ode.values(marker=marker), solver.ode.parameters[marker]
-                )
-                arr[solver.ode._inds[marker]] = monitor_values[Ta_index]
-            Ta.vector().set_local(arr)
-            with dolfin.XDMFFile(dolfin.MPI.comm_world, fname_Ta.as_posix()) as xdmf:
-                xdmf.parameters["functions_share_mesh"] = True
-                xdmf.parameters["rewrite_function_mesh"] = False
-                xdmf.write_checkpoint(
-                    Ta,
-                    "activation",
-                    float(t),
-                    dolfin.XDMFFile.Encoding.HDF5,
-                    True,
-                )
+            Ta = compute_activation(Ta, Ta_index, ode, model, t)
+            Ta_coarse = interpolate(Ta,data,data_coarse)
+            save_xdmf(fname_state.as_posix(), "V", t, solver.pde.state)
+            save_xdmf(fname_Ta.as_posix(), "activation", t, Ta)
+            save_xdmf(fname_Ta_coarse.as_posix(), "activation", t, Ta_coarse)
+            
         solver.step((t, t + dt))
         i += 1
         t += dt
