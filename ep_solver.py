@@ -138,21 +138,21 @@ def generate_3d_mesh_from_seperate_stl(mesh_epi, mesh_endo, mesh_base, output_me
     # Initialize Gmsh
     gmsh.initialize()
     gmsh.model.add("3D Mesh")
-    gmsh.option.setNumber("General.Verbosity", 0)
+    gmsh.option.setNumber("General.Verbosity", 2)
 
     # Merge the STL files
     gmsh.merge(mesh_epi)
     gmsh.merge(mesh_endo)
     gmsh.merge(mesh_base)
 
-    gmsh.model.mesh.removeDuplicateNodes()
+    # gmsh.model.mesh.removeDuplicateNodes()
     gmsh.model.mesh.create_geometry()
     gmsh.model.mesh.create_topology()
     surfaces = gmsh.model.getEntities(2)
     
     gmsh.model.geo.addSurfaceLoop([s[1] for s in surfaces], 1)
     vol = gmsh.model.geo.addVolume([1], 1)
-    
+    gmsh.model.geo.synchronize()
     physical_groups = {
         "Epi": [1],
         "Endo": [2],
@@ -161,15 +161,19 @@ def generate_3d_mesh_from_seperate_stl(mesh_epi, mesh_endo, mesh_base, output_me
     for name, tag in physical_groups.items():
         p = gmsh.model.addPhysicalGroup(2, tag)
         gmsh.model.setPhysicalName(2, p, name)
-
+    
     p = gmsh.model.addPhysicalGroup(3, [vol], 9)
     gmsh.model.setPhysicalName(3, p, "Wall")
-
+    gmsh.option.setNumber("Mesh.CharacteristicLengthMax", .1)
+    gmsh.option.setNumber("Mesh.CharacteristicLengthMin", .1)
+    gmsh.option.setNumber("Mesh.Optimize", 1)
+    gmsh.option.setNumber("Mesh.OptimizeNetgen", 1)
+    gmsh.option.setNumber("Mesh.Smoothing", 1)
     if MeshSizeMin is not None:
         gmsh.option.setNumber('Mesh.MeshSizeMin', MeshSizeMin)
     if MeshSizeMax is not None:
         gmsh.option.setNumber('Mesh.MeshSizeMax', MeshSizeMax)
-            
+    
     gmsh.model.geo.synchronize()
     gmsh.model.mesh.generate(3)
     # Save the mesh to the specified file
@@ -185,7 +189,6 @@ def export_facet_as_stl(geo, facet_number, fname):
     next_vertex_id = 0  # Counter for new vertices
 
     facets = dolfin.facets(geo.mesh)
-    # Iterate over the facets of the mesh
     for facet in facets:
         if geo.ffun[facet] == facet_number:
             # Get the original global node numbers for this facet
@@ -228,12 +231,13 @@ def refine_goe_gmsh(geo, outdir, surface_mesh_size=.2, MeshSizeMin=.1, MeshSizeM
     export_facet_as_stl(geo, 7, epi_stl_fname.as_posix())
     export_facet_as_stl(geo, 6, endo_stl_fname.as_posix())
     export_facet_as_stl(geo, 5, base_stl_fname.as_posix())
-    remesh_surface(epi_stl_fname.as_posix(), mesh_size=surface_mesh_size)
-    remesh_surface(endo_stl_fname.as_posix(), mesh_size=surface_mesh_size)
-    remesh_surface(base_stl_fname.as_posix(), mesh_size=surface_mesh_size)
+    # remesh_surface(epi_stl_fname.as_posix(), mesh_size=surface_mesh_size)
+    # remesh_surface(endo_stl_fname.as_posix(), mesh_size=surface_mesh_size)
+    # remesh_surface(base_stl_fname.as_posix(), mesh_size=surface_mesh_size)
     breakpoint()
     output_mesh_filename = geo_folder / '3D_Mesh.stl'
     generate_3d_mesh_from_seperate_stl(epi_stl_fname.as_posix(), endo_stl_fname.as_posix(), base_stl_fname.as_posix(), output_mesh_filename,  MeshSizeMin=MeshSizeMin, MeshSizeMax=MeshSizeMax)
+    breakpoint()
     return
 
 class Interpolator:
@@ -291,7 +295,8 @@ def solve(outdir, geo_folder, refinement=1, stimulus_amplitude=1000, mesh_unit="
     # data = load_geo_with_cfun(geo_folder)
     data_coarse = cardiac_geometries.geometry.Geometry.from_folder(geo_folder)
     data = cardiac_geometries.geometry.Geometry.from_folder(geo_folder)
-    data = refine_geo(data, refinement)
+    refine_goe_gmsh(data, outdir)
+    # data = refine_geo(data, refinement)
     # Saving ffun
     fname = ep_dir / "ffun_refined.xdmf"
     with dolfin.XDMFFile(fname.as_posix()) as infile:
