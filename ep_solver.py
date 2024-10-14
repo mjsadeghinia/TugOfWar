@@ -175,8 +175,9 @@ def solve(outdir, geo_folder_coarse, geo_folder_fine, stimulus_amplitude=1000, m
     Ta_index = model["monitor_index"]("Ta")
     V_coarse = dolfin.FunctionSpace(geo_coarse.mesh, "DG", 0)
     Ta_coarse = dolfin.Function(V_coarse)
-
-    fname_state = ep_dir / "state.xdmf"
+    State_coarse = dolfin.Function(V_coarse)
+    
+    fname_state = ep_dir / "state_coarse.xdmf"
     if fname_state.exists():
         fname_state.unlink()
 
@@ -195,8 +196,9 @@ def solve(outdir, geo_folder_coarse, geo_folder_fine, stimulus_amplitude=1000, m
             print(f"Solve for {t=:.2f}, {v.max() =}, {v.min() = }")
             Ta = compute_activation(Ta, Ta_index, ode, model, t)
             Ta_coarse = interpolate(Ta,geo,geo_coarse)
-            # save_xdmf(fname_state.as_posix(), "V", t, solver.pde.state)
-            save_xdmf(fname_Ta.as_posix(), "activation", t, Ta)
+            State_coarse = interpolate(solver.pde.state,geo,geo_coarse)
+            save_xdmf(fname_state.as_posix(), "V", t, State_coarse)
+            #save_xdmf(fname_Ta.as_posix(), "activation", t, Ta)
             save_xdmf(fname_Ta_coarse.as_posix(), "activation", t, Ta_coarse)
             
         solver.step((t, t + dt))
