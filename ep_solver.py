@@ -74,10 +74,15 @@ def save_xdmf_mpi(fname, name, t, func, comm):
             True,
         )
 
-def solve(outdir, geo_folder_coarse, geo_folder_fine, stimulus_amplitude=1000, mesh_unit="cm"):        
+def solve(outdir, geo_folder_coarse, geo_folder_fine, stimulus_amplitude=1000, mesh_unit="cm", comm=None):
+    if comm is None:
+        comm = dolfin.MPI.comm_world
+    
     ep_dir = outdir / "EP"
-    ep_dir.mkdir(exist_ok=True, parents=True)
-
+    if comm.rank == 0:
+        ep_dir.mkdir(exist_ok=True, parents=True)
+    comm.Barrier()
+    
     model = ORdmm_Land.__dict__
     geo_coarse = cardiac_geometries.geometry.Geometry.from_folder(geo_folder_coarse)
     geo = cardiac_geometries.geometry.Geometry.from_folder(geo_folder_fine)
@@ -102,9 +107,9 @@ def solve(outdir, geo_folder_coarse, geo_folder_fine, stimulus_amplitude=1000, m
     }
     # endo = 0, epi = 1, M = 2
     parameters = {
-        0: model["init_parameter_values"](amp=0.0, celltype=2),
+        0: model["init_parameter_values"](amp=0.0, celltype=0),
         1: model["init_parameter_values"](amp=0.0, celltype=0),
-        2: model["init_parameter_values"](amp=0.0, celltype=1),
+        2: model["init_parameter_values"](amp=0.0, celltype=0),
     }
     fun = {
         0: model["forward_generalized_rush_larsen"],
@@ -137,9 +142,9 @@ def solve(outdir, geo_folder_coarse, geo_folder_fine, stimulus_amplitude=1000, m
         marker=marker,
         amplitude=stimulus_amplitude,
     )
-
+    # changing g_it=0.019 to 0.029 for faster activation
     M = beat.conductivities.define_conductivity_tensor(
-        chi=chi, f0=geo.f0, g_il=0.17, g_it=0.019, g_el=0.62, g_et=0.24
+        chi=chi, f0=geo.f0, g_il=0.17, g_it=0.029, g_el=0.62, g_et=0.24
     )
 
     params = {"preconditioner": "sor", "use_custom_preconditioner": False}
@@ -171,35 +176,32 @@ def solve(outdir, geo_folder_coarse, geo_folder_fine, stimulus_amplitude=1000, m
     beat_logger = logging.getLogger("beat")
     beat_logger.setLevel(logging.WARNING)
 
-    Ta = dolfin.Function(pde.V)
     Ta_index = model["monitor_index"]("Ta")
     V_coarse = dolfin.FunctionSpace(geo_coarse.mesh, "DG", 0)
+    Ta_fine = dolfin.Function(pde.V)
     Ta_coarse = dolfin.Function(V_coarse)
-    State_coarse = dolfin.Function(V_coarse)
+    MP_coarse = dolfin.Function(V_coarse)
     
-    fname_state = ep_dir / "state_coarse.xdmf"
-    if fname_state.exists():
-        fname_state.unlink()
-
-    fname_Ta = ep_dir / "activation.xdmf"
-    if fname_Ta.exists():
-        fname_Ta.unlink()
-
+    fname_MP_fine = ep_dir / "membrane_potential_fine.xdmf"
+    fname_MP_coarse = ep_dir / "membrane_potential_coarse.xdmf"
+    fname_Ta_fine = ep_dir / "activation_fine.xdmf"
     fname_Ta_coarse = ep_dir / "activation_coarse.xdmf"
-    if fname_Ta_coarse.exists():
-        fname_Ta_coarse.unlink()
-        
+    if comm.rank == 0:
+        for fnmae in [fname_MP_fine, fname_MP_coarse, fname_Ta_fine, fname_Ta_coarse]:
+            if fnmae.exists():
+                fnmae.unlink()
+    comm.Barrier()
     i = 0
     while t < T + 1e-12:
         if i % 20 == 0:
             v = solver.pde.state.vector().get_local()
             print(f"Solve for {t=:.2f}, {v.max() =}, {v.min() = }")
-            Ta = compute_activation(Ta, Ta_index, ode, model, t)
-            Ta_coarse = interpolate(Ta,geo,geo_coarse)
-            State_coarse = interpolate(solver.pde.state,geo,geo_coarse)
-            save_xdmf(fname_state.as_posix(), "V", t, State_coarse)
-            #save_xdmf(fname_Ta.as_posix(), "activation", t, Ta)
-            save_xdmf(fname_Ta_coarse.as_posix(), "activation", t, Ta_coarse)
+            Ta_fine = compute_activation(Ta_fine, Ta_index, ode, model, t)
+            Ta_coarse = interpolate(Ta_fine,geo,geo_coarse)
+            MP_coarse = interpolate(solver.pde.state,geo,geo_coarse)
+            save_xdmf_mpi(fname_MP_fine.as_posix(), "MP_fine", t, solver.pde.state, comm)
+            save_xdmf_mpi(fname_MP_coarse.as_posix(), "MP", t, MP_coarse, comm)
+            save_xdmf_mpi(fname_Ta_coarse.as_posix(), "activation", t, Ta_coarse, comm)
             
         solver.step((t, t + dt))
         i += 1
@@ -240,8 +242,7 @@ def main(args=None) -> int:
     outdir = args.outdir
     geo_folder_coarse = outdir / f"{args.geo_folder}_coarse"
     geo_folder_fine = outdir / f"{args.geo_folder}_fine"
-
-    solve(outdir, geo_folder_coarse, geo_folder_fine, stimulus_amplitude=stimulus_amplitude, mesh_unit="cm")
+    solve(outdir, geo_folder_coarse, geo_folder_fine, stimulus_amplitude=stimulus_amplitude, mesh_unit="cm", comm=comm)
 
 
 if __name__ == "__main__":
