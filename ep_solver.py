@@ -198,8 +198,10 @@ def solve(outdir, geo_folder_coarse, geo_folder_fine, stimulus_amplitude=1000, m
             print(f"Solve for {t=:.2f}, {v.max() =}, {v.min() = }")
             Ta_fine = compute_activation(Ta_fine, Ta_index, ode, model, t)
             Ta_coarse = interpolate(Ta_fine,geo,geo_coarse)
+            # !!! Scaling activation !!!
+            Ta_coarse.vector()[:] = Ta_coarse.vector()[:] * 15
             MP_coarse = interpolate(solver.pde.state,geo,geo_coarse)
-            save_xdmf_mpi(fname_MP_fine.as_posix(), "MP_fine", t, solver.pde.state, comm)
+            # save_xdmf_mpi(fname_MP_fine.as_posix(), "MP_fine", t, solver.pde.state, comm)
             save_xdmf_mpi(fname_MP_coarse.as_posix(), "MP", t, MP_coarse, comm)
             save_xdmf_mpi(fname_Ta_coarse.as_posix(), "activation", t, Ta_coarse, comm)
             
