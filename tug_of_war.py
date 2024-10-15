@@ -122,18 +122,6 @@ def main(args=None) -> int:
         collector=collector,
         start_time=2,
     )
-    if postprocessing_flag:
-        num_circ_segments = segmentation_schema["num_circ_segments"]
-        num_long_segments = segmentation_schema["num_long_segments"]
-        args_post = argparse.Namespace(
-            num_circ_segments=num_circ_segments,
-            num_long_segments=num_long_segments,
-            activation_fname=activation_fname,
-            folder_data=outdir,
-            outdir='plots',
-            num_time_step=num_time_step,
-        )
-        post_processing.main(args_post)
 
 
 # %%
