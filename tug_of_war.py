@@ -8,8 +8,8 @@ import dolfin
 import argparse
 import arg_parser
 import post_processing
-from geometry import create_ellipsoid_geometry
-from activation_model import create_activation_function
+import geometry
+import activation_model 
 
 from circ.circulation_model import CirculationModel
 from circ.datacollector import DataCollector
@@ -55,25 +55,41 @@ def main(args=None) -> int:
     scenario = args.scenario
     num_time_step = args.num_time_step
     postprocessing_flag = args.postprocessing
+    ep_flag = args.ep
+    if ep_flag:
+        geo_folder = outdir / "lv_coarse"
+        geo = geometry.load_geo_with_cfun(geo_folder)
+        geo = geometry.recreate_cfun(geo, segmentation_schema, geo_folder)
+        activation_fname = activation_model.create_ep_activation_function(
+            outdir,
+            geo,
+            segmentation_schema,
+            scenario,
+            activation_mode,
+            activation_variation,
+            num_time_step,
+            random_flag=True,
+        )
+        breakpoint()
+    else:
+        ## Creating Geometry
+        geo = geometry.create_ellipsoid_geometry(
+            folder=outdir / "lv",
+            geo_params=geo_params,
+            segmentation_schema=segmentation_schema,
+        )
 
-    ## Creating Geometry
-    geo = create_ellipsoid_geometry(
-        folder=outdir / "lv",
-        geo_params=geo_params,
-        segmentation_schema=segmentation_schema,
-    )
-
-    ## Creating Activation
-    activation_fname = create_activation_function(
-        outdir,
-        geo,
-        segmentation_schema,
-        scenario,
-        activation_mode,
-        activation_variation,
-        num_time_step,
-        random_flag=True,
-    )
+        ## Creating Activation
+        activation_fname = activation_model.create_activation_function(
+            outdir,
+            geo,
+            segmentation_schema,
+            scenario,
+            activation_mode,
+            activation_variation,
+            num_time_step,
+            random_flag=True,
+        )
 
     # Model Generation
     heart_model = HeartModelPulse(geo=geo, bc_params=bc_params)

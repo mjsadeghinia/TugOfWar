@@ -72,6 +72,13 @@ def parse_arguments(args=None):
         help="The number of slices (longitudinal)",
     )
 
+    # flag for using EP based modeling
+    parser.add_argument(
+        "-ep",
+        action="store_true",
+        help="The flag for wheter using electrophysiology model or not",
+    )
+    
     # Scenario and parameters
     valid_scenarios = [
         "single_compartment",
