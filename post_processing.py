@@ -279,8 +279,12 @@ def main(args=None) -> int:
     outdir = arg_parser.prepare_output_directory(outdir)
     num_time_step = args.num_time_step
 
-    geo_folder = Path(data_folder) / "lv"
-    geo = geometry.load_geo_with_cfun(geo_folder)
+    try:
+        geo_folder = Path(data_folder) / "lv"
+        geo = geometry.load_geo_with_cfun(geo_folder)
+    except Exception:
+        geo_folder = Path(data_folder) / "lv_coarse"
+        geo = geometry.load_geo_with_cfun(geo_folder)
     geo = geometry.recreate_cfun(geo, segmentation_schema, outdir)
     heart_model = load_heart_model(geo)
     
