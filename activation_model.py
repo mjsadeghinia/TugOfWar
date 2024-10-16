@@ -716,7 +716,6 @@ def create_ep_activation_function(
         plot_ep_activation_within_compartment(outdir, geo_folder, EP_activation_fname, num_time_step=500, fname_prefix="EP_Activation")
         membrane_potential_fname = outdir / "EP/membrane_potential_coarse.xdmf"
         plot_membrane_potential_within_compartment(outdir, geo_folder, membrane_potential_fname, num_time_step=500)
-        breakpoint()
         return fname
     except Exception as e:
         logger.error(f"Failed to create activation function: {e}")
