@@ -59,18 +59,19 @@ def main(args=None) -> int:
     if ep_flag:
         geo_folder = outdir / "lv_coarse"
         geo = geometry.load_geo_with_cfun(geo_folder)
-        geo = geometry.recreate_cfun(geo, segmentation_schema, geo_folder)
-        activation_fname = activation_model.create_ep_activation_function(
-            outdir,
-            geo,
-            segmentation_schema,
-            scenario,
-            activation_mode,
-            activation_variation,
-            num_time_step,
-            random_flag=True,
-        )
-        breakpoint()
+        activation_fname = outdir / "activation.xdmf"
+        if not activation_fname.exists():
+            geo = geometry.recreate_cfun(geo, segmentation_schema, geo_folder)
+            activation_fname = activation_model.create_ep_activation_function(
+                outdir,
+                geo,
+                segmentation_schema,
+                scenario,
+                activation_mode,
+                activation_variation,
+                num_time_step,
+                random_flag=True,
+            )
     else:
         ## Creating Geometry
         geo = geometry.create_ellipsoid_geometry(
@@ -90,7 +91,6 @@ def main(args=None) -> int:
             num_time_step,
             random_flag=True,
         )
-
     # Model Generation
     heart_model = HeartModelPulse(geo=geo, bc_params=bc_params)
     circulation_model = CirculationModel(params=circ_params)
