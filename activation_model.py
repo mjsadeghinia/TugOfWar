@@ -708,6 +708,45 @@ class Infarct_expression(dolfin.UserExpression):
             value[0] = normalized_value * self.mi_severity
     def value_shape(self):
         return ()
+    
+def create_infarct(outdir, geo, mi_severity, iz_radius, bz_thickness):
+    V = dolfin.FunctionSpace(geo.mesh, "DG", 0)
+    center=(-0.868239,0,3+.75/2)
+    infarct_expr = Infarct_expression(center, mi_severity, iz_radius, bz_thickness)
+    infarct = dolfin.interpolate(infarct_expr, V)
+    with dolfin.XDMFFile((outdir / "infarct.xdmf").as_posix()) as xdmf:
+        xdmf.write_checkpoint(
+            infarct,
+            "infarct",
+            0.0,
+            dolfin.XDMFFile.Encoding.HDF5,
+            False,
+        )
+    return infarct
+
+
+def save_mi_activation_as_dolfin_function(geo, delayed_activations, infarct, fname):
+    V = dolfin.FunctionSpace(geo.mesh, "DG", 0)
+    delayed_activations_function = dolfin.Function(V)
+    segments = geo.cfun
+    if fname.exists():
+        fname.unlink()
+
+    for t in range(len(delayed_activations[0])):
+        num_segments = len(set(segments.array()))
+        for n in range(num_segments):
+            delayed_activations_function.vector()[geometry.get_elems(segments, n + 1)] = (
+                delayed_activations[n][t, :]
+            )
+        delayed_activations_function.vector()[:] *= (1-infarct.vector()[:]) 
+        with dolfin.XDMFFile(fname.as_posix()) as xdmf:
+            xdmf.write_checkpoint(
+                delayed_activations_function,
+                "activation",
+                float(t + 1),
+                dolfin.XDMFFile.Encoding.HDF5,
+                True,
+            )
 
 def create_ep_activation_function(
     outdir,
@@ -722,19 +761,6 @@ def create_ep_activation_function(
     iz_radius,
     bz_thickness,
 ):
-    V = dolfin.FunctionSpace(geo.mesh, "DG", 0)
-    center=(-0.868239,0,3+.75/2)
-    infarct_expr = Infarct_expression(center, mi_severity, iz_radius, bz_thickness)
-    infarct = dolfin.interpolate(infarct_expr, V)
-    with dolfin.XDMFFile((outdir / "infarct.xdmf").as_posix()) as xdmf:
-        xdmf.write_checkpoint(
-            infarct,
-            "infarct",
-            0.0,
-            dolfin.XDMFFile.Encoding.HDF5,
-            False,
-        )
-    breakpoint()
     try:
         activations = cmpute_ep_activation(
             outdir,
@@ -746,7 +772,12 @@ def create_ep_activation_function(
             num_time_step,
         )
         fname = outdir / "activation.xdmf"
-        save_activation_as_dolfin_function(geo, activations, fname)
+        if mi_flag:
+            infarct = create_infarct(outdir, geo, mi_severity, iz_radius, bz_thickness)
+            save_mi_activation_as_dolfin_function(geo, activations, infarct, fname)
+        else:
+            save_activation_as_dolfin_function(geo, activations, fname)
+            
         geo_folder = outdir / "lv_coarse"
         plot_ep_activation_within_compartment(outdir, geo_folder, fname, num_time_step=500)
         EP_activation_fname = outdir / "EP/activation_coarse.xdmf"
