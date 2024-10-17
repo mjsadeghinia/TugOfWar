@@ -654,7 +654,6 @@ def cmpute_ep_activation(
     activation_mode,
     activation_variation,
     num_time_step,
-    random_flag=True,
 ):
     activations = []
     t_eval = np.linspace(0, 1, num_time_step)
@@ -662,6 +661,7 @@ def cmpute_ep_activation(
     ep_folder = outdir / "EP"
     membrane_potential_fname = ep_folder / "membrane_potential_coarse.xdmf"
     membrane_potential_compartments = load_membrane_potential_compartment_from_file(geo_folder, membrane_potential_fname, num_time_step=num_time_step)
+    breakpoint()
     for n, MPs in tqdm(enumerate(membrane_potential_compartments), total=len(membrane_potential_compartments), desc="Creating Activation Curves for Compartments", ncols=100): 
         elems = geometry.get_elems(geo.cfun, n+1)
         num_elems = len(elems)
@@ -685,7 +685,90 @@ def cmpute_ep_activation(
 
     return activations
 
+def compute_mi_activation(
+    outdir,
+    geo,
+    segmentation_schema,
+    activations,
+    num_time_step,
+    mi_severity,
+    iz_len,
+    bz_len,
+):
 
+    ind_i_mi, ind_f_mi = geometry.get_cfun_for_iz_compartment(segmentation_schema, infarct_zone_len = iz_len)
+    ind_i_bz_1, ind_f_bz_1, ind_i_bz_2, ind_f_bz_2 = geometry.get_cfun_for_bz_compartment(ind_i_mi, ind_f_mi, border_zone_len=bz_len)
+    activations = process_iz_activations(activations, mi_severity, ind_i_mi, ind_f_mi)
+    activations = process_bz_activations(activations, mi_severity, geo, ind_i_bz_1, ind_f_bz_1)
+
+    return activations
+
+def process_iz_activations(activations, mi_severity, ind_i_mi, ind_f_mi):
+    for n in range(ind_i_mi, ind_f_mi+1):
+        compartment_activations= activations[n]
+        for i, a in enumerate(compartment_activations.T):
+            activations[n][:,i] = a * (1-mi_severity)
+    return activations
+
+def process_bz_activations(activations, mi_severity, geo, ind_i_bz, ind_f_bz):
+    bz_elems = []
+    midpoints = get_bz_midpoints(geo, ind_i_bz, ind_f_bz)
+    midpoints_spherical = cartesian_to_spherical(midpoints)
+    min_angle = np.min(midpoints_spherical[:,1])
+    max_angle = np.max(midpoints_spherical[:,1])
+    
+    bz_indices = list(range(ind_i_bz, ind_f_bz + 1))
+    for cell in dolfin.cells(geo.mesh):
+        if geo.cfun[cell] in bz_indices:
+            breakpoint()
+            bz_index = geo.cfun[cell]
+            # Calculate the midpoint of the cell
+            cell_midpoint = cell.midpoint().array()
+            # getting the element no of the cell
+            cell_id_global = cell.entities(3)[0]
+            compartment_elems = geometry.get_elems(geo.cfun, bz_index)
+            cell_id_compratment = np.where(compartment_elems == cell_id_global)[0]
+            amplitude = compute_bz_amplitude(mi_severity, cell_midpoint, min_angle, max_angle)
+            activations[bz_index][:,cell_id_compratment] *= amplitude 
+        
+    return activations
+
+
+def compute_bz_amplitude(mi_severity, cell_midpoint, min_angle, max_angle):
+    cell_midpoint_spherical = cartesian_to_spherical(cell_midpoint) 
+    cell_angle = cell_midpoint_spherical[1]
+    if max_angle<np.pi/2:
+        amplitude = ((cell_angle-min_angle) * (1-mi_severity) + (max_angle-cell_angle)) / (max_angle-min_angle)
+    else:
+        amplitude = ((cell_angle-min_angle)  + (max_angle-cell_angle) * (1-mi_severity)) / (max_angle-min_angle)
+    return amplitude
+
+def get_bz_midpoints(geo, ind_i_bz, ind_f_bz):
+    midpoints = []
+    bz_indices = list(range(ind_i_bz, ind_f_bz + 1))
+    for cell in dolfin.cells(geo.mesh):
+        if geo.cfun[cell] in bz_indices:
+            # Calculate the midpoint of the cell
+            midpoint = cell.midpoint().array()
+            midpoints.append(midpoint)
+    return midpoints
+
+def cartesian_to_spherical(coords):
+    coords = np.asarray(coords)
+    # We are rotating the model so the z is the long axis
+    try:
+        x, y, z = coords[:, 1], coords[:, 2], coords[:, 0]
+    except Exception:
+        x, y, z = coords[1], coords[2], coords[0]
+    r = np.sqrt(x**2 + y**2 + z**2)
+    # Calculate the azimuthal angle (theta) in the xy-plane
+    theta = np.arctan2(y, x)
+    # Calculate the polar angle (phi)
+    phi = np.arccos(np.divide(z, r, where=r!=0))
+    if coords.ndim == 1:
+        return np.array([r, theta, phi])
+    
+    return np.vstack((r, theta, phi)).T
 
 def create_ep_activation_function(
     outdir,
@@ -695,7 +778,10 @@ def create_ep_activation_function(
     activation_mode,
     activation_variation,
     num_time_step,
-    random_flag=True,
+    mi_flag,
+    mi_severity,
+    iz_len,
+    bz_len,
 ):
     try:
         activations = cmpute_ep_activation(
@@ -706,8 +792,18 @@ def create_ep_activation_function(
             activation_mode,
             activation_variation,
             num_time_step,
-            random_flag=True,
         )
+        if mi_flag:
+            activations = compute_mi_activation(
+                outdir,
+                geo,
+                segmentation_schema,
+                activations,
+                num_time_step,
+                mi_severity,
+                iz_len,
+                bz_len,
+            )
         fname = outdir / "activation.xdmf"
         save_activation_as_dolfin_function(geo, activations, fname)
         geo_folder = outdir / "lv_coarse"
