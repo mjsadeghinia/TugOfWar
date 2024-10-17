@@ -684,89 +684,34 @@ def cmpute_ep_activation(
 
     return activations
 
-def compute_mi_activation(
-    outdir,
-    geo,
-    segmentation_schema,
-    activations,
-    num_time_step,
-    mi_severity,
-    iz_len,
-    bz_len,
-):
+class InverseDistanceExpression(dolfin.UserExpression):
+    def __init__(self, center, upper_threshold, lower_threshold,  **kwargs):
+        super().__init__(**kwargs)
+        self.center = center
+        self.upper_threshold = upper_threshold
+        self.lower_threshold = lower_threshold
 
-    ind_i_mi, ind_f_mi = geometry.get_cfun_for_iz_compartment(segmentation_schema, infarct_zone_len = iz_len)
-    ind_i_bz_1, ind_f_bz_1, ind_i_bz_2, ind_f_bz_2 = geometry.get_cfun_for_bz_compartment(ind_i_mi, ind_f_mi, border_zone_len=bz_len)
-    activations = process_iz_activations(activations, mi_severity, ind_i_mi, ind_f_mi)
-    activations = process_bz_activations(activations, mi_severity, geo, ind_i_bz_1, ind_f_bz_1)
-    activations = process_bz_activations(activations, mi_severity, geo, ind_i_bz_2, ind_f_bz_2)
-    return activations
+    def eval(self, value, x):
+        dx = x[0] - self.center[0]
+        dy = x[1] - self.center[1]
+        dz = x[2] - self.center[2]
+        distance = np.sqrt(dx**2 + dy**2 + dz**2)
+        # Avoid division by zero
+        if distance == 0:
+            inv_distance = 1.0
+        else:
+            inv_distance = 1.0 / distance
 
-def process_iz_activations(activations, mi_severity, ind_i_mi, ind_f_mi):
-    for n in range(ind_i_mi, ind_f_mi+1):
-        compartment_activations= activations[n-1]
-        for i, a in enumerate(compartment_activations.T):
-            activations[n-1][:,i] = a * (1-mi_severity)
-    return activations
-
-def process_bz_activations(activations, mi_severity, geo, ind_i_bz, ind_f_bz):
-    bz_elems = []
-    midpoints = get_bz_midpoints(geo, ind_i_bz, ind_f_bz)
-    midpoints_spherical = cartesian_to_spherical(midpoints)
-    min_angle = np.min(midpoints_spherical[:,1])
-    max_angle = np.max(midpoints_spherical[:,1])
-    
-    bz_indices = list(range(ind_i_bz, ind_f_bz + 1))
-    for cell in dolfin.cells(geo.mesh):
-        if geo.cfun[cell] in bz_indices:
-            bz_index = geo.cfun[cell]
-            # Calculate the midpoint of the cell
-            cell_midpoint = cell.midpoint().array()
-            # getting the element no of the cell
-            cell_id_global = cell.entities(3)[0]
-            compartment_elems = geometry.get_elems(geo.cfun, bz_index)
-            cell_id_compratment = np.where(compartment_elems == cell_id_global)[0]
-            amplitude = compute_bz_amplitude(mi_severity, cell_midpoint, min_angle, max_angle)
-            activations[bz_index-1][:,cell_id_compratment] *= amplitude 
-        
-    return activations
-
-
-def compute_bz_amplitude(mi_severity, cell_midpoint, min_angle, max_angle):
-    cell_midpoint_spherical = cartesian_to_spherical(cell_midpoint) 
-    cell_angle = cell_midpoint_spherical[1]
-    if max_angle<np.pi/2:
-        amplitude = ((cell_angle-min_angle) * (1-mi_severity) + (max_angle-cell_angle)) / (max_angle-min_angle)
-    else:
-        amplitude = ((cell_angle-min_angle)  + (max_angle-cell_angle) * (1-mi_severity)) / (max_angle-min_angle)
-    return amplitude
-
-def get_bz_midpoints(geo, ind_i_bz, ind_f_bz):
-    midpoints = []
-    bz_indices = list(range(ind_i_bz, ind_f_bz + 1))
-    for cell in dolfin.cells(geo.mesh):
-        if geo.cfun[cell] in bz_indices:
-            # Calculate the midpoint of the cell
-            midpoint = cell.midpoint().array()
-            midpoints.append(midpoint)
-    return midpoints
-
-def cartesian_to_spherical(coords):
-    coords = np.asarray(coords)
-    # We are rotating the model so the z is the long axis
-    try:
-        x, y, z = coords[:, 1], coords[:, 2], coords[:, 0]
-    except Exception:
-        x, y, z = coords[1], coords[2], coords[0]
-    r = np.sqrt(x**2 + y**2 + z**2)
-    # Calculate the azimuthal angle (theta) in the xy-plane
-    theta = np.arctan2(y, x)
-    # Calculate the polar angle (phi)
-    phi = np.arccos(np.divide(z, r, where=r!=0))
-    if coords.ndim == 1:
-        return np.array([r, theta, phi])
-    
-    return np.vstack((r, theta, phi)).T
+        # Apply thresholding
+        if inv_distance > self.upper_threshold:
+            value[0] = 1.0
+        elif inv_distance < self.lower_threshold:
+            value[0] = 0.0
+        else:
+            normalized_value = (inv_distance - self.lower_threshold) / (self.upper_threshold - self.lower_threshold)
+            value[0] = normalized_value
+    def value_shape(self):
+        return ()
 
 def create_ep_activation_function(
     outdir,
@@ -781,6 +726,18 @@ def create_ep_activation_function(
     iz_len,
     bz_len,
 ):
+    V = dolfin.FunctionSpace(geo.mesh, "DG", 0)
+    infarct_expr = InverseDistanceExpression(center=(-1.2,0,3), upper_threshold=0.95, lower_threshold=0.8)
+    infarct = dolfin.interpolate(infarct_expr, V)
+    with dolfin.XDMFFile((outdir / "infarct.xdmf").as_posix()) as xdmf:
+        xdmf.write_checkpoint(
+            infarct,
+            "infarct",
+            0.0,
+            dolfin.XDMFFile.Encoding.HDF5,
+            False,
+        )
+    breakpoint()
     try:
         activations = cmpute_ep_activation(
             outdir,
@@ -791,17 +748,6 @@ def create_ep_activation_function(
             activation_variation,
             num_time_step,
         )
-        if mi_flag:
-            activations = compute_mi_activation(
-                outdir,
-                geo,
-                segmentation_schema,
-                activations,
-                num_time_step,
-                mi_severity,
-                iz_len,
-                bz_len,
-            )
         fname = outdir / "activation.xdmf"
         save_activation_as_dolfin_function(geo, activations, fname)
         geo_folder = outdir / "lv_coarse"
