@@ -55,7 +55,12 @@ def main(args=None) -> int:
     scenario = args.scenario
     num_time_step = args.num_time_step
     postprocessing_flag = args.postprocessing
-    ep_flag = args.ep
+    ep_flag = args.ep           # Flag for using ep driven activation
+    mi_flag = args.mi           # Flag for adding infarct
+    iz_len = args.iz_len        # The number of cfun for infarct zone
+    bz_len = args.bz_len        # The number of cfun for border  zone
+    
+    
     if ep_flag:
         geo_folder = outdir / "lv_coarse"
         geo = geometry.load_geo_with_cfun(geo_folder)

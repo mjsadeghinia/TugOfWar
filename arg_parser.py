@@ -76,7 +76,28 @@ def parse_arguments(args=None):
     parser.add_argument(
         "-ep",
         action="store_true",
-        help="The flag for wheter using electrophysiology model or not",
+        help="The flag for whether using electrophysiology model or not",
+    )
+    
+    # flag for using EP based modeling
+    parser.add_argument(
+        "-mi",
+        action="store_true",
+        help="The flag for whether adding Infarct region or not (ONLY IN EP MODEL)",
+    )
+    
+    # flag for using EP based modeling
+    parser.add_argument(
+        "--iz_len",
+        default=4,
+        help="The number of cfun for infarct zone",
+    )
+    
+     # flag for using EP based modeling
+    parser.add_argument(
+        "--bz_len",
+        default=3,
+        help="The number of cfun for border zone",
     )
     
     # Scenario and parameters
