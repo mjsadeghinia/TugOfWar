@@ -125,6 +125,31 @@ def load_geo_with_cfun(geo_folder):
     geo = cardiac_geometries.geometry.Geometry.from_folder(geo_folder, schema=schema)
     return geo
 
+def recreate_cfun(geo, segmentation_schema, folder):
+    geo_params = {
+        "r_short_endo": 3,
+        "r_short_epi": 3.75,
+        "r_long_endo": 4.25,
+        "r_long_epi": 5,
+        "mesh_size": 1,
+        'fiber_angle_endo': -60,
+        'fiber_angle_epi': 60,
+    }
+    mu_base_endo = -np.arccos(
+    geo_params["r_short_epi"] / geo_params["r_long_endo"] / 2
+    )   
+    geo = segmentation(
+        geo,
+        geo_params["r_long_endo"],
+        geo_params["r_short_endo"],
+        mu_base_endo,
+        segmentation_schema["num_circ_segments"],
+        segmentation_schema["num_long_segments"],
+    )
+    with XDMFFile((folder / "cfun.xdmf").as_posix()) as xdmf:
+        xdmf.write(geo.cfun)
+    return geo
+
 def get_cfun_for_altered_compartment(segmentation_schema):
     return (int(segmentation_schema["num_long_segments"]/2)-1)*segmentation_schema["num_circ_segments"]+1
 

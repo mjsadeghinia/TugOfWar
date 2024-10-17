@@ -599,3 +599,179 @@ def plot_activation_within_compartment(
     fname = outdir / f"Activation_compartment_{compartment_num}"
     fig.savefig(fname=fname)
     plt.close(fig)
+
+def load_action_potential_function_from_file(
+    membrane_potential_fname: Path, t: float, mesh: dolfin.mesh
+):
+    membrane_potential_fname = Path(membrane_potential_fname)
+    element = dolfin.FiniteElement("DG", mesh.ufl_cell(), 0)
+    function_space = dolfin.FunctionSpace(mesh, element)
+    membrane_potential_function = dolfin.Function(function_space)
+    membrane_potential_function.vector()[:] = 0
+    with dolfin.XDMFFile(membrane_potential_fname.as_posix()) as xdmf:
+        xdmf.read_checkpoint(membrane_potential_function, "MP", t)
+    return membrane_potential_function
+
+
+def load_membrane_potential_values_from_file(
+    membrane_potential_fname: Path, mesh: dolfin.mesh, num_time_step: int = 1000
+):
+    MP_value = []
+    for t in range(num_time_step):
+        try:
+            membrane_potential_function = load_action_potential_function_from_file(
+                membrane_potential_fname, t, mesh
+            )
+            MP_value.append(membrane_potential_function.vector()[:])
+        except:
+            break
+    return MP_value
+
+
+def load_membrane_potential_compartment_from_file(
+    geo_folder, membrane_potential_fname, num_time_step: int = 1000
+):
+    geo_folder = Path(geo_folder)
+    membrane_potential_fname = Path(membrane_potential_fname)
+    geo = geometry.load_geo_with_cfun(geo_folder)
+    membrane_potential_values = load_membrane_potential_values_from_file(
+        membrane_potential_fname, geo.mesh, num_time_step
+    )
+    membrane_potential_array = np.array(membrane_potential_values)
+    cfuns = set(geo.cfun.array())
+    membrane_potential_compartments = []
+    for cfun in cfuns:
+        num_elem = geometry.get_elems(geo.cfun, cfun)
+        membrane_potential_compartments.append(membrane_potential_array[:, num_elem])
+
+    return membrane_potential_compartments
+
+def cmpute_ep_activation(
+    outdir,
+    geo,
+    segmentation_schema,
+    scenario,
+    activation_mode,
+    activation_variation,
+    num_time_step,
+    random_flag=True,
+):
+    activations = []
+    t_eval = np.linspace(0, 1, num_time_step)
+    geo_folder = outdir / "lv_coarse"
+    ep_folder = outdir / "EP"
+    membrane_potential_fname = ep_folder / "membrane_potential_coarse.xdmf"
+    membrane_potential_compartments = load_membrane_potential_compartment_from_file(geo_folder, membrane_potential_fname, num_time_step=num_time_step)
+    for n, MPs in tqdm(enumerate(membrane_potential_compartments), total=len(membrane_potential_compartments), desc="Creating Activation Curves for Compartments", ncols=100): 
+        elems = geometry.get_elems(geo.cfun, n+1)
+        num_elems = len(elems)
+        segment_activations = np.zeros((len(t_eval), num_elems))
+        for i, cell_MP in enumerate(MPs.T):
+            t_span=(0.0, 1.0)
+            ind = np.where(cell_MP>37)[0][0]
+            activation_params = default_parameters()
+            sys_duration = activation_params["t_dias"] - activation_params["t_sys"]
+            activation_params["t_sys"] = t_eval[ind]
+            activation_params["t_dias"] = activation_params["t_sys"] + sys_duration
+            segment_activations[:, i] = (
+                    activation_function(
+                        t_span=t_span,
+                        t_eval=t_eval,
+                        parameters=activation_params,
+                    )
+                    / 1000.0
+                )
+        activations.append(segment_activations)
+
+    return activations
+
+
+
+def create_ep_activation_function(
+    outdir,
+    geo,
+    segmentation_schema,
+    scenario,
+    activation_mode,
+    activation_variation,
+    num_time_step,
+    random_flag=True,
+):
+    try:
+        activations = cmpute_ep_activation(
+            outdir,
+            geo,
+            segmentation_schema,
+            scenario,
+            activation_mode,
+            activation_variation,
+            num_time_step,
+            random_flag=True,
+        )
+        fname = outdir / "activation.xdmf"
+        save_activation_as_dolfin_function(geo, activations, fname)
+        geo_folder = outdir / "lv_coarse"
+        plot_ep_activation_within_compartment(outdir, geo_folder, fname, num_time_step=500)
+        EP_activation_fname = outdir / "EP/activation_coarse.xdmf"
+        plot_ep_activation_within_compartment(outdir, geo_folder, EP_activation_fname, num_time_step=500, fname_prefix="EP_Activation")
+        membrane_potential_fname = outdir / "EP/membrane_potential_coarse.xdmf"
+        plot_membrane_potential_within_compartment(outdir, geo_folder, membrane_potential_fname, num_time_step=500)
+        return fname
+    except Exception as e:
+        logger.error(f"Failed to create activation function: {e}")
+        raise
+    
+    
+def plot_ep_activation_within_compartment(
+    outdir: str,
+    geo_folder: str,
+    activation_fname: str,
+    compartment_num: int = 0,
+    num_time_step: int = 1000,
+    fname_prefix: str = 'Activation',
+):
+    outdir = Path(outdir)
+    activation_compartments = load_activation_compartment_from_file(
+        geo_folder, activation_fname, num_time_step
+    )
+    t_end = activation_compartments[0].shape[0]
+    t_values = np.linspace(0, t_end / num_time_step, t_end)
+    fig, ax = plt.subplots(figsize=(8, 6))
+    num_elem = activation_compartments[compartment_num].shape[1]
+    for n in range(num_elem):
+        activation = activation_compartments[compartment_num][:,n]
+        ax.plot(t_values, activation, "k", linewidth=0.03)
+        ax.set_xlabel("Normalized time (-)")
+        ax.set_ylabel("Activation Parameter (kPa)")
+        ax.set_xlim([0, 1])
+    ax.grid(True)
+    fname = outdir / f"{fname_prefix}_compartment_{compartment_num}"
+    fig.savefig(fname=fname)
+    plt.close(fig)
+    
+    
+def plot_membrane_potential_within_compartment(
+    outdir: str,
+    geo_folder: str,
+    membrane_potential_fname: str,
+    compartment_num: int = 0,
+    num_time_step: int = 1000,
+):
+    outdir = Path(outdir)
+    membrane_potential_compartments = load_membrane_potential_compartment_from_file(
+        geo_folder, membrane_potential_fname, num_time_step=num_time_step
+    )
+    t_end = membrane_potential_compartments[0].shape[0]
+    t_values = np.linspace(0, t_end / num_time_step, t_end)
+    fig, ax = plt.subplots(figsize=(8, 6))
+    num_elem = membrane_potential_compartments[compartment_num].shape[1]
+    for n in range(num_elem):
+        activation = membrane_potential_compartments[compartment_num][:,n]
+        ax.plot(t_values, activation, "k", linewidth=0.03)
+        ax.set_xlabel("Normalized time (-)")
+        ax.set_ylabel("Transmembrane Potential (mV)")
+        ax.set_xlim([0, 1])
+    ax.grid(True)
+    fname = outdir / f"Membrane_Potential_compartment_{compartment_num}"
+    fig.savefig(fname=fname)
+    plt.close(fig)
