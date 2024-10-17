@@ -156,12 +156,12 @@ def get_cfun_for_altered_compartment(segmentation_schema):
 def get_first_compartment_midslice(segmentation_schema):
     return (int(segmentation_schema["num_long_segments"]/2)-1)*segmentation_schema["num_circ_segments"]+1
 
-def get_cfun_for_mi_compartment(segmentation_schema, infarct_zone_len = 4):
+def get_cfun_for_iz_compartment(segmentation_schema, infarct_zone_len = 4):
     #infarct_zone_len = 4 cell function as IZ
     ind_1_slice = get_first_compartment_midslice(segmentation_schema)
     ind_i_mi = ind_1_slice + segmentation_schema["num_circ_segments"]/4 - infarct_zone_len/2
     ind_f_mi = ind_i_mi + infarct_zone_len - 1 
-    return ind_i_mi, ind_f_mi
+    return int(ind_i_mi), int(ind_f_mi)
     
 def get_cfun_for_bz_compartment(ind_i_mi, ind_f_mi, border_zone_len = 3):
     # border zones compartments
@@ -170,7 +170,7 @@ def get_cfun_for_bz_compartment(ind_i_mi, ind_f_mi, border_zone_len = 3):
     ind_f_bz_1 = ind_i_mi - 1 
     ind_i_bz_2 = ind_i_mi + 1 
     ind_f_bz_2 = ind_i_mi + border_zone_len 
-    return ind_i_bz_1, ind_f_bz_1, ind_i_bz_2, ind_f_bz_2
+    return int(ind_i_bz_1), int(ind_f_bz_1), int(ind_i_bz_2), int(ind_f_bz_2)
     
     
     

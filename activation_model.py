@@ -661,7 +661,6 @@ def cmpute_ep_activation(
     ep_folder = outdir / "EP"
     membrane_potential_fname = ep_folder / "membrane_potential_coarse.xdmf"
     membrane_potential_compartments = load_membrane_potential_compartment_from_file(geo_folder, membrane_potential_fname, num_time_step=num_time_step)
-    breakpoint()
     for n, MPs in tqdm(enumerate(membrane_potential_compartments), total=len(membrane_potential_compartments), desc="Creating Activation Curves for Compartments", ncols=100): 
         elems = geometry.get_elems(geo.cfun, n+1)
         num_elems = len(elems)
@@ -700,14 +699,14 @@ def compute_mi_activation(
     ind_i_bz_1, ind_f_bz_1, ind_i_bz_2, ind_f_bz_2 = geometry.get_cfun_for_bz_compartment(ind_i_mi, ind_f_mi, border_zone_len=bz_len)
     activations = process_iz_activations(activations, mi_severity, ind_i_mi, ind_f_mi)
     activations = process_bz_activations(activations, mi_severity, geo, ind_i_bz_1, ind_f_bz_1)
-
+    activations = process_bz_activations(activations, mi_severity, geo, ind_i_bz_2, ind_f_bz_2)
     return activations
 
 def process_iz_activations(activations, mi_severity, ind_i_mi, ind_f_mi):
     for n in range(ind_i_mi, ind_f_mi+1):
-        compartment_activations= activations[n]
+        compartment_activations= activations[n-1]
         for i, a in enumerate(compartment_activations.T):
-            activations[n][:,i] = a * (1-mi_severity)
+            activations[n-1][:,i] = a * (1-mi_severity)
     return activations
 
 def process_bz_activations(activations, mi_severity, geo, ind_i_bz, ind_f_bz):
@@ -720,7 +719,6 @@ def process_bz_activations(activations, mi_severity, geo, ind_i_bz, ind_f_bz):
     bz_indices = list(range(ind_i_bz, ind_f_bz + 1))
     for cell in dolfin.cells(geo.mesh):
         if geo.cfun[cell] in bz_indices:
-            breakpoint()
             bz_index = geo.cfun[cell]
             # Calculate the midpoint of the cell
             cell_midpoint = cell.midpoint().array()
@@ -729,7 +727,7 @@ def process_bz_activations(activations, mi_severity, geo, ind_i_bz, ind_f_bz):
             compartment_elems = geometry.get_elems(geo.cfun, bz_index)
             cell_id_compratment = np.where(compartment_elems == cell_id_global)[0]
             amplitude = compute_bz_amplitude(mi_severity, cell_midpoint, min_angle, max_angle)
-            activations[bz_index][:,cell_id_compratment] *= amplitude 
+            activations[bz_index-1][:,cell_id_compratment] *= amplitude 
         
     return activations
 

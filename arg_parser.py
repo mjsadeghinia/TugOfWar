@@ -86,6 +86,12 @@ def parse_arguments(args=None):
         help="The flag for whether adding Infarct region or not (ONLY IN EP MODEL)",
     )
     
+    parser.add_argument(
+        "--mi_severity",
+        default=1,
+        help="Severity of MI; 1 = no contractile element 0 = normal tissue",
+    )
+    
     # flag for using EP based modeling
     parser.add_argument(
         "--iz_len",
