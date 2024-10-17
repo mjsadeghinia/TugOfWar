@@ -684,32 +684,28 @@ def cmpute_ep_activation(
 
     return activations
 
-class InverseDistanceExpression(dolfin.UserExpression):
-    def __init__(self, center, upper_threshold, lower_threshold,  **kwargs):
+class Infarct_expression(dolfin.UserExpression):
+    def __init__(self, center, mi_severity, iz_radius, bz_thickness,  **kwargs):
         super().__init__(**kwargs)
         self.center = center
-        self.upper_threshold = upper_threshold
-        self.lower_threshold = lower_threshold
+        self.mi_severity = mi_severity
+        self.iz_radius = iz_radius
+        self.bz_radius = iz_radius + bz_thickness 
 
     def eval(self, value, x):
         dx = x[0] - self.center[0]
         dy = x[1] - self.center[1]
         dz = x[2] - self.center[2]
         distance = np.sqrt(dx**2 + dy**2 + dz**2)
-        # Avoid division by zero
-        if distance == 0:
-            inv_distance = 1.0
-        else:
-            inv_distance = 1.0 / distance
-
+        
         # Apply thresholding
-        if inv_distance > self.upper_threshold:
-            value[0] = 1.0
-        elif inv_distance < self.lower_threshold:
+        if distance < self.iz_radius:
+            value[0] = self.mi_severity
+        elif distance > self.bz_radius:
             value[0] = 0.0
         else:
-            normalized_value = (inv_distance - self.lower_threshold) / (self.upper_threshold - self.lower_threshold)
-            value[0] = normalized_value
+            normalized_value = (distance - self.bz_radius) / (self.iz_radius - self.bz_radius)
+            value[0] = normalized_value * self.mi_severity
     def value_shape(self):
         return ()
 
@@ -723,11 +719,12 @@ def create_ep_activation_function(
     num_time_step,
     mi_flag,
     mi_severity,
-    iz_len,
-    bz_len,
+    iz_radius,
+    bz_thickness,
 ):
     V = dolfin.FunctionSpace(geo.mesh, "DG", 0)
-    infarct_expr = InverseDistanceExpression(center=(-1.2,0,3), upper_threshold=0.95, lower_threshold=0.8)
+    center=(-0.868239,0,3+.75/2)
+    infarct_expr = Infarct_expression(center, mi_severity, iz_radius, bz_thickness)
     infarct = dolfin.interpolate(infarct_expr, V)
     with dolfin.XDMFFile((outdir / "infarct.xdmf").as_posix()) as xdmf:
         xdmf.write_checkpoint(

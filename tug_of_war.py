@@ -58,8 +58,8 @@ def main(args=None) -> int:
     ep_flag = args.ep               # Flag for using ep driven activation
     mi_flag = args.mi               # Flag for adding infarct
     mi_severity = args.mi_severity  # Severity of MI; 1 = no contractile element 0 = normal tissue
-    iz_len = args.iz_len            # The number of cfun for infarct zone
-    bz_len = args.bz_len            # The number of cfun for border  zone
+    iz_radius = args.iz_radius            # The number of cfun for infarct zone
+    bz_thickness = args.bz_thickness            # The number of cfun for border  zone
     
     
     if ep_flag:
@@ -78,8 +78,8 @@ def main(args=None) -> int:
                 num_time_step,
                 mi_flag,
                 mi_severity,
-                iz_len,
-                bz_len,
+                iz_radius,
+                bz_thickness,
             )
     else:
         ## Creating Geometry

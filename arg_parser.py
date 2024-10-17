@@ -94,16 +94,16 @@ def parse_arguments(args=None):
     
     # flag for using EP based modeling
     parser.add_argument(
-        "--iz_len",
-        default=4,
-        help="The number of cfun for infarct zone",
+        "--iz_radius",
+        default=0.8,
+        help="The radius of the infarct zone",
     )
     
      # flag for using EP based modeling
     parser.add_argument(
-        "--bz_len",
-        default=3,
-        help="The number of cfun for border zone",
+        "--bz_thickness",
+        default=0.8,
+        help="The thickness of border zone",
     )
     
     # Scenario and parameters
