@@ -92,6 +92,12 @@ def parse_arguments(args=None):
         help="Severity of MI; 1 = no contractile element 0 = normal tissue",
     )
     
+    parser.add_argument(
+        "--mi_stiffness",
+        default=20,
+        help="Stiffness increase (a in Holzapfel-Ogden Model) of MI region in percent, default 20",
+    )
+    
     # flag for using EP based modeling
     parser.add_argument(
         "--iz_radius",

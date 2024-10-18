@@ -709,19 +709,20 @@ class Infarct_expression(dolfin.UserExpression):
     def value_shape(self):
         return ()
     
-def create_infarct(outdir, geo, mi_severity, iz_radius, bz_thickness):
+def create_infarct(outdir, geo, mi_severity, iz_radius, bz_thickness, save_flag = True):
     V = dolfin.FunctionSpace(geo.mesh, "DG", 0)
-    center=(-1.68493,0,3+.75/2)
+    center=(-1.47839,3.52203e-16,3.15815)
     infarct_expr = Infarct_expression(center, mi_severity, iz_radius, bz_thickness)
     infarct = dolfin.interpolate(infarct_expr, V)
-    with dolfin.XDMFFile((outdir / "infarct.xdmf").as_posix()) as xdmf:
-        xdmf.write_checkpoint(
-            infarct,
-            "infarct",
-            0.0,
-            dolfin.XDMFFile.Encoding.HDF5,
-            False,
-        )
+    if save_flag:
+        with dolfin.XDMFFile((outdir / "infarct.xdmf").as_posix()) as xdmf:
+            xdmf.write_checkpoint(
+                infarct,
+                "infarct",
+                0.0,
+                dolfin.XDMFFile.Encoding.HDF5,
+                False,
+            )
     return infarct
 
 

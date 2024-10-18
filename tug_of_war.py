@@ -55,17 +55,21 @@ def main(args=None) -> int:
     scenario = args.scenario
     num_time_step = args.num_time_step
     postprocessing_flag = args.postprocessing
-    ep_flag = args.ep               # Flag for using ep driven activation
-    mi_flag = args.mi               # Flag for adding infarct
-    mi_severity = args.mi_severity  # Severity of MI; 1 = no contractile element 0 = normal tissue
-    iz_radius = args.iz_radius            # The number of cfun for infarct zone
-    bz_thickness = args.bz_thickness            # The number of cfun for border  zone
+    ep_flag = args.ep                               # Flag for using ep driven activation
+    mi_flag = args.mi                               # Flag for adding infarct
+    mi_severity = args.mi_severity                  # Severity of MI; 1 = no contractile element 0 = normal tissue
+    infarct_stiffness_percent = args.mi_stiffness   # Stiffness increase of MI region in percent, default 20
+    iz_radius = args.iz_radius                      # The number of cfun for infarct zone
+    bz_thickness = args.bz_thickness                # The number of cfun for border  zone
     
+    
+    infarct = None
     
     if ep_flag:
         geo_folder = outdir / "lv_coarse"
         geo = geometry.load_geo_with_cfun(geo_folder)
         activation_fname = outdir / "activation.xdmf"
+        infarct = activation_model.create_infarct(outdir, geo, mi_severity, iz_radius, bz_thickness, save_flag=False)
         if not activation_fname.exists():
             geo = geometry.recreate_cfun(geo, segmentation_schema, geo_folder)
             activation_fname = activation_model.create_ep_activation_function(
@@ -101,7 +105,7 @@ def main(args=None) -> int:
             random_flag=True,
         )
     # Model Generation
-    heart_model = HeartModelPulse(geo=geo, bc_params=bc_params)
+    heart_model = HeartModelPulse(geo=geo, bc_params=bc_params, infarct = infarct, infarct_stiffness_percent=infarct_stiffness_percent)
     circulation_model = CirculationModel(params=circ_params)
     collector = DataCollector(outdir=outdir, problem=heart_model)
 
