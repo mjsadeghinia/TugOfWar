@@ -711,7 +711,7 @@ class Infarct_expression(dolfin.UserExpression):
     
 def create_infarct(outdir, geo, mi_severity, iz_radius, bz_thickness):
     V = dolfin.FunctionSpace(geo.mesh, "DG", 0)
-    center=(-0.868239,0,3+.75/2)
+    center=(-1.68493,0,3+.75/2)
     infarct_expr = Infarct_expression(center, mi_severity, iz_radius, bz_thickness)
     infarct = dolfin.interpolate(infarct_expr, V)
     with dolfin.XDMFFile((outdir / "infarct.xdmf").as_posix()) as xdmf:
