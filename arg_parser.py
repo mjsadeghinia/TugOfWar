@@ -314,7 +314,8 @@ def copy_epdir_to_outdir(epdir, outdir):
     for item in epdir.iterdir():
         if item.is_dir():
             destination_path = outdir / item.name
-            shutil.copytree(item, destination_path)
+            if not destination_path.exists():
+                shutil.copytree(item, destination_path)
                 
 def check_parmas_activation(args):
     """
