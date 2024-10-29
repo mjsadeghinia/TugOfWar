@@ -685,27 +685,36 @@ def cmpute_ep_activation(
     return activations
 
 class Infarct_expression(dolfin.UserExpression):
-    def __init__(self, center, mi_severity, iz_radius, bz_thickness,  **kwargs):
+    def __init__(self, center, mi_severity, iz_radius, bz_thickness, **kwargs):
         super().__init__(**kwargs)
         self.center = center
         self.mi_severity = mi_severity
         self.iz_radius = iz_radius
-        self.bz_radius = iz_radius + bz_thickness 
+        self.bz_radius = iz_radius + bz_thickness
 
     def eval(self, value, x):
+        if self.mi_severity == 0.0:
+            value[0] = 0.0
+            return
+
         dx = x[0] - self.center[0]
         dy = x[1] - self.center[1]
         dz = x[2] - self.center[2]
         distance = np.sqrt(dx**2 + dy**2 + dz**2)
-        
+
         # Apply thresholding
         if distance < self.iz_radius:
             value[0] = self.mi_severity
         elif distance > self.bz_radius:
             value[0] = 0.0
         else:
-            normalized_value = (distance - self.bz_radius) / (self.iz_radius - self.bz_radius)
-            value[0] = normalized_value * self.mi_severity
+            denominator = self.iz_radius - self.bz_radius
+            if denominator == 0.0:
+                value[0] = 0.0
+            else:
+                normalized_value = (distance - self.bz_radius) / denominator
+                value[0] = normalized_value * self.mi_severity
+
     def value_shape(self):
         return ()
     

@@ -96,6 +96,7 @@ def parse_arguments(args=None):
     parser.add_argument(
         "--mi_severity",
         default=1,
+        type=float,
         help="Severity of MI; 1 = no contractile element 0 = normal tissue",
     )
     
