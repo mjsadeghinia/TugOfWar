@@ -104,6 +104,7 @@ def parse_arguments(args=None):
     parser.add_argument(
         "--mi_stiffness",
         default=20,
+        type=float,
         help="Stiffness increase (a in Holzapfel-Ogden Model) of MI region in percent, default 20",
     )
     
@@ -111,6 +112,7 @@ def parse_arguments(args=None):
     parser.add_argument(
         "--iz_radius",
         default=0.8,
+        type=float,
         help="The radius of the infarct zone",
     )
     
@@ -118,6 +120,7 @@ def parse_arguments(args=None):
     parser.add_argument(
         "--bz_thickness",
         default=0.8,
+        type=float,
         help="The thickness of border zone",
     )
     
