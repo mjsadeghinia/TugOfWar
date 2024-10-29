@@ -69,7 +69,9 @@ def main(args=None) -> int:
         geo_folder = outdir / "lv_coarse"
         geo = geometry.load_geo_with_cfun(geo_folder)
         activation_fname = outdir / "activation.xdmf"
-        infarct = activation_model.create_infarct(outdir, geo, mi_center, mi_severity, iz_radius, bz_thickness, save_flag=False)
+        if mi_flag:
+            # Creating a region of interest by assuing mi_severity = 1 just for showing the region of interest
+            RoI = activation_model.create_infarct(outdir, geo, mi_center, 1, iz_radius, bz_thickness, save_flag=True, varname= "RoI", fname="RoI")
         if not activation_fname.exists():
             geo = geometry.recreate_cfun(geo, segmentation_schema, geo_folder)
             activation_fname = activation_model.create_ep_activation_function(
@@ -106,7 +108,9 @@ def main(args=None) -> int:
             random_flag=True,
         )
     # Model Generation
-    heart_model = HeartModelPulse(geo=geo, bc_params=bc_params, infarct = infarct, infarct_stiffness_percent=infarct_stiffness_percent)
+    # Creating a stiff_region by assuing mi_severity = 1 and bz_thickness=0, i.e. no borderzone
+    StiffRegion = activation_model.create_infarct(outdir, geo, mi_center, 1.0, iz_radius, 0.0, save_flag=True, varname= "StiffRegion", fname="StiffRegion")
+    heart_model = HeartModelPulse(geo=geo, bc_params=bc_params, infarct = StiffRegion, infarct_stiffness_percent=infarct_stiffness_percent)
     circulation_model = CirculationModel(params=circ_params)
     collector = DataCollector(outdir=outdir, problem=heart_model)
 
