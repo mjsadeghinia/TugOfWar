@@ -12,16 +12,22 @@ activation_modes = [
     # "systole_time", "decay"
 ]
 
+
+mi_stiffness = [0, 50, 200]
+mi_severity = [1, 0.5, 0]
+
+
 activation_variations = [0.01, 0.03, 0.05]
 
-num_circ_segments = [9, 27, 45, 72, 90]
+# num_circ_segments = [9, 27, 45, 72, 90]
+num_circ_segments = [72]
 num_long_segments = [6]
 prominence = 0.03
 
-base_data_folder = "01_results_24_10_03"
+base_outdir = "/home/shared/01_results_24_10_30"
 
-def post_process_experiment(s, activation_mode, activation_variation, num_circ_segments, num_long_segments):
-    data_folder = f"/home/shared/{base_data_folder}/{s}/{activation_mode}_{int(activation_variation * 1000)}"
+def post_process_experiment(mi_stiffness, mi_severity, num_circ_segments, num_long_segments):
+    data_folder = f"{base_outdir}/Severity_{int(mi_severity * 100)}_Stiffness_{mi_stiffness}"
     outdir = f"{num_circ_segments}_{num_long_segments}"
     cmd = [
         "python3", "/home/shared/TugOfWar/post_processing.py",
@@ -32,8 +38,8 @@ def post_process_experiment(s, activation_mode, activation_variation, num_circ_s
     ]
     subprocess.run(cmd)
     
-def peak_detection_experiment(s, activation_mode, activation_variation, num_circ_segments, num_long_segments, prominence):
-    data_folder = f"/home/shared/{base_data_folder}/{s}/{activation_mode}_{int(activation_variation * 1000)}"
+def peak_detection_experiment(mi_stiffness, mi_severity, num_circ_segments, num_long_segments, prominence):
+    data_folder = f"{base_outdir}/Severity_{int(mi_severity * 100)}_Stiffness_{mi_stiffness}"
     outdir = f"{num_circ_segments}_{num_long_segments}"
     cmd = [
         "python3", "/home/shared/TugOfWar/peak_detection.py",
@@ -43,20 +49,33 @@ def peak_detection_experiment(s, activation_mode, activation_variation, num_circ
     ]
     subprocess.run(cmd)
 
-with ThreadPoolExecutor(max_workers=8) as executor:
-    for s in s_values:
-        for activation_mode in activation_modes:
-            for activation_variation in activation_variations:
-                for c in num_circ_segments:
+# with ThreadPoolExecutor(max_workers=8) as executor:
+#     for s in s_values:
+#         for activation_mode in activation_modes:
+#             for activation_variation in activation_variations:
+                # for c in num_circ_segments:
+                #     for l in num_long_segments:
+#                         executor.submit(post_process_experiment, s, activation_mode, activation_variation, c, l)
+
+
+# with ThreadPoolExecutor(max_workers=8) as executor:
+#     for s in s_values:
+#         for activation_mode in activation_modes:
+#             for activation_variation in activation_variations:
+#                 for c in num_circ_segments:
+#                     for l in num_long_segments:
+#                         executor.submit(peak_detection_experiment, s, activation_mode, activation_variation, c, l, prominence)
+
+with ThreadPoolExecutor(max_workers=9) as executor:
+    for st in mi_stiffness:
+        for sv in mi_severity:
+            for c in num_circ_segments:
                     for l in num_long_segments:
-                        executor.submit(post_process_experiment, s, activation_mode, activation_variation, c, l)
+                        executor.submit(post_process_experiment, st, sv, c, l)
 
-
-with ThreadPoolExecutor(max_workers=8) as executor:
-    for s in s_values:
-        for activation_mode in activation_modes:
-            for activation_variation in activation_variations:
-                for c in num_circ_segments:
+with ThreadPoolExecutor(max_workers=9) as executor:
+    for st in mi_stiffness:
+        for sv in mi_severity:
+            for c in num_circ_segments:
                     for l in num_long_segments:
-                        executor.submit(peak_detection_experiment, s, activation_mode, activation_variation, c, l, prominence)
-
+                        executor.submit(peak_detection_experiment, st, sv, c, l)
