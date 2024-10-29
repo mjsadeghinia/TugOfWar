@@ -89,7 +89,7 @@ def parse_arguments(args=None):
     
     parser.add_argument(
         "--mi_center",
-        default=(-1.47839,3.52203e-16,3.15815),
+        default="(-1.47839,3.52203e-16,3.15815)",
         type=str,
         help="The center of infarct zone (tuple)",
     )
