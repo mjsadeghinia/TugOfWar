@@ -4,10 +4,9 @@ from pathlib import Path
 import numpy as np
 from structlog import get_logger
 import dolfin
+import ast
 
-import argparse
 import arg_parser
-import post_processing
 import geometry
 import activation_model 
 
@@ -61,7 +60,7 @@ def main(args=None) -> int:
     infarct_stiffness_percent = args.mi_stiffness   # Stiffness increase of MI region in percent, default 20
     iz_radius = args.iz_radius                      # The number of cfun for infarct zone
     bz_thickness = args.bz_thickness                # The number of cfun for border  zone
-    
+    mi_center = ast.literal_eval(args.mi_center)
     
     infarct = None
     
@@ -69,7 +68,7 @@ def main(args=None) -> int:
         geo_folder = outdir / "lv_coarse"
         geo = geometry.load_geo_with_cfun(geo_folder)
         activation_fname = outdir / "activation.xdmf"
-        infarct = activation_model.create_infarct(outdir, geo, mi_severity, iz_radius, bz_thickness, save_flag=False)
+        infarct = activation_model.create_infarct(outdir, geo, mi_center, mi_severity, iz_radius, bz_thickness, save_flag=False)
         if not activation_fname.exists():
             geo = geometry.recreate_cfun(geo, segmentation_schema, geo_folder)
             activation_fname = activation_model.create_ep_activation_function(
@@ -81,6 +80,7 @@ def main(args=None) -> int:
                 activation_variation,
                 num_time_step,
                 mi_flag,
+                mi_center,
                 mi_severity,
                 iz_radius,
                 bz_thickness,

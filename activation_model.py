@@ -709,10 +709,10 @@ class Infarct_expression(dolfin.UserExpression):
     def value_shape(self):
         return ()
     
-def create_infarct(outdir, geo, mi_severity, iz_radius, bz_thickness, save_flag = True):
+def create_infarct(outdir, geo, mi_center, mi_severity, iz_radius, bz_thickness, save_flag = True):
     V = dolfin.FunctionSpace(geo.mesh, "DG", 0)
-    center=(-1.47839,3.52203e-16,3.15815)
-    infarct_expr = Infarct_expression(center, mi_severity, iz_radius, bz_thickness)
+    # center=(-1.47839,3.52203e-16,3.15815)
+    infarct_expr = Infarct_expression(mi_center, mi_severity, iz_radius, bz_thickness)
     infarct = dolfin.interpolate(infarct_expr, V)
     if save_flag:
         with dolfin.XDMFFile((outdir / "infarct.xdmf").as_posix()) as xdmf:
@@ -758,6 +758,7 @@ def create_ep_activation_function(
     activation_variation,
     num_time_step,
     mi_flag,
+    mi_center,
     mi_severity,
     iz_radius,
     bz_thickness,
@@ -774,7 +775,7 @@ def create_ep_activation_function(
         )
         fname = outdir / "activation.xdmf"
         if mi_flag:
-            infarct = create_infarct(outdir, geo, mi_severity, iz_radius, bz_thickness)
+            infarct = create_infarct(outdir, geo, mi_center, mi_severity, iz_radius, bz_thickness)
             save_mi_activation_as_dolfin_function(geo, activations, infarct, fname)
         else:
             save_activation_as_dolfin_function(geo, activations, fname)

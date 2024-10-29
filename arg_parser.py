@@ -87,6 +87,13 @@ def parse_arguments(args=None):
     )
     
     parser.add_argument(
+        "--mi_center",
+        default=(-1.47839,3.52203e-16,3.15815),
+        type=str,
+        help="The center of infarct zone (tuple)",
+    )
+    
+    parser.add_argument(
         "--mi_severity",
         default=1,
         help="Severity of MI; 1 = no contractile element 0 = normal tissue",
