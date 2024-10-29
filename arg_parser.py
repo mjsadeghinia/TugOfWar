@@ -1,6 +1,7 @@
 import argparse
 from pathlib import Path
 from structlog import get_logger
+import shutil
 
 logger = get_logger()
 
@@ -234,6 +235,14 @@ def parse_arguments(args=None):
         type=bool,
         help="The flag for postprocessing",
     )
+    
+    parser.add_argument(
+        "--epdir",
+        default="/home/shared/00_EP_results",
+        type=str,
+        help="The directory to EP simulation files including EP, lv_coarse, and lv_fine folders.",
+    )
+    
     parser.add_argument(
         "-o",
         "--outdir",
@@ -300,6 +309,13 @@ def prepare_output_directory(outdir):
     return outdir_path
 
 
+def copy_epdir_to_outdir(epdir, outdir):
+    epdir = Path(epdir)
+    for item in epdir.iterdir():
+        if item.is_dir():
+            destination_path = outdir / item.name
+            shutil.copytree(item, destination_path)
+                
 def check_parmas_activation(args):
     """
     Check if all the necessary input is provided otherwise assing a default vaule and issues warning to prevent any unwanted results.

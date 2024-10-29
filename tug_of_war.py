@@ -65,6 +65,7 @@ def main(args=None) -> int:
     infarct = None
     
     if ep_flag:
+        arg_parser.copy_epdir_to_outdir(args.epdir, outdir)
         geo_folder = outdir / "lv_coarse"
         geo = geometry.load_geo_with_cfun(geo_folder)
         activation_fname = outdir / "activation.xdmf"
