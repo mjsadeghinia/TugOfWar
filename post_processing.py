@@ -164,6 +164,7 @@ def plot_comapartment_data(
     ylim=None,
     ax=None,
     single_slice=False,
+    valve_timings = None
 ):
     num_compartment, num_time_simulation = data.shape
     t_values = np.linspace(0, num_time_simulation / num_time_step, num_time_simulation)
@@ -179,6 +180,8 @@ def plot_comapartment_data(
         fig, ax = plt.subplots(figsize=(8, 6))
     for i in range(num_compartment):
         plt.plot(t_values, data[i], color=colors[i], linewidth=linewidth)
+    if valve_timings is not None:
+        plot_valve_events_time(ax, t_values, valve_timings["AVO_index"], valve_timings["AVC_index"], valve_timings["MVO_index"], valve_timings["MVC_index"])
 
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
@@ -266,6 +269,47 @@ def plot_and_save_compartment_MW(
         plt.savefig(fname, dpi=300, bbox_inches='tight')
         plt.close(fig=fig)
 
+def extract_circ_results(fname):
+    data = np.loadtxt(fname, delimiter=",", skiprows=1)
+    ejection_indices = np.where(data[:, 5] > 0.0)[0]
+    # MVO and MVC is found based on ejection (outflow)
+    AVO_index = ejection_indices[0]
+    AVC_index = ejection_indices[-1]
+    mid_ejection_ind = ejection_indices[int(len(ejection_indices) / 2)]
+    # MVO and MVC is found based on atrium pressure with threshold of 1kpa
+    MVC_index = np.min(np.where(data[:, 3] > 1)[0])
+    MVO_index = np.max(np.where(data[AVC_index:, 3] < 1)[0]) + AVC_index
+
+    EDV = data[AVO_index - 1, 2]
+    ESV = data[AVC_index + 1, 2]
+    ejection_fraction = (EDV - ESV) / EDV
+
+    valve_timings = {
+        "AVO_index": AVO_index,
+        "AVC_index": AVC_index,
+        "MVO_index": MVO_index,
+        "MVC_index": MVC_index,
+        "mid_ejection_ind": mid_ejection_ind
+    }
+    return (
+        ejection_fraction,
+        valve_timings
+    )
+
+
+def plot_valve_events_time(ax, time, AVO_index, AVC_index, MVO_index, MVC_index):
+    y_min, y_max = ax.get_ylim()
+    y_loc = (y_max) / 2
+    plt.axvline(x=time[AVO_index], color="k", linestyle="--")
+    plt.text(time[AVO_index - 5], y_loc, "AVO", rotation=90, verticalalignment="center")
+    plt.axvline(x=time[AVC_index], color="k", linestyle="--")
+    plt.text(time[AVC_index - 5], y_loc, "AVC", rotation=90, verticalalignment="center")
+    plt.axvline(x=time[MVO_index], color="k", linestyle="--")
+    plt.text(time[MVO_index - 5], y_loc, "MVO", rotation=90, verticalalignment="center")
+    plt.axvline(x=time[MVC_index], color="k", linestyle="--")
+    plt.text(time[MVC_index - 5], y_loc, "MVC", rotation=90, verticalalignment="center")
+
+
 # %%
 def main(args=None) -> int:
     # Getting the arguments
@@ -278,6 +322,10 @@ def main(args=None) -> int:
     outdir = data_folder / args.outdir
     outdir = arg_parser.prepare_output_directory(outdir)
     num_time_step = args.num_time_step
+    
+    # loading circulation data
+    fname = data_folder / "results_data.csv"
+    ejection_fraction, valve_timings = extract_circ_results(fname)
 
     try:
         geo_folder = Path(data_folder) / "lv"
@@ -327,7 +375,8 @@ def main(args=None) -> int:
         Eff_comp_ave,
         num_time_step,
         ylabel="Green Lagrange Strain (-)",
-        ylim=[-0.25, 0.25],
+        ylim=[-0.3, 0.25],
+        valve_timings=valve_timings
     )
     fname = outdir / "Green-Lagrange Strains"
     plt.savefig(fname=fname)
@@ -340,7 +389,8 @@ def main(args=None) -> int:
         num_time_step,
         ylabel="Green Lagrange Strain (-)",
         single_slice=True,
-        ylim=[-0.25, 0.25],
+        ylim=[-0.3, 0.25],
+        valve_timings=valve_timings
     )
     fname = outdir / "Green-Lagrange Strains Midslice"
     plt.savefig(fname=fname)
