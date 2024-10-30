@@ -179,7 +179,13 @@ def plot_comapartment_data(
     if ax is None:
         fig, ax = plt.subplots(figsize=(8, 6))
     for i in range(num_compartment):
-        plt.plot(t_values, data[i], color=colors[i], linewidth=linewidth)
+        if single_slice:
+            if i%6 == 0:
+                plt.plot(t_values, data[i,:], color=colors[i], linewidth=linewidth, label = f"Comp. no. {i}")
+            else:
+                plt.plot(t_values, data[i,:], color=colors[i], linewidth=linewidth)
+        else:
+            plt.plot(t_values, data[i], color=colors[i], linewidth=linewidth)
     if valve_timings is not None:
         plot_valve_events_time(ax, t_values, valve_timings["AVO_index"], valve_timings["AVC_index"], valve_timings["MVO_index"], valve_timings["MVC_index"])
 
@@ -187,6 +193,8 @@ def plot_comapartment_data(
     ax.set_ylabel(ylabel)
     if ylim is not None:
         ax.set_ylim(ylim)
+    if single_slice:
+        ax.legend()
     ax.set_xlim([0, 1])
     ax.grid(True)
     return ax
@@ -384,6 +392,7 @@ def main(args=None) -> int:
     Eff_comp_ave_midslice, Eff_comp_std_midslice = (
         compute_average_std_compartment_value(Eff_comp_midslice)
     )
+    
     plot_comapartment_data(
         Eff_comp_ave_midslice,
         num_time_step,
