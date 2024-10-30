@@ -159,6 +159,7 @@ def export_results(outdir, data_ave, data_std, num_time_step):
 def plot_comapartment_data(
     data,
     num_time_step,
+    num_long_segments,
     ylabel="Data",
     xlabel="Normalized Time [-]",
     ylim=None,
@@ -172,9 +173,10 @@ def plot_comapartment_data(
         colors = utils.generate_symmetric_jet_colors(num_compartment)
         linewidth = 0.5
     else:
+        slice_colors = utils.generate_symmetric_jet_colors(num_long_segments*2)
         colors = [
-            (0, 0, 0, 1) for _ in range(num_compartment)
-        ]  # use black for all the compartments
+            slice_color for slice_color in slice_colors[:num_long_segments] for _ in range(int(num_compartment/num_long_segments))
+        ]# use different slicecolors for all the compartments
         linewidth = 0.1
     if ax is None:
         fig, ax = plt.subplots(figsize=(8, 6))
@@ -185,16 +187,20 @@ def plot_comapartment_data(
             else:
                 plt.plot(t_values, data[i,:], color=colors[i], linewidth=linewidth)
         else:
-            plt.plot(t_values, data[i], color=colors[i], linewidth=linewidth)
+            if i% int(num_compartment/num_long_segments) == 0:
+                plt.plot(t_values, data[i], color=colors[i], linewidth=linewidth, label = f"Slice no. {int(i/num_compartment*num_long_segments)+1}")
+            else:
+                plt.plot(t_values, data[i], color=colors[i], linewidth=linewidth)
     if valve_timings is not None:
-        plot_valve_events_time(ax, t_values, valve_timings["AVO_index"], valve_timings["AVC_index"], valve_timings["MVO_index"], valve_timings["MVC_index"])
+        plot_valve_events_time(ax, t_values, valve_timings["AVO_index"], valve_timings["AVC_index"], valve_timings["MVO_index"], valve_timings["MVC_index"], y_loc = ylim[1]*0.8)
 
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
     if ylim is not None:
         ax.set_ylim(ylim)
-    if single_slice:
-        ax.legend()
+    legend = ax.legend()
+    for line in legend.get_lines():
+        line.set_linewidth(1)
     ax.set_xlim([0, 1])
     ax.grid(True)
     return ax
@@ -237,7 +243,7 @@ def plot_and_save_compartment_stresses(
         ax1.set_ylim((-.3,.15))
         ax2.set_ylim((0,500))
         fname = outdir / f'Cell_{i}.png'
-        plt.savefig(fname, dpi=300, bbox_inches='tight')
+        plt.savefig(fname, dpi=600, bbox_inches='tight')
         plt.close(fig=fig)
 
 
@@ -274,7 +280,7 @@ def plot_and_save_compartment_MW(
         ax1.set_ylim((-.3,.15))
         ax2.set_ylim((-50,25))
         fname = outdir / f'Cell_{i}.png'
-        plt.savefig(fname, dpi=300, bbox_inches='tight')
+        plt.savefig(fname, dpi=600, bbox_inches='tight')
         plt.close(fig=fig)
 
 def extract_circ_results(fname):
@@ -305,17 +311,18 @@ def extract_circ_results(fname):
     )
 
 
-def plot_valve_events_time(ax, time, AVO_index, AVC_index, MVO_index, MVC_index):
+def plot_valve_events_time(ax, time, AVO_index, AVC_index, MVO_index, MVC_index, y_loc = None):
     y_min, y_max = ax.get_ylim()
-    y_loc = (y_max) / 2
+    if y_loc is None:
+        y_loc = (y_max)*0.8
     plt.axvline(x=time[AVO_index], color="k", linestyle="--")
-    plt.text(time[AVO_index - 5], y_loc, "AVO", rotation=90, verticalalignment="center")
+    plt.text(time[AVO_index - 5], y_loc, "AVO", rotation=90, verticalalignment="center", bbox=dict(facecolor='white', edgecolor='none'))
     plt.axvline(x=time[AVC_index], color="k", linestyle="--")
-    plt.text(time[AVC_index - 5], y_loc, "AVC", rotation=90, verticalalignment="center")
+    plt.text(time[AVC_index - 5], y_loc, "AVC", rotation=90, verticalalignment="center", bbox=dict(facecolor='white', edgecolor='none'))
     plt.axvline(x=time[MVO_index], color="k", linestyle="--")
-    plt.text(time[MVO_index - 5], y_loc, "MVO", rotation=90, verticalalignment="center")
+    plt.text(time[MVO_index - 5], y_loc, "MVO", rotation=90, verticalalignment="center", bbox=dict(facecolor='white', edgecolor='none'))
     plt.axvline(x=time[MVC_index], color="k", linestyle="--")
-    plt.text(time[MVC_index - 5], y_loc, "MVC", rotation=90, verticalalignment="center")
+    plt.text(time[MVC_index - 5], y_loc, "MVC", rotation=90, verticalalignment="center", bbox=dict(facecolor='white', edgecolor='none'))
 
 
 # %%
@@ -382,12 +389,13 @@ def main(args=None) -> int:
     plot_comapartment_data(
         Eff_comp_ave,
         num_time_step,
+        segmentation_schema["num_long_segments"],
         ylabel="Green Lagrange Strain (-)",
         ylim=[-0.3, 0.25],
         valve_timings=valve_timings
     )
     fname = outdir / "Green-Lagrange Strains"
-    plt.savefig(fname=fname)
+    plt.savefig(fname=fname, dpi = 600)
 
     Eff_comp_ave_midslice, Eff_comp_std_midslice = (
         compute_average_std_compartment_value(Eff_comp_midslice)
@@ -396,13 +404,14 @@ def main(args=None) -> int:
     plot_comapartment_data(
         Eff_comp_ave_midslice,
         num_time_step,
+        segmentation_schema["num_long_segments"],
         ylabel="Green Lagrange Strain (-)",
         single_slice=True,
         ylim=[-0.3, 0.25],
         valve_timings=valve_timings
     )
     fname = outdir / "Green-Lagrange Strains Midslice"
-    plt.savefig(fname=fname)
+    plt.savefig(fname=fname, dpi = 600)
     
     outdir_stress = outdir / 'stress'
     outdir_stress.mkdir(exist_ok=True)
