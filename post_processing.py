@@ -13,6 +13,10 @@ from dolfin import XDMFFile
 from heart_model import HeartModelPulse
 import pulse
 
+from structlog import get_logger
+
+logger = get_logger()
+
 # %%
 def load_mesh_from_file(mesh_fname: Path):
     # Read the mesh
@@ -23,6 +27,33 @@ def load_mesh_from_file(mesh_fname: Path):
     return mesh
 
 
+def load_geo_c0(geo_dir = Path("/home/shared/00_lv_c0")):
+    geo_fname = geo_dir / "geo.h5"
+    if not geo_fname.exists():
+        logger.warning(f"{geo_fname} does not exists")
+        logger.info(f"{geo_fname} is being created")
+        segmentation_schema = {
+        "num_circ_segments": 72,
+        "num_long_segments": 6,
+        }
+        geo_params = {
+            "r_short_endo": 3,
+            "r_short_epi": 3.75,
+            "r_long_endo": 4.25,
+            "r_long_epi": 5,
+            "mesh_size": 1,
+            'fiber_angle_endo': 0,
+            'fiber_angle_epi': 0,
+        }
+        geo = geometry.create_ellipsoid_geometry(
+            folder=geo_dir,
+            geo_params=geo_params,
+            segmentation_schema=segmentation_schema,
+        )
+        return geo
+    geo = geometry.load_geo_with_cfun(geo_dir)
+    return geo
+    
 def load_displacement_function_from_file(
     displacement_fname: Path, t: float, mesh: dolfin.mesh
 ):
@@ -351,6 +382,8 @@ def main(args=None) -> int:
     geo = geometry.recreate_cfun(geo, segmentation_schema, outdir)
     heart_model = load_heart_model(geo)
     
+    # Load or create circumferential direction for Ecc calculation
+    geo_c0 = load_geo_c0()
     
     activation_fname = Path(data_folder) / activation_fname
     compartment_num = geometry.get_first_compartment_midslice(segmentation_schema)
