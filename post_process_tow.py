@@ -18,13 +18,17 @@ activation_modes = [
     # "systole_time", "decay"
 ]
 
+mi_stiffness = [0, 50, 200]
+mi_severity = [1, 0.5, 0]
+
 activation_variations = [0.01, 0.03, 0.05]
 
-num_circ_segments = [9, 27, 45, 72, 90]
+# num_circ_segments = [9, 27, 45, 72, 90]
+num_circ_segments = [72]
 num_long_segments = [6]
 prominence = 0.03
 
-base_data_folder = "01_results_24_10_03"
+base_outdir = "/home/shared/01_results_24_10_30_apex"
 
 #%%
 def plot_EF_tow(ax, data, s, activation_mode, activation_variation):
@@ -55,6 +59,24 @@ def plot_EF_tow(ax, data, s, activation_mode, activation_variation):
         color=color, 
         marker=marker, 
         facecolors=facecolors, 
+        edgecolors=color
+    )
+    return ax
+
+def plot_EF_tow_mi_stiffness(ax, data, st):
+    # Define marker style for each activation_mode
+    colors = {
+        200: "red",
+        50: "orange",
+        0: "green"
+    }
+
+    color = colors.get(st, "blue")   # Default color if not found
+    name = f"{st}% Stiffer IZ"
+    ax.scatter(
+        data[0], data[1], 
+        label=name, 
+        color=color, 
         edgecolors=color
     )
     return ax
@@ -98,7 +120,7 @@ def parse_arguments(args=None):
     parser.add_argument(
         "-o",
         "--outdir",
-        default='00_ToW_Results',
+        default="00_ToW_Results",
         type=Path,
         help="The output directory in the folder_data",
     )
@@ -106,7 +128,7 @@ def parse_arguments(args=None):
     parser.add_argument(
         "-f",
         "--data_folder",
-        default='/home/shared/01_results_24_10_03',
+        default="/home/shared/01_results_24_10_30_apex",
         type=Path,
         help="The directory of the data to be post processed",
     )
@@ -127,46 +149,96 @@ def main(args=None) -> int:
     outdir = data_folder / args.outdir
     outdir.mkdir(exist_ok=True, parents=True)
             
-    fig, ax = plt.subplots(figsize=(10, 6))
-    for s in s_values:
-        for activation_mode in activation_modes:
-            for activation_variation in activation_variations:
-                results_folder = f"{data_folder}/{s}/{activation_mode}_{int(activation_variation * 1000)}/72_6"
-                fname = f"{results_folder}/00_tow_index_{prominence}.csv"
-                if Path(fname).exists():
-                    data = np.loadtxt(fname, delimiter=",", skiprows=1)
-                    ax = plot_EF_tow(ax, data, s, activation_mode, activation_variation)
-    plt.grid(True)  
-    fname =  outdir / f'EFvToW_{prominence}.png'
-    ax.set_xlabel("Ejection Fraction (%)")
-    ax.set_ylabel("Tug of War index (%)")
-    ax.set_ylim([-5, 100])
-    ax.set_xlim([50, 60])
-    plt.legend(loc="lower left")
-    plt.savefig(fname=fname)
-    plt.close()
+    # fig, ax = plt.subplots(figsize=(10, 6))
+    # for s in s_values:
+    #     for activation_mode in activation_modes:
+    #         for activation_variation in activation_variations:
+    #             results_folder = f"{data_folder}/{s}/{activation_mode}_{int(activation_variation * 1000)}/72_6"
+    #             fname = f"{results_folder}/00_tow_index_{prominence}.csv"
+    #             if Path(fname).exists():
+    #                 data = np.loadtxt(fname, delimiter=",", skiprows=1)
+    #                 ax = plot_EF_tow(ax, data, s, activation_mode, activation_variation)
+    # plt.grid(True)  
+    # fname =  outdir / f'EFvToW_{prominence}.png'
+    # ax.set_xlabel("Ejection Fraction (%)")
+    # ax.set_ylabel("Tug of War index (%)")
+    # ax.set_ylim([-5, 100])
+    # ax.set_xlim([50, 60])
+    # plt.legend(loc="lower left")
+    # plt.savefig(fname=fname)
+    # plt.close()
+    # fig, ax = plt.subplots(figsize=(10, 6))
+    # for s in s_values:
+    #     for activation_mode in activation_modes:
+    #         for activation_variation in activation_variations:
+    #             for c in num_circ_segments:
+    #                 for l in num_long_segments:
+    #                     results_folder = f"{data_folder}/{s}/{activation_mode}_{int(activation_variation * 1000)}/{c}_{l}"
+    #                     fname = f"{results_folder}/00_tow_index_{prominence}.csv"
+    #                     if Path(fname).exists():
+    #                         data = np.loadtxt(fname, delimiter=",", skiprows=1)
+    #                         ax = plot_comp_tow(ax, data, s, activation_mode, activation_variation,c,l)
+    # plt.grid(True)  
+    # fname =  outdir / f'CompvToW_{prominence}.png'
+    # ax.set_xlabel("Compartment no.")
+    # ax.set_ylabel("Tug of War index (%)")
+    # ax.set_ylim([-5, 100])
+    # ax.set_xlim([0, 100])
+    # # plt.legend(loc="lower left", bbox_to_anchor=(1.5, 1))
+    # plt.savefig(fname=fname)
+    # plt.close()
     
+    # sv = 0
     
-    fig, ax = plt.subplots(figsize=(10, 6))
-    for s in s_values:
-        for activation_mode in activation_modes:
-            for activation_variation in activation_variations:
+    for sv in mi_severity:
+        EF = []
+        ToW = []
+        fig, ax = plt.subplots(figsize=(10, 6))
+        for st in mi_stiffness:
+            for c in num_circ_segments:
+                for l in num_long_segments:
+                    results_folder = f"{base_outdir}/Severity_{int(sv * 100)}_Stiffness_{st}/{c}_{l}"
+                    fname = f"{results_folder}/00_tow_index_{prominence}.csv"
+                    if Path(fname).exists():
+                        data = np.loadtxt(fname, delimiter=",", skiprows=1)
+                        EF.append(data[0])
+                        ToW.append(data[1])
+                        ax = plot_EF_tow_mi_stiffness(ax, data, st)
+        plt.grid(True) 
+        ax.plot(EF, ToW, 'k')
+        fname =  outdir / f'Stiffness_EFvToW_Severity_{int(sv * 100)}.png'
+        ax.set_xlabel("Ejection Fraction (%)")
+        ax.set_ylabel("Tug of War index (%)")
+        ax.set_ylim([-5, 100])
+        ax.set_xlim([0, 100])
+        # plt.legend(loc="lower left", bbox_to_anchor=(1.5, 1))
+        plt.savefig(fname=fname)
+        plt.close()
+        
+    for st in mi_stiffness:
+            EF = []
+            ToW = []
+            fig, ax = plt.subplots(figsize=(10, 6))
+            for sv in mi_severity:
                 for c in num_circ_segments:
                     for l in num_long_segments:
-                        results_folder = f"{data_folder}/{s}/{activation_mode}_{int(activation_variation * 1000)}/{c}_{l}"
+                        results_folder = f"{base_outdir}/Severity_{int(sv * 100)}_Stiffness_{st}/{c}_{l}"
                         fname = f"{results_folder}/00_tow_index_{prominence}.csv"
                         if Path(fname).exists():
                             data = np.loadtxt(fname, delimiter=",", skiprows=1)
-                            ax = plot_comp_tow(ax, data, s, activation_mode, activation_variation,c,l)
-    plt.grid(True)  
-    fname =  outdir / f'CompvToW_{prominence}.png'
-    ax.set_xlabel("Compartment no.")
-    ax.set_ylabel("Tug of War index (%)")
-    ax.set_ylim([-5, 100])
-    ax.set_xlim([0, 100])
-    # plt.legend(loc="lower left", bbox_to_anchor=(1.5, 1))
-    plt.savefig(fname=fname)
-    plt.close()
+                            EF.append(data[0])
+                            ToW.append(data[1])
+                            ax = plot_EF_tow_mi_stiffness(ax, data, st)
+            plt.grid(True) 
+            ax.plot(EF, ToW, 'k')
+            fname =  outdir / f'Severity_EFvToW_Stiffness_{int(st)}.png'
+            ax.set_xlabel("Ejection Fraction (%)")
+            ax.set_ylabel("Tug of War index (%)")
+            ax.set_ylim([-5, 100])
+            ax.set_xlim([0, 100])
+            # plt.legend(loc="lower left", bbox_to_anchor=(1.5, 1))
+            plt.savefig(fname=fname)
+            plt.close()
                 
 # %%
 if __name__ == "__main__":

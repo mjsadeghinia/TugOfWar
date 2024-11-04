@@ -24,7 +24,7 @@ num_circ_segments = [72]
 num_long_segments = [6]
 prominence = 0.03
 
-base_outdir = "/home/shared/01_results_24_10_30"
+base_outdir = "/home/shared/01_results_24_10_30_apex"
 
 def post_process_experiment(mi_stiffness, mi_severity, num_circ_segments, num_long_segments):
     data_folder = f"{base_outdir}/Severity_{int(mi_severity * 100)}_Stiffness_{mi_stiffness}"
@@ -78,4 +78,4 @@ with ThreadPoolExecutor(max_workers=9) as executor:
         for sv in mi_severity:
             for c in num_circ_segments:
                     for l in num_long_segments:
-                        executor.submit(peak_detection_experiment, st, sv, c, l)
+                        executor.submit(peak_detection_experiment, st, sv, c, l, prominence)
