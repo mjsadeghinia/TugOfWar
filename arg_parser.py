@@ -282,7 +282,7 @@ def create_geo_params(args):
         "r_long_epi": args.r_long_epi,
         "mesh_size": args.mesh_size,
         "fiber_angle_endo": args.fiber_angle_endo,
-        "fiber_angle_epi": args.fiber_angle_endo,
+        "fiber_angle_epi": args.fiber_angle_epi,
     }
 
 
