@@ -41,7 +41,7 @@ def load_geo_c0(geo_dir = Path("/home/shared/00_lv_c0")):
             "r_short_epi": 3.75,
             "r_long_endo": 4.25,
             "r_long_epi": 5,
-            "mesh_size": 1,
+            "mesh_size": .5,
             'fiber_angle_endo': 0,
             'fiber_angle_epi': 0,
         }
@@ -177,15 +177,17 @@ def extract_midslice_compartment_data(data, segmentation_schema):
     ind_f = ind_i + num_compartments
     return data[ind_i:ind_f]
 
-def export_results(outdir, data_ave, data_std, num_time_step):
+def export_results(outdir, data_ave, data_std, num_time_step, fname_suffix = ""):
     outdir = Path(outdir)
     num_compartments, num_time_simulation = data_ave.shape
     time_column = np.linspace(0, num_time_simulation/num_time_step, num_time_simulation)
     data_ave_with_time = np.column_stack((time_column, data_ave.T))
     data_std_with_time = np.column_stack((time_column, data_std.T))
     header = ['Normalized time'] + [f'comp.{i+1}' for i in range(num_compartments)]
-    np.savetxt(outdir.as_posix()+'/data_ave.csv', data_ave_with_time, delimiter=',',header=','.join(header), fmt='%.8f')
-    np.savetxt(outdir.as_posix()+'/data_std.csv', data_std_with_time, delimiter=',',header=','.join(header), fmt='%.8f')
+    if not fname_suffix=="":
+        fname_suffix = f"_{fname_suffix}"
+    np.savetxt(outdir.as_posix()+f'/data_ave{fname_suffix}.csv', data_ave_with_time, delimiter=',',header=','.join(header), fmt='%.8f')
+    np.savetxt(outdir.as_posix()+f'/data_std{fname_suffix}.csv', data_std_with_time, delimiter=',',header=','.join(header), fmt='%.8f')
 
 def plot_comapartment_data(
     data,
@@ -415,6 +417,14 @@ def main(args=None) -> int:
     Eff_comp_midslice = extract_midslice_compartment_data(Eff_comp, segmentation_schema)
     Eff_comp_ave, Eff_comp_std = compute_average_std_compartment_value(Eff_comp)
     
+    Ecc_value = compute_fiber_strain_values_from_file(
+        E_fname, geo.mesh, geo_c0.f0, num_time_step=num_time_step
+    )
+    Ecc_comp = compute_value_compartment(Ecc_value, geo.cfun)
+    Ecc_comp_midslice = extract_midslice_compartment_data(Ecc_comp, segmentation_schema)
+    Ecc_comp_ave, Ecc_comp_std = compute_average_std_compartment_value(Ecc_comp)
+    
+    
     MW_value = compute_MW_value_from_file(E_fname, displacement_fname, activation_fname, heart_model, num_time_step=num_time_step)
     MW_comp = compute_value_compartment(MW_value, geo.cfun)
     MW_ff_comp_midslice = extract_midslice_compartment_data(MW_comp, segmentation_schema)
@@ -423,11 +433,11 @@ def main(args=None) -> int:
         Eff_comp_ave,
         num_time_step,
         segmentation_schema["num_long_segments"],
-        ylabel="Green Lagrange Strain (-)",
+        ylabel="Fibers Green Lagrange Strain (-)",
         ylim=[-0.3, 0.25],
         valve_timings=valve_timings
     )
-    fname = outdir / "Green-Lagrange Strains"
+    fname = outdir / "Green-Lagrange Strains Fibers"
     plt.savefig(fname=fname, dpi = 600)
 
     Eff_comp_ave_midslice, Eff_comp_std_midslice = (
@@ -438,12 +448,39 @@ def main(args=None) -> int:
         Eff_comp_ave_midslice,
         num_time_step,
         segmentation_schema["num_long_segments"],
-        ylabel="Green Lagrange Strain (-)",
+        ylabel="Fibers Green Lagrange Strain (-)",
         single_slice=True,
         ylim=[-0.3, 0.25],
         valve_timings=valve_timings
     )
-    fname = outdir / "Green-Lagrange Strains Midslice"
+    fname = outdir / "Green-Lagrange Strains Midslice Fibers"
+    plt.savefig(fname=fname, dpi = 600)
+    
+    plot_comapartment_data(
+        Ecc_comp_ave,
+        num_time_step,
+        segmentation_schema["num_long_segments"],
+        ylabel="Circ. Green Lagrange Strain (-)",
+        ylim=[-0.3, 0.25],
+        valve_timings=valve_timings
+    )
+    fname = outdir / "Green-Lagrange Strains Circumferential"
+    plt.savefig(fname=fname, dpi = 600)
+
+    Ecc_comp_ave_midslice, Ecc_comp_std_midslice = (
+        compute_average_std_compartment_value(Ecc_comp_midslice)
+    )
+    
+    plot_comapartment_data(
+        Ecc_comp_ave_midslice,
+        num_time_step,
+        segmentation_schema["num_long_segments"],
+        ylabel="Circ. Green Lagrange Strain (-)",
+        single_slice=True,
+        ylim=[-0.3, 0.25],
+        valve_timings=valve_timings
+    )
+    fname = outdir / "Green-Lagrange Strains Midslice Circumferential"
     plt.savefig(fname=fname, dpi = 600)
     
     outdir_stress = outdir / 'stress'
@@ -466,6 +503,7 @@ def main(args=None) -> int:
     )
     
     export_results(outdir, Eff_comp_ave, Eff_comp_std, num_time_step)
+    export_results(outdir, Ecc_comp_ave, Ecc_comp_std, num_time_step, fname_suffix='circ')
 
 if __name__ == "__main__":
     main()
