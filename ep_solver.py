@@ -74,7 +74,7 @@ def save_xdmf_mpi(fname, name, t, func, comm):
             True,
         )
 
-def solve(outdir, geo_folder_coarse, geo_folder_fine, stimulus_amplitude=1000, mesh_unit="cm", comm=None):
+def solve(outdir, geo_folder_coarse, geo_folder_fine, stimulus_amplitude=1000, g_il=0.17, g_it=0.029, mesh_unit="cm", comm=None):
     if comm is None:
         comm = dolfin.MPI.comm_world
     
@@ -144,7 +144,8 @@ def solve(outdir, geo_folder_coarse, geo_folder_fine, stimulus_amplitude=1000, m
     )
     # changing g_it=0.019 to 0.029 for faster activation
     M = beat.conductivities.define_conductivity_tensor(
-        chi=chi, f0=geo.f0, g_il=0.17, g_it=0.029, g_el=0.62, g_et=0.24
+        # chi=chi, f0=geo.f0, g_il=0.17, g_it=0.029, g_el=0.62, g_et=0.24
+        chi=chi, f0=geo.f0, g_il=g_il, g_it=g_it, g_el=0.62, g_et=0.24
     )
 
     params = {"preconditioner": "sor", "use_custom_preconditioner": False}
@@ -225,6 +226,20 @@ def main(args=None) -> int:
     )
 
     parser.add_argument(
+        "--git",
+        default=0.029,
+        type=float,
+        help="The amplitude of the stimulus",
+    )
+    
+    parser.add_argument(
+        "--gil",
+        default=0.17,
+        type=float,
+        help="The amplitude of the stimulus",
+    )
+
+    parser.add_argument(
         "-o",
         "--outdir",
         default=Path.cwd() / "output",
@@ -241,10 +256,12 @@ def main(args=None) -> int:
     )
     args = parser.parse_args(args)
     stimulus_amplitude = args.stimulus_amplitude
+    g_it = args.git
+    g_il = args.gil
     outdir = args.outdir
     geo_folder_coarse = outdir / f"{args.geo_folder}_coarse"
     geo_folder_fine = outdir / f"{args.geo_folder}_fine"
-    solve(outdir, geo_folder_coarse, geo_folder_fine, stimulus_amplitude=stimulus_amplitude, mesh_unit="cm", comm=comm)
+    solve(outdir, geo_folder_coarse, geo_folder_fine, stimulus_amplitude=stimulus_amplitude, g_it=g_it, g_il=g_il, mesh_unit="cm", comm=comm)
 
 
 if __name__ == "__main__":
