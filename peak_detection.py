@@ -41,7 +41,7 @@ def bspline_fit_and_extrapolate(data_x, data_y, extrapolate_factor=0.1):
 
 def extract_circ_results(fname):
     data = np.loadtxt(fname, delimiter=",", skiprows=1)
-    ejection_indices = np.where(data[:, 5] > 0.1)[0]
+    ejection_indices = np.where(data[:, 5] > 0.0)[0]
     # MVO and MVC is found based on ejection (outflow)
     AVO_index = ejection_indices[0]
     AVC_index = ejection_indices[-1]
