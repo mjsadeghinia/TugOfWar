@@ -24,6 +24,8 @@ class HeartModelPulse:
         geo_folder: Path = Path("lv"),
         bc_params: dict = None,
         segmentation_schema: dict = None,
+        infarct: dolfin.Function = None,
+        infarct_stiffness_percent: float = 20, 
         comm=None,
     ):
         """
@@ -53,6 +55,9 @@ class HeartModelPulse:
         self.myocardial_work = []
 
         self.material = self.get_material_model()
+        self.infarct = infarct
+        if self.infarct is not None:
+            self.material = self.apply_stiff_infarct(infarct_stiffness_percent)
         self._get_bc_params(bc_params)
         self.bcs = self.apply_bcs()
         self.problem = pulse.MechanicsProblem(self.geometry, self.material, self.bcs)
@@ -315,6 +320,17 @@ class HeartModelPulse:
             n0=self.geometry.n0,
         )
 
+    def apply_stiff_infarct(self, stiffness_infarct_percent):
+        self.infarct.vector()[:] *= (stiffness_infarct_percent/100)
+        self.infarct.vector()[:] += 1.0
+        
+        V = dolfin.FunctionSpace(self.geometry.mesh, "DG", 0)
+        a_function = dolfin.Function(V)        
+        a_function.vector()[:] = self.material.parameters['a'] * self.infarct.vector()[:]
+        self.material.parameters['a'] = a_function
+
+        return self.material
+        
     def apply_bcs(self):
         bcs = pulse.BoundaryConditions(
             dirichlet=(self._fixed_base_x,),

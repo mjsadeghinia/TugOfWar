@@ -11,13 +11,15 @@ from scipy.interpolate import splrep, splev
 logger = get_logger()
 
 # %%
-def load_results(outdir, num_time_step=500):
+def load_results(outdir, num_time_step=500, fname_suffix = ""):
     outdir = Path(outdir)
+    if not fname_suffix=="":
+        fname_suffix = f"_{fname_suffix}"
     data_ave = np.loadtxt(
-        outdir.as_posix() + "/data_ave.csv", delimiter=",", skiprows=1
+        outdir.as_posix() + f"/data_ave{fname_suffix}.csv", delimiter=",", skiprows=1
     )
     data_std = np.loadtxt(
-        outdir.as_posix() + "/data_std.csv", delimiter=",", skiprows=1
+        outdir.as_posix() + f"/data_ave{fname_suffix}.csv", delimiter=",", skiprows=1
     )
     return data_ave, data_std
 
@@ -39,7 +41,7 @@ def bspline_fit_and_extrapolate(data_x, data_y, extrapolate_factor=0.1):
 
 def extract_circ_results(fname):
     data = np.loadtxt(fname, delimiter=",", skiprows=1)
-    ejection_indices = np.where(data[:, 5] > 0.1)[0]
+    ejection_indices = np.where(data[:, 5] > 0.0)[0]
     # MVO and MVC is found based on ejection (outflow)
     AVO_index = ejection_indices[0]
     AVC_index = ejection_indices[-1]
@@ -95,7 +97,7 @@ def calculate_tow_index(ppeaks_ind, mid_ejection_ind=150):
     return tow_indices_percent
 
 
-def export_results(outdir, ejection_fraction, tow_indices_percent,prominence):
+def export_results(outdir, ejection_fraction, tow_indices_percent,prominence, fname_suffix=""):
     outdir = Path(outdir)
     data = tow_indices_percent
     data.insert(0, ejection_fraction * 100)
@@ -106,8 +108,10 @@ def export_results(outdir, ejection_fraction, tow_indices_percent,prominence):
         " LSL (%)",
         "Both (%)",
     ]
+    if not fname_suffix=="":
+        fname_suffix = f"_{fname_suffix}"
     np.savetxt(
-        outdir.as_posix() + f"/00_tow_index_{prominence}.csv",
+        outdir.as_posix() + f"/00_tow_index_{prominence}{fname_suffix}.csv",
         np.array(data).reshape(1, -1),
         delimiter=",",
         header=",".join(header),
@@ -218,7 +222,7 @@ def main(args=None) -> int:
         extract_circ_results(fname)
     )
 
-    # loading strain data
+    # loading strain data in fiber direction and postprocessing
     data_ave, data_std = load_results(outdir)
     time = data_ave[:, 0]
     Eff_ave = data_ave[:, 1:]
@@ -267,6 +271,61 @@ def main(args=None) -> int:
         )
         plt.savefig(fname=fname)
         plt.close()
+        
+        
+    # loading strain data in circ direction and postprocessing
+    outdir_plots = data_folder / f"{args.outdir}/plots_circ_{prominence}"
+    outdir_plots.mkdir(exist_ok=True, parents=True)
+    
+    data_ave, data_std = load_results(outdir, fname_suffix='circ')
+    time = data_ave[:, 0]
+    Ecc_ave = data_ave[:, 1:]
+    npeaks_ind = []
+    ppeaks_ind = []
+    for i, data in enumerate(Ecc_ave.T):
+        extended_time, smoothed_data_y = bspline_fit_and_extrapolate(
+            time, data, extrapolate_factor=0.1
+        )
+        ppeaks_ind_data = find_peaks(smoothed_data_y, prominence=prominence)
+        npeaks_ind_data = find_peaks(-smoothed_data_y, prominence=prominence)
+        ppeaks_ind.append(ppeaks_ind_data[0])
+        npeaks_ind.append(npeaks_ind_data[0])
+        ax = plot_data_with_extrapolation_and_peaks(
+            time,
+            data,
+            extended_time,
+            smoothed_data_y,
+            ppeaks_ind_data[0],
+            npeaks_ind_data[0],
+        )
+        plot_valve_events_time(ax, time, AVO_ind, AVC_ind, MVO_index, MVC_index)
+        fname = outdir_plots / f"comp_{i}.png"
+        plt.savefig(fname=fname)
+        plt.close()
+
+    tow_indices_percent = calculate_tow_index(
+        ppeaks_ind, mid_ejection_ind=mid_ejection_ind
+    )
+    export_results(outdir, ejection_fraction, tow_indices_percent,prominence, fname_suffix='circ')
+    all_ppeaks_arr = [arr for arr in ppeaks_ind if arr.size > 0]
+    if len(all_ppeaks_arr) > 0:
+        all_ppeaks_ind = np.concatenate(all_ppeaks_arr)
+        all_ppeaks = extended_time[all_ppeaks_ind]
+        fname = outdir / f"00_tow_histogram_circ_{prominence}.png"
+        ax = plot_hist_tow(all_ppeaks, x_range=(0, np.max(extended_time)))
+        ax.axvspan(
+            time.max(),
+            extended_time.max(),
+            color="grey",
+            alpha=0.3,
+            label="Extrapolated Region",
+        )
+        plot_valve_events_time(
+            ax, extended_time, AVO_ind, AVC_ind, MVO_index, MVC_index
+        )
+        plt.savefig(fname=fname)
+        plt.close()
+
 
 
 # %%

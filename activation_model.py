@@ -654,7 +654,6 @@ def cmpute_ep_activation(
     activation_mode,
     activation_variation,
     num_time_step,
-    random_flag=True,
 ):
     activations = []
     t_eval = np.linspace(0, 1, num_time_step)
@@ -685,7 +684,79 @@ def cmpute_ep_activation(
 
     return activations
 
+class Infarct_expression(dolfin.UserExpression):
+    def __init__(self, center, mi_severity, iz_radius, bz_thickness, **kwargs):
+        super().__init__(**kwargs)
+        self.center = center
+        self.mi_severity = mi_severity
+        self.iz_radius = iz_radius
+        self.bz_radius = iz_radius + bz_thickness
 
+    def eval(self, value, x):
+        if self.mi_severity == 0.0:
+            value[0] = 0.0
+            return
+
+        dx = x[0] - self.center[0]
+        dy = x[1] - self.center[1]
+        dz = x[2] - self.center[2]
+        distance = np.sqrt(dx**2 + dy**2 + dz**2)
+
+        # Apply thresholding
+        if distance < self.iz_radius:
+            value[0] = self.mi_severity
+        elif distance > self.bz_radius:
+            value[0] = 0.0
+        else:
+            denominator = self.iz_radius - self.bz_radius
+            if denominator == 0.0:
+                value[0] = 0.0
+            else:
+                normalized_value = (distance - self.bz_radius) / denominator
+                value[0] = normalized_value * self.mi_severity
+
+    def value_shape(self):
+        return ()
+    
+def create_infarct(outdir, geo, mi_center, mi_severity, iz_radius, bz_thickness, save_flag = True, varname = "infarct", fname = "infarct"):
+    V = dolfin.FunctionSpace(geo.mesh, "DG", 0)
+    # center=(-1.47839,3.52203e-16,3.15815)
+    infarct_expr = Infarct_expression(mi_center, mi_severity, iz_radius, bz_thickness)
+    infarct = dolfin.interpolate(infarct_expr, V)
+    if save_flag:
+        with dolfin.XDMFFile((outdir / f"{fname}.xdmf").as_posix()) as xdmf:
+            xdmf.write_checkpoint(
+                infarct,
+                varname,
+                0.0,
+                dolfin.XDMFFile.Encoding.HDF5,
+                False,
+            )
+    return infarct
+
+
+def save_mi_activation_as_dolfin_function(geo, delayed_activations, infarct, fname):
+    V = dolfin.FunctionSpace(geo.mesh, "DG", 0)
+    delayed_activations_function = dolfin.Function(V)
+    segments = geo.cfun
+    if fname.exists():
+        fname.unlink()
+
+    for t in range(len(delayed_activations[0])):
+        num_segments = len(set(segments.array()))
+        for n in range(num_segments):
+            delayed_activations_function.vector()[geometry.get_elems(segments, n + 1)] = (
+                delayed_activations[n][t, :]
+            )
+        delayed_activations_function.vector()[:] *= (1-infarct.vector()[:]) 
+        with dolfin.XDMFFile(fname.as_posix()) as xdmf:
+            xdmf.write_checkpoint(
+                delayed_activations_function,
+                "activation",
+                float(t + 1),
+                dolfin.XDMFFile.Encoding.HDF5,
+                True,
+            )
 
 def create_ep_activation_function(
     outdir,
@@ -695,7 +766,11 @@ def create_ep_activation_function(
     activation_mode,
     activation_variation,
     num_time_step,
-    random_flag=True,
+    mi_flag,
+    mi_center,
+    mi_severity,
+    iz_radius,
+    bz_thickness,
 ):
     try:
         activations = cmpute_ep_activation(
@@ -706,10 +781,14 @@ def create_ep_activation_function(
             activation_mode,
             activation_variation,
             num_time_step,
-            random_flag=True,
         )
         fname = outdir / "activation.xdmf"
-        save_activation_as_dolfin_function(geo, activations, fname)
+        if mi_flag:
+            infarct = create_infarct(outdir, geo, mi_center, mi_severity, iz_radius, bz_thickness)
+            save_mi_activation_as_dolfin_function(geo, activations, infarct, fname)
+        else:
+            save_activation_as_dolfin_function(geo, activations, fname)
+            
         geo_folder = outdir / "lv_coarse"
         plot_ep_activation_within_compartment(outdir, geo_folder, fname, num_time_step=500)
         EP_activation_fname = outdir / "EP/activation_coarse.xdmf"

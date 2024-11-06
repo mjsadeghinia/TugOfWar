@@ -13,6 +13,10 @@ from dolfin import XDMFFile
 from heart_model import HeartModelPulse
 import pulse
 
+from structlog import get_logger
+
+logger = get_logger()
+
 # %%
 def load_mesh_from_file(mesh_fname: Path):
     # Read the mesh
@@ -23,6 +27,33 @@ def load_mesh_from_file(mesh_fname: Path):
     return mesh
 
 
+def load_geo_c0(geo_dir = Path("/home/shared/00_lv_c0")):
+    geo_fname = geo_dir / "geo.h5"
+    if not geo_fname.exists():
+        logger.warning(f"{geo_fname} does not exists")
+        logger.info(f"{geo_fname} is being created")
+        segmentation_schema = {
+        "num_circ_segments": 72,
+        "num_long_segments": 6,
+        }
+        geo_params = {
+            "r_short_endo": 3,
+            "r_short_epi": 3.75,
+            "r_long_endo": 4.25,
+            "r_long_epi": 5,
+            "mesh_size": .5,
+            'fiber_angle_endo': 0,
+            'fiber_angle_epi': 0,
+        }
+        geo = geometry.create_ellipsoid_geometry(
+            folder=geo_dir,
+            geo_params=geo_params,
+            segmentation_schema=segmentation_schema,
+        )
+        return geo
+    geo = geometry.load_geo_with_cfun(geo_dir)
+    return geo
+    
 def load_displacement_function_from_file(
     displacement_fname: Path, t: float, mesh: dolfin.mesh
 ):
@@ -146,24 +177,28 @@ def extract_midslice_compartment_data(data, segmentation_schema):
     ind_f = ind_i + num_compartments
     return data[ind_i:ind_f]
 
-def export_results(outdir, data_ave, data_std, num_time_step):
+def export_results(outdir, data_ave, data_std, num_time_step, fname_suffix = ""):
     outdir = Path(outdir)
     num_compartments, num_time_simulation = data_ave.shape
     time_column = np.linspace(0, num_time_simulation/num_time_step, num_time_simulation)
     data_ave_with_time = np.column_stack((time_column, data_ave.T))
     data_std_with_time = np.column_stack((time_column, data_std.T))
     header = ['Normalized time'] + [f'comp.{i+1}' for i in range(num_compartments)]
-    np.savetxt(outdir.as_posix()+'/data_ave.csv', data_ave_with_time, delimiter=',',header=','.join(header), fmt='%.8f')
-    np.savetxt(outdir.as_posix()+'/data_std.csv', data_std_with_time, delimiter=',',header=','.join(header), fmt='%.8f')
+    if not fname_suffix=="":
+        fname_suffix = f"_{fname_suffix}"
+    np.savetxt(outdir.as_posix()+f'/data_ave{fname_suffix}.csv', data_ave_with_time, delimiter=',',header=','.join(header), fmt='%.8f')
+    np.savetxt(outdir.as_posix()+f'/data_std{fname_suffix}.csv', data_std_with_time, delimiter=',',header=','.join(header), fmt='%.8f')
 
 def plot_comapartment_data(
     data,
     num_time_step,
+    num_long_segments,
     ylabel="Data",
     xlabel="Normalized Time [-]",
     ylim=None,
     ax=None,
     single_slice=False,
+    valve_timings = None
 ):
     num_compartment, num_time_simulation = data.shape
     t_values = np.linspace(0, num_time_simulation / num_time_step, num_time_simulation)
@@ -171,19 +206,34 @@ def plot_comapartment_data(
         colors = utils.generate_symmetric_jet_colors(num_compartment)
         linewidth = 0.5
     else:
+        slice_colors = utils.generate_symmetric_jet_colors(num_long_segments*2)
         colors = [
-            (0, 0, 0, 1) for _ in range(num_compartment)
-        ]  # use black for all the compartments
+            slice_color for slice_color in slice_colors[:num_long_segments] for _ in range(int(num_compartment/num_long_segments))
+        ]# use different slicecolors for all the compartments
         linewidth = 0.1
     if ax is None:
         fig, ax = plt.subplots(figsize=(8, 6))
     for i in range(num_compartment):
-        plt.plot(t_values, data[i], color=colors[i], linewidth=linewidth)
+        if single_slice:
+            if i%6 == 0:
+                plt.plot(t_values, data[i,:], color=colors[i], linewidth=linewidth, label = f"Comp. no. {i}")
+            else:
+                plt.plot(t_values, data[i,:], color=colors[i], linewidth=linewidth)
+        else:
+            if i% int(num_compartment/num_long_segments) == 0:
+                plt.plot(t_values, data[i], color=colors[i], linewidth=linewidth, label = f"Slice no. {int(i/num_compartment*num_long_segments)+1}")
+            else:
+                plt.plot(t_values, data[i], color=colors[i], linewidth=linewidth)
+    if valve_timings is not None:
+        plot_valve_events_time(ax, t_values, valve_timings["AVO_index"], valve_timings["AVC_index"], valve_timings["MVO_index"], valve_timings["MVC_index"], y_loc = ylim[1]*0.8)
 
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
     if ylim is not None:
         ax.set_ylim(ylim)
+    legend = ax.legend()
+    for line in legend.get_lines():
+        line.set_linewidth(1)
     ax.set_xlim([0, 1])
     ax.grid(True)
     return ax
@@ -226,7 +276,7 @@ def plot_and_save_compartment_stresses(
         ax1.set_ylim((-.3,.15))
         ax2.set_ylim((0,500))
         fname = outdir / f'Cell_{i}.png'
-        plt.savefig(fname, dpi=300, bbox_inches='tight')
+        plt.savefig(fname, dpi=600, bbox_inches='tight')
         plt.close(fig=fig)
 
 
@@ -263,8 +313,50 @@ def plot_and_save_compartment_MW(
         ax1.set_ylim((-.3,.15))
         ax2.set_ylim((-50,25))
         fname = outdir / f'Cell_{i}.png'
-        plt.savefig(fname, dpi=300, bbox_inches='tight')
+        plt.savefig(fname, dpi=600, bbox_inches='tight')
         plt.close(fig=fig)
+
+def extract_circ_results(fname):
+    data = np.loadtxt(fname, delimiter=",", skiprows=1)
+    ejection_indices = np.where(data[:, 5] > 0.0)[0]
+    # MVO and MVC is found based on ejection (outflow)
+    AVO_index = ejection_indices[0]
+    AVC_index = ejection_indices[-1]
+    mid_ejection_ind = ejection_indices[int(len(ejection_indices) / 2)]
+    # MVO and MVC is found based on atrium pressure with threshold of 1kpa
+    MVC_index = np.min(np.where(data[:, 3] > 1)[0])
+    MVO_index = np.max(np.where(data[AVC_index:, 3] < 1)[0]) + AVC_index
+
+    EDV = data[AVO_index - 1, 2]
+    ESV = data[AVC_index + 1, 2]
+    ejection_fraction = (EDV - ESV) / EDV
+
+    valve_timings = {
+        "AVO_index": AVO_index,
+        "AVC_index": AVC_index,
+        "MVO_index": MVO_index,
+        "MVC_index": MVC_index,
+        "mid_ejection_ind": mid_ejection_ind
+    }
+    return (
+        ejection_fraction,
+        valve_timings
+    )
+
+
+def plot_valve_events_time(ax, time, AVO_index, AVC_index, MVO_index, MVC_index, y_loc = None):
+    y_min, y_max = ax.get_ylim()
+    if y_loc is None:
+        y_loc = (y_max)*0.8
+    plt.axvline(x=time[AVO_index], color="k", linestyle="--")
+    plt.text(time[AVO_index - 5], y_loc, "AVO", rotation=90, verticalalignment="center", bbox=dict(facecolor='white', edgecolor='none'))
+    plt.axvline(x=time[AVC_index], color="k", linestyle="--")
+    plt.text(time[AVC_index - 5], y_loc, "AVC", rotation=90, verticalalignment="center", bbox=dict(facecolor='white', edgecolor='none'))
+    plt.axvline(x=time[MVO_index], color="k", linestyle="--")
+    plt.text(time[MVO_index - 5], y_loc, "MVO", rotation=90, verticalalignment="center", bbox=dict(facecolor='white', edgecolor='none'))
+    plt.axvline(x=time[MVC_index], color="k", linestyle="--")
+    plt.text(time[MVC_index - 5], y_loc, "MVC", rotation=90, verticalalignment="center", bbox=dict(facecolor='white', edgecolor='none'))
+
 
 # %%
 def main(args=None) -> int:
@@ -278,6 +370,10 @@ def main(args=None) -> int:
     outdir = data_folder / args.outdir
     outdir = arg_parser.prepare_output_directory(outdir)
     num_time_step = args.num_time_step
+    
+    # loading circulation data
+    fname = data_folder / "results_data.csv"
+    ejection_fraction, valve_timings = extract_circ_results(fname)
 
     try:
         geo_folder = Path(data_folder) / "lv"
@@ -288,6 +384,8 @@ def main(args=None) -> int:
     geo = geometry.recreate_cfun(geo, segmentation_schema, outdir)
     heart_model = load_heart_model(geo)
     
+    # Load or create circumferential direction for Ecc calculation
+    geo_c0 = load_geo_c0()
     
     activation_fname = Path(data_folder) / activation_fname
     compartment_num = geometry.get_first_compartment_midslice(segmentation_schema)
@@ -319,6 +417,14 @@ def main(args=None) -> int:
     Eff_comp_midslice = extract_midslice_compartment_data(Eff_comp, segmentation_schema)
     Eff_comp_ave, Eff_comp_std = compute_average_std_compartment_value(Eff_comp)
     
+    Ecc_value = compute_fiber_strain_values_from_file(
+        E_fname, geo.mesh, geo_c0.f0, num_time_step=num_time_step
+    )
+    Ecc_comp = compute_value_compartment(Ecc_value, geo.cfun)
+    Ecc_comp_midslice = extract_midslice_compartment_data(Ecc_comp, segmentation_schema)
+    Ecc_comp_ave, Ecc_comp_std = compute_average_std_compartment_value(Ecc_comp)
+    
+    
     MW_value = compute_MW_value_from_file(E_fname, displacement_fname, activation_fname, heart_model, num_time_step=num_time_step)
     MW_comp = compute_value_compartment(MW_value, geo.cfun)
     MW_ff_comp_midslice = extract_midslice_compartment_data(MW_comp, segmentation_schema)
@@ -326,24 +432,56 @@ def main(args=None) -> int:
     plot_comapartment_data(
         Eff_comp_ave,
         num_time_step,
-        ylabel="Green Lagrange Strain (-)",
-        ylim=[-0.25, 0.25],
+        segmentation_schema["num_long_segments"],
+        ylabel="Fibers Green Lagrange Strain (-)",
+        ylim=[-0.3, 0.25],
+        valve_timings=valve_timings
     )
-    fname = outdir / "Green-Lagrange Strains"
-    plt.savefig(fname=fname)
+    fname = outdir / "Green-Lagrange Strains Fibers"
+    plt.savefig(fname=fname, dpi = 600)
 
     Eff_comp_ave_midslice, Eff_comp_std_midslice = (
         compute_average_std_compartment_value(Eff_comp_midslice)
     )
+    
     plot_comapartment_data(
         Eff_comp_ave_midslice,
         num_time_step,
-        ylabel="Green Lagrange Strain (-)",
+        segmentation_schema["num_long_segments"],
+        ylabel="Fibers Green Lagrange Strain (-)",
         single_slice=True,
-        ylim=[-0.25, 0.25],
+        ylim=[-0.3, 0.25],
+        valve_timings=valve_timings
     )
-    fname = outdir / "Green-Lagrange Strains Midslice"
-    plt.savefig(fname=fname)
+    fname = outdir / "Green-Lagrange Strains Midslice Fibers"
+    plt.savefig(fname=fname, dpi = 600)
+    
+    plot_comapartment_data(
+        Ecc_comp_ave,
+        num_time_step,
+        segmentation_schema["num_long_segments"],
+        ylabel="Circ. Green Lagrange Strain (-)",
+        ylim=[-0.3, 0.25],
+        valve_timings=valve_timings
+    )
+    fname = outdir / "Green-Lagrange Strains Circumferential"
+    plt.savefig(fname=fname, dpi = 600)
+
+    Ecc_comp_ave_midslice, Ecc_comp_std_midslice = (
+        compute_average_std_compartment_value(Ecc_comp_midslice)
+    )
+    
+    plot_comapartment_data(
+        Ecc_comp_ave_midslice,
+        num_time_step,
+        segmentation_schema["num_long_segments"],
+        ylabel="Circ. Green Lagrange Strain (-)",
+        single_slice=True,
+        ylim=[-0.3, 0.25],
+        valve_timings=valve_timings
+    )
+    fname = outdir / "Green-Lagrange Strains Midslice Circumferential"
+    plt.savefig(fname=fname, dpi = 600)
     
     outdir_stress = outdir / 'stress'
     outdir_stress.mkdir(exist_ok=True)
@@ -365,6 +503,7 @@ def main(args=None) -> int:
     )
     
     export_results(outdir, Eff_comp_ave, Eff_comp_std, num_time_step)
+    export_results(outdir, Ecc_comp_ave, Ecc_comp_std, num_time_step, fname_suffix='circ')
 
 if __name__ == "__main__":
     main()

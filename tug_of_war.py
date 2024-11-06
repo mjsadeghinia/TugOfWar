@@ -4,10 +4,9 @@ from pathlib import Path
 import numpy as np
 from structlog import get_logger
 import dolfin
+import ast
 
-import argparse
 import arg_parser
-import post_processing
 import geometry
 import activation_model 
 
@@ -55,11 +54,24 @@ def main(args=None) -> int:
     scenario = args.scenario
     num_time_step = args.num_time_step
     postprocessing_flag = args.postprocessing
-    ep_flag = args.ep
+    ep_flag = args.ep                               # Flag for using ep driven activation
+    mi_flag = args.mi                               # Flag for adding infarct
+    mi_severity = args.mi_severity                  # Severity of MI; 1 = no contractile element 0 = normal tissue
+    infarct_stiffness_percent = args.mi_stiffness   # Stiffness increase of MI region in percent, default 20
+    iz_radius = args.iz_radius                      # The number of cfun for infarct zone
+    bz_thickness = args.bz_thickness                # The number of cfun for border  zone
+    mi_center = ast.literal_eval(args.mi_center)
+    
+    infarct = None
+    
     if ep_flag:
+        arg_parser.copy_epdir_to_outdir(args.epdir, outdir)
         geo_folder = outdir / "lv_coarse"
         geo = geometry.load_geo_with_cfun(geo_folder)
         activation_fname = outdir / "activation.xdmf"
+        if mi_flag:
+            # Creating a region of interest by assuing mi_severity = 1 just for showing the region of interest
+            RoI = activation_model.create_infarct(outdir, geo, mi_center, 1, iz_radius, bz_thickness, save_flag=True, varname= "RoI", fname="RoI")
         if not activation_fname.exists():
             geo = geometry.recreate_cfun(geo, segmentation_schema, geo_folder)
             activation_fname = activation_model.create_ep_activation_function(
@@ -70,7 +82,11 @@ def main(args=None) -> int:
                 activation_mode,
                 activation_variation,
                 num_time_step,
-                random_flag=True,
+                mi_flag,
+                mi_center,
+                mi_severity,
+                iz_radius,
+                bz_thickness,
             )
     else:
         ## Creating Geometry
@@ -92,7 +108,9 @@ def main(args=None) -> int:
             random_flag=True,
         )
     # Model Generation
-    heart_model = HeartModelPulse(geo=geo, bc_params=bc_params)
+    # Creating a stiff_region by assuing mi_severity = 1 and bz_thickness=0, i.e. no borderzone
+    StiffRegion = activation_model.create_infarct(outdir, geo, mi_center, 1.0, iz_radius, 0.0, save_flag=True, varname= "StiffRegion", fname="StiffRegion")
+    heart_model = HeartModelPulse(geo=geo, bc_params=bc_params, infarct = StiffRegion, infarct_stiffness_percent=infarct_stiffness_percent)
     circulation_model = CirculationModel(params=circ_params)
     collector = DataCollector(outdir=outdir, problem=heart_model)
 

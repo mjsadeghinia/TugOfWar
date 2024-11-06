@@ -1,6 +1,7 @@
 import argparse
 from pathlib import Path
 from structlog import get_logger
+import shutil
 
 logger = get_logger()
 
@@ -55,6 +56,20 @@ def parse_arguments(args=None):
         type=float,
         help="The long radius of epicardium [in cm] for generating a simplified ellipsoid left ventricle model",
     )
+    
+    parser.add_argument(
+        "--fiber_angle_endo",
+        default=-60,
+        type=float,
+        help="The fiber angle on the endocardium",
+    )
+    
+    parser.add_argument(
+        "--fiber_angle_epi",
+        default=60,
+        type=float,
+        help="The fiber angle on the epicardium",
+    )
 
     # Segmentation parameters
     parser.add_argument(
@@ -76,7 +91,51 @@ def parse_arguments(args=None):
     parser.add_argument(
         "-ep",
         action="store_true",
-        help="The flag for wheter using electrophysiology model or not",
+        help="The flag for whether using electrophysiology model or not",
+    )
+    
+    # flag for using EP based modeling
+    parser.add_argument(
+        "-mi",
+        action="store_true",
+        help="The flag for whether adding Infarct region or not (ONLY IN EP MODEL)",
+    )
+    
+    parser.add_argument(
+        "--mi_center",
+        default="(-1.47839,3.52203e-16,3.15815)",
+        type=str,
+        help="The center of infarct zone (tuple)",
+    )
+    
+    parser.add_argument(
+        "--mi_severity",
+        default=1,
+        type=float,
+        help="Severity of MI; 1 = no contractile element 0 = normal tissue",
+    )
+    
+    parser.add_argument(
+        "--mi_stiffness",
+        default=20,
+        type=float,
+        help="Stiffness increase (a in Holzapfel-Ogden Model) of MI region in percent, default 20",
+    )
+    
+    # flag for using EP based modeling
+    parser.add_argument(
+        "--iz_radius",
+        default=0.8,
+        type=float,
+        help="The radius of the infarct zone",
+    )
+    
+     # flag for using EP based modeling
+    parser.add_argument(
+        "--bz_thickness",
+        default=0.8,
+        type=float,
+        help="The thickness of border zone",
     )
     
     # Scenario and parameters
@@ -193,6 +252,14 @@ def parse_arguments(args=None):
         type=bool,
         help="The flag for postprocessing",
     )
+    
+    parser.add_argument(
+        "--epdir",
+        default="/home/shared/00_EP_results",
+        type=str,
+        help="The directory to EP simulation files including EP, lv_coarse, and lv_fine folders.",
+    )
+    
     parser.add_argument(
         "-o",
         "--outdir",
@@ -214,6 +281,8 @@ def create_geo_params(args):
         "r_long_endo": args.r_long_endo,
         "r_long_epi": args.r_long_epi,
         "mesh_size": args.mesh_size,
+        "fiber_angle_endo": args.fiber_angle_endo,
+        "fiber_angle_epi": args.fiber_angle_epi,
     }
 
 
@@ -259,6 +328,14 @@ def prepare_output_directory(outdir):
     return outdir_path
 
 
+def copy_epdir_to_outdir(epdir, outdir):
+    epdir = Path(epdir)
+    for item in epdir.iterdir():
+        if item.is_dir():
+            destination_path = outdir / item.name
+            if not destination_path.exists():
+                shutil.copytree(item, destination_path)
+                
 def check_parmas_activation(args):
     """
     Check if all the necessary input is provided otherwise assing a default vaule and issues warning to prevent any unwanted results.

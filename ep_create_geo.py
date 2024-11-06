@@ -16,6 +16,8 @@ def create_geo_params_coarse(args):
         "r_long_endo": args.r_long_endo,
         "r_long_epi": args.r_long_epi,
         "mesh_size": args.coarse_mesh_size,
+        "fiber_angle_endo": args.fiber_angle_endo,
+        "fiber_angle_epi": args.fiber_angle_epi,
     }
     
     
@@ -29,6 +31,8 @@ def create_geo_params_fine(args):
         "r_long_endo": args.r_long_endo,
         "r_long_epi": args.r_long_epi,
         "mesh_size": args.fine_mesh_size,
+        "fiber_angle_endo": args.fiber_angle_endo,
+        "fiber_angle_epi": args.fiber_angle_epi,
     }
 
 def main(args=None) -> int:
@@ -74,6 +78,19 @@ def main(args=None) -> int:
         default=5,
         type=float,
         help="The long radius of epicardium [in cm] for generating a simplified ellipsoid left ventricle model",
+    )
+    parser.add_argument(
+        "--fiber_angle_endo",
+        default=-60,
+        type=float,
+        help="The fiber angle on the endocardium",
+    )
+    
+    parser.add_argument(
+        "--fiber_angle_epi",
+        default=60,
+        type=float,
+        help="The fiber angle on the epicardium",
     )
     
     # Export parameters
