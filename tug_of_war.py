@@ -68,7 +68,6 @@ def main(args=None) -> int:
         EP_folder = outdir / "EP"
         if not EP_folder.exists():
             arg_parser.copy_epdir_to_outdir(args.epdir, outdir)
-        breakpoint()
         geo_folder = outdir / "lv_coarse"
         geo = geometry.load_geo_with_cfun(geo_folder)
         activation_fname = outdir / "activation.xdmf"
