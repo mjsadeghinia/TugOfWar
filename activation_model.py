@@ -669,6 +669,14 @@ def cmpute_ep_activation(
             t_span=(0.0, 1.0)
             ind = np.where(cell_MP>37)[0][0]
             activation_params = default_parameters()
+            if activation_mode == 'decay':
+                activation_params["a_min"] += (
+                    activation_params["a_min"] * activation_variation
+                )
+            if activation_mode == 'peak':
+                activation_params["sigma_0"] += (
+                    activation_params["sigma_0"] * activation_variation
+                )
             sys_duration = activation_params["t_dias"] - activation_params["t_sys"]
             activation_params["t_sys"] = t_eval[ind]
             activation_params["t_dias"] = activation_params["t_sys"] + sys_duration
