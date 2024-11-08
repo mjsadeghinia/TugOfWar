@@ -4784,11 +4784,11 @@ def save_ani_deformed_activation(fname_act, fname_disp, outname):
     ##--------------------------------------------
   
 # Define your base directory and output directory
-base_folder = "/Users/javad/Docker/TugOfWar/01_results_24_11_06/"
+base_folder = "/Users/javad/Docker/TugOfWar/01_results_24_11_14/"
 # base_folder = "/Users/javad/Docker/TugOfWar/test/"
-base_outdir = "/Users/javad/Library/CloudStorage/GoogleDrive-Sadeghinia@simula.no/My Drive/02_Tug of War/Presentations/Results_24_11_06"
-
+base_outdir = "/Users/javad/Library/CloudStorage/GoogleDrive-Sadeghinia@simula.no/My Drive/02_Tug of War/Presentations/Results_24_11_14/"
 # Create the output directory if it doesn't exist
+outfolder = os.path.join(base_outdir, "Animations")
 os.makedirs(base_outdir, exist_ok=True)
 print(f"====== Start Processing =========")
 # Iterate over each folder in the base folder
@@ -4799,22 +4799,21 @@ for folder_name in os.listdir(base_folder):
     if not os.path.isdir(folder_path):
         continue
 
-    # Define potential file paths
-    lv_path = os.path.join(folder_path, "lv", "microstructure_viz.xdmf")
-    lv_coarse_path = os.path.join(folder_path, "lv_coarse", "microstructure_viz.xdmf")
+    # # Define potential file paths
+    # lv_path = os.path.join(folder_path, "lv", "microstructure_viz.xdmf")
+    # lv_coarse_path = os.path.join(folder_path, "lv_coarse", "microstructure_viz.xdmf")
 
-    # Determine which path to use
-    if os.path.exists(lv_coarse_path):
-        fname = lv_coarse_path
-    elif os.path.exists(lv_path):
-        fname = lv_path
-    else:
-        print(f"No microstructure_viz.xdmf file found in {folder_path}")
-        continue
+    # # Determine which path to use
+    # if os.path.exists(lv_coarse_path):
+    #     fname = lv_coarse_path
+    # elif os.path.exists(lv_path):
+    #     fname = lv_path
+    # else:
+    #     print(f"No microstructure_viz.xdmf file found in {folder_path}")
+    #     continue
 
     # Define the output file name
-    outname = os.path.join(base_outdir, "Fibers", f"{folder_name}_fibers.png")
-    print(outname)
+    # outname = os.path.join(base_outdir, "Fibers", f"{folder_name}_fibers.png")
     # # Run the plot_fibers function
     # plot_fibers(fname, outname)
     fname_act = os.path.join(folder_path, "Activation_results.xdmf")
