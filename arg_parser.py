@@ -171,7 +171,7 @@ def parse_arguments(args=None):
     )
 
     # Additional arguments for 'activation'
-    valid_activation_mode = ["delay", "diastole_time", "systole_time", "decay", "peak"]
+    valid_activation_mode = ["delay", "diastole_time", "systole_time", "decay", "peak", "rate"]
     parser.add_argument(
         "--activation_mode",
         choices=valid_activation_mode,

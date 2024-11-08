@@ -677,6 +677,14 @@ def cmpute_ep_activation(
                 activation_params["sigma_0"] += (
                     activation_params["sigma_0"] * activation_variation
                 )
+            if activation_mode == 'rate':
+                activation_params["a_max"] += (
+                    activation_params["a_min"] * activation_variation
+                )
+            # logger.warning("a_min is offeseted by 70 percent for longer IVR d")
+            activation_params["a_min"] += (
+                    activation_params["a_min"] * -0.7
+                )
             sys_duration = activation_params["t_dias"] - activation_params["t_sys"]
             activation_params["t_sys"] = t_eval[ind]
             activation_params["t_dias"] = activation_params["t_sys"] + sys_duration
