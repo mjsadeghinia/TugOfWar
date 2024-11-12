@@ -2092,7 +2092,783 @@ def plot_fibers(fname, outname):
     
 
 def save_ani_deformed_activation(fname_act, fname_disp, outname):
-        # trace generated using paraview version 5.12.1
+    #### disable automatic camera reset on 'Show'
+    paraview.simple._DisableFirstRenderCameraReset()
+
+    # get active view
+    renderView1 = GetActiveViewOrCreate('RenderView')
+
+    # Properties modified on renderView1
+    renderView1.UseColorPaletteForBackground = 0
+
+    # get the material library
+    materialLibrary1 = GetMaterialLibrary()
+    # Adjust camera
+
+    # Properties modified on renderView1
+    renderView1.Background = [1.0, 1.0, 1.0]
+    # Adjust camera
+
+    # create a new 'Xdmf3 Reader T'
+    displacementxdmf = Xdmf3ReaderT(registrationName='displacement.xdmf', FileName=[fname_disp])
+    # Adjust camera
+
+    # get animation scene
+    animationScene1 = GetAnimationScene()
+
+    # update animation scene based on data timesteps
+    animationScene1.UpdateAnimationUsingDataTimeSteps()
+
+    # create a new 'Xdmf3 Reader T'
+    activation_resultsxdmf = Xdmf3ReaderT(registrationName='Activation_results.xdmf', FileName=[fname_act])
+
+    # show data in view
+    activation_resultsxdmfDisplay = Show(activation_resultsxdmf, renderView1, 'UnstructuredGridRepresentation')
+
+    # get 2D transfer function for 'Activation'
+    activationTF2D = GetTransferFunction2D('Activation')
+
+    # get color transfer function/color map for 'Activation'
+    activationLUT = GetColorTransferFunction('Activation')
+    activationLUT.TransferFunction2D = activationTF2D
+    activationLUT.RGBPoints = [0.0, 0.231373, 0.298039, 0.752941, 5.878906683738906e-39, 0.865003, 0.865003, 0.865003, 1.1757813367477812e-38, 0.705882, 0.0156863, 0.14902]
+    activationLUT.ScalarRangeInitialized = 1.0
+
+    # get opacity transfer function/opacity map for 'Activation'
+    activationPWF = GetOpacityTransferFunction('Activation')
+    activationPWF.Points = [0.0, 0.0, 0.5, 0.0, 1.1757813367477812e-38, 1.0, 0.5, 0.0]
+    activationPWF.ScalarRangeInitialized = 1
+
+    # trace defaults for the display properties.
+    activation_resultsxdmfDisplay.Representation = 'Surface'
+    activation_resultsxdmfDisplay.ColorArrayName = ['CELLS', 'Activation']
+    activation_resultsxdmfDisplay.LookupTable = activationLUT
+    activation_resultsxdmfDisplay.SelectTCoordArray = 'None'
+    activation_resultsxdmfDisplay.SelectNormalArray = 'None'
+    activation_resultsxdmfDisplay.SelectTangentArray = 'None'
+    activation_resultsxdmfDisplay.OSPRayScaleFunction = 'Piecewise Function'
+    activation_resultsxdmfDisplay.Assembly = ''
+    activation_resultsxdmfDisplay.SelectOrientationVectors = 'None'
+    activation_resultsxdmfDisplay.ScaleFactor = 0.7499993801116944
+    activation_resultsxdmfDisplay.SelectScaleArray = 'Activation'
+    activation_resultsxdmfDisplay.GlyphType = 'Arrow'
+    activation_resultsxdmfDisplay.GlyphTableIndexArray = 'Activation'
+    activation_resultsxdmfDisplay.GaussianRadius = 0.037499969005584714
+    activation_resultsxdmfDisplay.SetScaleArray = [None, '']
+    activation_resultsxdmfDisplay.ScaleTransferFunction = 'Piecewise Function'
+    activation_resultsxdmfDisplay.OpacityArray = [None, '']
+    activation_resultsxdmfDisplay.OpacityTransferFunction = 'Piecewise Function'
+    activation_resultsxdmfDisplay.DataAxesGrid = 'Grid Axes Representation'
+    activation_resultsxdmfDisplay.PolarAxes = 'Polar Axes Representation'
+    activation_resultsxdmfDisplay.ScalarOpacityFunction = activationPWF
+    activation_resultsxdmfDisplay.ScalarOpacityUnitDistance = 0.5583539716188769
+    activation_resultsxdmfDisplay.OpacityArrayName = ['CELLS', 'Activation']
+    activation_resultsxdmfDisplay.SelectInputVectors = [None, '']
+    activation_resultsxdmfDisplay.WriteLog = ''
+
+    # init the 'Piecewise Function' selected for 'OSPRayScaleFunction'
+    activation_resultsxdmfDisplay.OSPRayScaleFunction.Points = [145.0, 0.0, 0.5, 0.0, 216.0, 1.0, 0.5, 0.0]
+
+    # reset view to fit data
+    renderView1.ResetCamera(False, 0.9)
+
+    # show color bar/color legend
+    activation_resultsxdmfDisplay.SetScalarBarVisibility(renderView1, True)
+
+    # show data in view
+    displacementxdmfDisplay = Show(displacementxdmf, renderView1, 'UnstructuredGridRepresentation')
+
+    # trace defaults for the display properties.
+    displacementxdmfDisplay.Representation = 'Surface'
+    displacementxdmfDisplay.ColorArrayName = [None, '']
+    displacementxdmfDisplay.SelectTCoordArray = 'None'
+    displacementxdmfDisplay.SelectNormalArray = 'None'
+    displacementxdmfDisplay.SelectTangentArray = 'None'
+    displacementxdmfDisplay.OSPRayScaleArray = 'Displacement'
+    displacementxdmfDisplay.OSPRayScaleFunction = 'Piecewise Function'
+    displacementxdmfDisplay.Assembly = ''
+    displacementxdmfDisplay.SelectOrientationVectors = 'Displacement'
+    displacementxdmfDisplay.ScaleFactor = 0.7499993801116944
+    displacementxdmfDisplay.SelectScaleArray = 'Displacement'
+    displacementxdmfDisplay.GlyphType = 'Arrow'
+    displacementxdmfDisplay.GlyphTableIndexArray = 'Displacement'
+    displacementxdmfDisplay.GaussianRadius = 0.037499969005584714
+    displacementxdmfDisplay.SetScaleArray = ['POINTS', 'Displacement']
+    displacementxdmfDisplay.ScaleTransferFunction = 'Piecewise Function'
+    displacementxdmfDisplay.OpacityArray = ['POINTS', 'Displacement']
+    displacementxdmfDisplay.OpacityTransferFunction = 'Piecewise Function'
+    displacementxdmfDisplay.DataAxesGrid = 'Grid Axes Representation'
+    displacementxdmfDisplay.PolarAxes = 'Polar Axes Representation'
+    displacementxdmfDisplay.ScalarOpacityUnitDistance = 0.5583539716188769
+    displacementxdmfDisplay.OpacityArrayName = ['POINTS', 'Displacement']
+    displacementxdmfDisplay.SelectInputVectors = ['POINTS', 'Displacement']
+    displacementxdmfDisplay.WriteLog = ''
+
+    # init the 'Piecewise Function' selected for 'OSPRayScaleFunction'
+    displacementxdmfDisplay.OSPRayScaleFunction.Points = [145.0, 0.0, 0.5, 0.0, 216.0, 1.0, 0.5, 0.0]
+
+    # init the 'Piecewise Function' selected for 'ScaleTransferFunction'
+    displacementxdmfDisplay.ScaleTransferFunction.Points = [0.0, 0.0, 0.5, 0.0, 1.1757813367477812e-38, 1.0, 0.5, 0.0]
+
+    # init the 'Piecewise Function' selected for 'OpacityTransferFunction'
+    displacementxdmfDisplay.OpacityTransferFunction.Points = [0.0, 0.0, 0.5, 0.0, 1.1757813367477812e-38, 1.0, 0.5, 0.0]
+
+    # update the view to ensure updated data information
+    renderView1.Update()
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [-1.5625, 0.0, 24.418286913026634]
+    renderView1.CameraFocalPoint = [-1.5625, 0.0, 0.0]
+    renderView1.CameraParallelScale = 6.319917701868932
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [-1.5625, 0.0, 24.418286913026634]
+    renderView1.CameraFocalPoint = [-1.5625, 0.0, 0.0]
+    renderView1.CameraParallelScale = 6.319917701868932
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [-1.5625, 0.0, 24.418286913026634]
+    renderView1.CameraFocalPoint = [-1.5625, 0.0, 0.0]
+    renderView1.CameraParallelScale = 6.319917701868932
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [0.0, 0.0, 6.6921304299024635]
+    renderView1.CameraFocalPoint = [-1.5625, 0.0, 0.0]
+    renderView1.CameraParallelScale = 1.7320508075688772
+
+    # reset view to fit data
+    renderView1.ResetCamera(False, 0.9)
+
+    # create a new 'Append Attributes'
+    appendAttributes1 = AppendAttributes(registrationName='AppendAttributes1', Input=activation_resultsxdmf)
+
+    # set active source
+    SetActiveSource(activation_resultsxdmf)
+
+    # destroy appendAttributes1
+    Delete(appendAttributes1)
+    del appendAttributes1
+
+    # set active source
+    SetActiveSource(displacementxdmf)
+
+    # set active source
+    SetActiveSource(activation_resultsxdmf)
+
+    # create a new 'Append Attributes'
+    appendAttributes1 = AppendAttributes(registrationName='AppendAttributes1', Input=[displacementxdmf, activation_resultsxdmf])
+
+    # show data in view
+    appendAttributes1Display = Show(appendAttributes1, renderView1, 'UnstructuredGridRepresentation')
+
+    # trace defaults for the display properties.
+    appendAttributes1Display.Representation = 'Surface'
+    appendAttributes1Display.ColorArrayName = [None, '']
+    appendAttributes1Display.SelectTCoordArray = 'None'
+    appendAttributes1Display.SelectNormalArray = 'None'
+    appendAttributes1Display.SelectTangentArray = 'None'
+    appendAttributes1Display.OSPRayScaleArray = 'Displacement'
+    appendAttributes1Display.OSPRayScaleFunction = 'Piecewise Function'
+    appendAttributes1Display.Assembly = ''
+    appendAttributes1Display.SelectOrientationVectors = 'Displacement'
+    appendAttributes1Display.ScaleFactor = 0.7499993801116944
+    appendAttributes1Display.SelectScaleArray = 'Displacement'
+    appendAttributes1Display.GlyphType = 'Arrow'
+    appendAttributes1Display.GlyphTableIndexArray = 'Displacement'
+    appendAttributes1Display.GaussianRadius = 0.037499969005584714
+    appendAttributes1Display.SetScaleArray = ['POINTS', 'Displacement']
+    appendAttributes1Display.ScaleTransferFunction = 'Piecewise Function'
+    appendAttributes1Display.OpacityArray = ['POINTS', 'Displacement']
+    appendAttributes1Display.OpacityTransferFunction = 'Piecewise Function'
+    appendAttributes1Display.DataAxesGrid = 'Grid Axes Representation'
+    appendAttributes1Display.PolarAxes = 'Polar Axes Representation'
+    appendAttributes1Display.ScalarOpacityUnitDistance = 0.5583539716188769
+    appendAttributes1Display.OpacityArrayName = ['POINTS', 'Displacement']
+    appendAttributes1Display.SelectInputVectors = ['POINTS', 'Displacement']
+    appendAttributes1Display.WriteLog = ''
+
+    # init the 'Piecewise Function' selected for 'OSPRayScaleFunction'
+    appendAttributes1Display.OSPRayScaleFunction.Points = [145.0, 0.0, 0.5, 0.0, 216.0, 1.0, 0.5, 0.0]
+
+    # init the 'Piecewise Function' selected for 'ScaleTransferFunction'
+    appendAttributes1Display.ScaleTransferFunction.Points = [-0.28369444608688354, 0.0, 0.5, 0.0, 0.0175445768982172, 1.0, 0.5, 0.0]
+
+    # init the 'Piecewise Function' selected for 'OpacityTransferFunction'
+    appendAttributes1Display.OpacityTransferFunction.Points = [-0.28369444608688354, 0.0, 0.5, 0.0, 0.0175445768982172, 1.0, 0.5, 0.0]
+
+    # hide data in view
+    Hide(displacementxdmf, renderView1)
+
+    # hide data in view
+    Hide(activation_resultsxdmf, renderView1)
+
+    # create a new 'Warp By Vector'
+    warpByVector1 = WarpByVector(registrationName='WarpByVector1', Input=appendAttributes1)
+    warpByVector1.Vectors = ['POINTS', 'Displacement']
+
+    # show data in view
+    warpByVector1Display = Show(warpByVector1, renderView1, 'UnstructuredGridRepresentation')
+
+    # trace defaults for the display properties.
+    warpByVector1Display.Representation = 'Surface'
+    warpByVector1Display.ColorArrayName = [None, '']
+    warpByVector1Display.SelectTCoordArray = 'None'
+    warpByVector1Display.SelectNormalArray = 'None'
+    warpByVector1Display.SelectTangentArray = 'None'
+    warpByVector1Display.OSPRayScaleArray = 'Displacement'
+    warpByVector1Display.OSPRayScaleFunction = 'Piecewise Function'
+    warpByVector1Display.Assembly = ''
+    warpByVector1Display.SelectOrientationVectors = 'Displacement'
+    warpByVector1Display.ScaleFactor = 0.8380639553070068
+    warpByVector1Display.SelectScaleArray = 'Displacement'
+    warpByVector1Display.GlyphType = 'Arrow'
+    warpByVector1Display.GlyphTableIndexArray = 'Displacement'
+    warpByVector1Display.GaussianRadius = 0.04190319776535034
+    warpByVector1Display.SetScaleArray = ['POINTS', 'Displacement']
+    warpByVector1Display.ScaleTransferFunction = 'Piecewise Function'
+    warpByVector1Display.OpacityArray = ['POINTS', 'Displacement']
+    warpByVector1Display.OpacityTransferFunction = 'Piecewise Function'
+    warpByVector1Display.DataAxesGrid = 'Grid Axes Representation'
+    warpByVector1Display.PolarAxes = 'Polar Axes Representation'
+    warpByVector1Display.ScalarOpacityUnitDistance = 0.6092618537762925
+    warpByVector1Display.OpacityArrayName = ['POINTS', 'Displacement']
+    warpByVector1Display.SelectInputVectors = ['POINTS', 'Displacement']
+    warpByVector1Display.WriteLog = ''
+
+    # init the 'Piecewise Function' selected for 'OSPRayScaleFunction'
+    warpByVector1Display.OSPRayScaleFunction.Points = [145.0, 0.0, 0.5, 0.0, 216.0, 1.0, 0.5, 0.0]
+
+    # init the 'Piecewise Function' selected for 'ScaleTransferFunction'
+    warpByVector1Display.ScaleTransferFunction.Points = [-0.28369444608688354, 0.0, 0.5, 0.0, 0.0175445768982172, 1.0, 0.5, 0.0]
+
+    # init the 'Piecewise Function' selected for 'OpacityTransferFunction'
+    warpByVector1Display.OpacityTransferFunction.Points = [-0.28369444608688354, 0.0, 0.5, 0.0, 0.0175445768982172, 1.0, 0.5, 0.0]
+
+    # hide data in view
+    Hide(appendAttributes1, renderView1)
+
+    # set scalar coloring
+    ColorBy(warpByVector1Display, ('CELLS', 'Activation'))
+
+    # rescale color and/or opacity maps used to exactly fit the current data range
+    warpByVector1Display.RescaleTransferFunctionToDataRange(False, True)
+
+    # rescale color and/or opacity maps used to include current data range
+    warpByVector1Display.RescaleTransferFunctionToDataRange(True, False)
+
+    # show color bar/color legend
+    warpByVector1Display.SetScalarBarVisibility(renderView1, True)
+
+    # Rescale transfer function
+    activationLUT.RescaleTransferFunction(0.0, 196.83546447753906)
+
+    # Rescale transfer function
+    activationPWF.RescaleTransferFunction(0.0, 196.83546447753906)
+
+    renderView1.ResetActiveCameraToNegativeY()
+
+    # reset view to fit data
+    renderView1.ResetCamera(False, 0.9)
+
+    renderView1.ResetActiveCameraToNegativeZ()
+
+    # reset view to fit data
+    renderView1.ResetCamera(False, 0.9)
+
+    renderView1.ResetActiveCameraToPositiveX()
+
+    # reset view to fit data
+    renderView1.ResetCamera(False, 0.9)
+
+    renderView1.ResetActiveCameraToNegativeX()
+
+    # reset view to fit data
+    renderView1.ResetCamera(False, 0.9)
+
+    # change representation type
+    warpByVector1Display.SetRepresentationType('Surface With Edges')
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [13.609066213065542, -0.4531025349827244, -21.12491736285597]
+    renderView1.CameraFocalPoint = [-1.8397653102874754, -0.0002174377441406233, 0.00017523765563968354]
+    renderView1.CameraViewUp = [0.8071906614968228, 0.00046011853910021307, 0.5902906269654395]
+    renderView1.CameraParallelScale = 6.774639986020588
+
+    renderView1.ResetActiveCameraToPositiveX()
+
+    # reset view to fit data
+    renderView1.ResetCamera(False, 0.9)
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [-28.296888207446326, 0.00021028518676757812, -0.0002200603485107422]
+    renderView1.CameraFocalPoint = [-1.6522657871246338, 0.00021028518676757812, -0.0002200603485107422]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 6.8961357319448755
+
+    renderView1.ResetActiveCameraToNegativeX()
+
+    # reset view to fit data
+    renderView1.ResetCamera(False, 0.9)
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [24.99235663319706, 0.00021028518676757812, -0.0002200603485107422]
+    renderView1.CameraFocalPoint = [-1.6522657871246338, 0.00021028518676757812, -0.0002200603485107422]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 6.8961357319448755
+
+    # create a new 'Clip'
+    clip1 = Clip(registrationName='Clip1', Input=warpByVector1)
+    clip1.ClipType = 'Plane'
+    clip1.HyperTreeGridClipper = 'Plane'
+    clip1.Scalars = ['CELLS', 'Activation']
+
+    # init the 'Plane' selected for 'ClipType'
+    clip1.ClipType.Origin = [-1.6522657871246338, 0.00021028518676757812, -0.0002200603485107422]
+
+    # init the 'Plane' selected for 'HyperTreeGridClipper'
+    clip1.HyperTreeGridClipper.Origin = [-1.6522657871246338, 0.00021028518676757812, -0.0002200603485107422]
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [24.99235663319706, 0.00021028518676757812, -0.0002200603485107422]
+    renderView1.CameraFocalPoint = [-1.6522657871246338, 0.00021028518676757812, -0.0002200603485107422]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 6.8961357319448755
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [24.99235663319706, 0.00021028518676757812, -0.0002200603485107422]
+    renderView1.CameraFocalPoint = [-1.6522657871246338, 0.00021028518676757812, -0.0002200603485107422]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 6.8961357319448755
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [24.99235663319706, 0.00021028518676757812, -0.0002200603485107422]
+    renderView1.CameraFocalPoint = [-1.6522657871246338, 0.00021028518676757812, -0.0002200603485107422]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 6.8961357319448755
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [24.99235663319706, 0.00021028518676757812, -0.0002200603485107422]
+    renderView1.CameraFocalPoint = [-1.6522657871246338, 0.00021028518676757812, -0.0002200603485107422]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 6.8961357319448755
+
+    # toggle interactive widget visibility (only when running from the GUI)
+    HideInteractiveWidgets(proxy=clip1.ClipType)
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [24.99235663319706, 0.00021028518676757812, -0.0002200603485107422]
+    renderView1.CameraFocalPoint = [-1.6522657871246338, 0.00021028518676757812, -0.0002200603485107422]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 6.8961357319448755
+
+    # Properties modified on clip1
+    clip1.Invert = 0
+
+    # Properties modified on clip1.ClipType
+    clip1.ClipType.Normal = [0.0, 0.0, 1.0]
+
+    # show data in view
+    clip1Display = Show(clip1, renderView1, 'UnstructuredGridRepresentation')
+
+    # trace defaults for the display properties.
+    clip1Display.Representation = 'Surface'
+    clip1Display.ColorArrayName = ['CELLS', 'Activation']
+    clip1Display.LookupTable = activationLUT
+    clip1Display.SelectTCoordArray = 'None'
+    clip1Display.SelectNormalArray = 'None'
+    clip1Display.SelectTangentArray = 'None'
+    clip1Display.OSPRayScaleArray = 'Displacement'
+    clip1Display.OSPRayScaleFunction = 'Piecewise Function'
+    clip1Display.Assembly = ''
+    clip1Display.SelectOrientationVectors = 'Displacement'
+    clip1Display.ScaleFactor = 0.8380036354064941
+    clip1Display.SelectScaleArray = 'Displacement'
+    clip1Display.GlyphType = 'Arrow'
+    clip1Display.GlyphTableIndexArray = 'Displacement'
+    clip1Display.GaussianRadius = 0.04190018177032471
+    clip1Display.SetScaleArray = ['POINTS', 'Displacement']
+    clip1Display.ScaleTransferFunction = 'Piecewise Function'
+    clip1Display.OpacityArray = ['POINTS', 'Displacement']
+    clip1Display.OpacityTransferFunction = 'Piecewise Function'
+    clip1Display.DataAxesGrid = 'Grid Axes Representation'
+    clip1Display.PolarAxes = 'Polar Axes Representation'
+    clip1Display.ScalarOpacityFunction = activationPWF
+    clip1Display.ScalarOpacityUnitDistance = 0.5307337713109331
+    clip1Display.OpacityArrayName = ['POINTS', 'Displacement']
+    clip1Display.SelectInputVectors = ['POINTS', 'Displacement']
+    clip1Display.WriteLog = ''
+
+    # init the 'Piecewise Function' selected for 'OSPRayScaleFunction'
+    clip1Display.OSPRayScaleFunction.Points = [145.0, 0.0, 0.5, 0.0, 216.0, 1.0, 0.5, 0.0]
+
+    # init the 'Piecewise Function' selected for 'ScaleTransferFunction'
+    clip1Display.ScaleTransferFunction.Points = [-0.28357866406440735, 0.0, 0.5, 0.0, 0.0175445768982172, 1.0, 0.5, 0.0]
+
+    # init the 'Piecewise Function' selected for 'OpacityTransferFunction'
+    clip1Display.OpacityTransferFunction.Points = [-0.28357866406440735, 0.0, 0.5, 0.0, 0.0175445768982172, 1.0, 0.5, 0.0]
+
+    # hide data in view
+    Hide(warpByVector1, renderView1)
+
+    # show color bar/color legend
+    clip1Display.SetScalarBarVisibility(renderView1, True)
+
+    # update the view to ensure updated data information
+    renderView1.Update()
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [24.99235663319706, 0.00021028518676757812, -0.0002200603485107422]
+    renderView1.CameraFocalPoint = [-1.6522657871246338, 0.00021028518676757812, -0.0002200603485107422]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 6.8961357319448755
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [24.99235663319706, 0.00021028518676757812, -0.0002200603485107422]
+    renderView1.CameraFocalPoint = [-1.6522657871246338, 0.00021028518676757812, -0.0002200603485107422]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 6.8961357319448755
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [24.99235663319706, 0.00021028518676757812, -0.0002200603485107422]
+    renderView1.CameraFocalPoint = [-1.6522657871246338, 0.00021028518676757812, -0.0002200603485107422]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 6.8961357319448755
+
+    renderView1.ResetActiveCameraToPositiveZ()
+
+    # reset view to fit data
+    renderView1.ResetCamera(False, 0.9)
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [-1.6522657871246338, 0.0002040863037109375, -20.562163983710374]
+    renderView1.CameraFocalPoint = [-1.6522657871246338, 0.0002040863037109375, 2.094939827802591]
+    renderView1.CameraParallelScale = 5.864089973284469
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [-1.6522657871246338, 0.0002040863037109375, -20.562163983710374]
+    renderView1.CameraFocalPoint = [-1.6522657871246338, 0.0002040863037109375, 2.094939827802591]
+    renderView1.CameraParallelScale = 5.864089973284469
+
+    renderView1.AdjustRoll(-90.0)
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [-1.6522657871246338, 0.0002040863037109375, -20.562163983710374]
+    renderView1.CameraFocalPoint = [-1.6522657871246338, 0.0002040863037109375, 2.094939827802591]
+    renderView1.CameraViewUp = [1.0, 2.220446049250313e-16, 0.0]
+    renderView1.CameraParallelScale = 5.864089973284469
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [-1.6522657871246338, 0.0002040863037109375, -20.562163983710374]
+    renderView1.CameraFocalPoint = [-1.6522657871246338, 0.0002040863037109375, 2.094939827802591]
+    renderView1.CameraViewUp = [1.0, 2.220446049250313e-16, 0.0]
+    renderView1.CameraParallelScale = 5.864089973284469
+
+    # get color legend/bar for activationLUT in view renderView1
+    activationLUTColorBar = GetScalarBar(activationLUT, renderView1)
+    activationLUTColorBar.WindowLocation = 'Any Location'
+    activationLUTColorBar.Title = 'Activation'
+    activationLUTColorBar.ComponentTitle = ''
+    activationLUTColorBar.TitleColor = [0.0, 0.0, 0.0]
+    activationLUTColorBar.LabelColor = [0.0, 0.0, 0.0]
+    activationLUTColorBar.ScalarBarLength = 0.32999999999999996
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [-1.6522657871246338, 0.0002040863037109375, -20.562163983710374]
+    renderView1.CameraFocalPoint = [-1.6522657871246338, 0.0002040863037109375, 2.094939827802591]
+    renderView1.CameraViewUp = [1.0, 2.220446049250313e-16, 0.0]
+    renderView1.CameraParallelScale = 5.864089973284469
+
+    # change scalar bar placement
+    activationLUTColorBar.Position = [0.6642827514690632, 0.5661215932914047]
+    activationLUTColorBar.ScalarBarLength = 0.3300000000000003
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [-1.6522657871246338, 0.0002040863037109375, -20.562163983710374]
+    renderView1.CameraFocalPoint = [-1.6522657871246338, 0.0002040863037109375, 2.094939827802591]
+    renderView1.CameraViewUp = [1.0, 2.220446049250313e-16, 0.0]
+    renderView1.CameraParallelScale = 5.864089973284469
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [-1.6522657871246338, 0.0002040863037109375, -20.562163983710374]
+    renderView1.CameraFocalPoint = [-1.6522657871246338, 0.0002040863037109375, 2.094939827802591]
+    renderView1.CameraViewUp = [1.0, 2.220446049250313e-16, 0.0]
+    renderView1.CameraParallelScale = 5.864089973284469
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [-1.6522657871246338, 0.0002040863037109375, -20.562163983710374]
+    renderView1.CameraFocalPoint = [-1.6522657871246338, 0.0002040863037109375, 2.094939827802591]
+    renderView1.CameraViewUp = [1.0, 2.220446049250313e-16, 0.0]
+    renderView1.CameraParallelScale = 5.864089973284469
+
+    # Rescale transfer function
+    activationLUT.RescaleTransferFunction(-0.004698578733950853, 242.50637817382812)
+
+    # Rescale transfer function
+    activationPWF.RescaleTransferFunction(-0.004698578733950853, 242.50637817382812)
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [-1.6522657871246338, 0.0002040863037109375, -20.562163983710374]
+    renderView1.CameraFocalPoint = [-1.6522657871246338, 0.0002040863037109375, 2.094939827802591]
+    renderView1.CameraViewUp = [1.0, 2.220446049250313e-16, 0.0]
+    renderView1.CameraParallelScale = 5.864089973284469
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [-1.6522657871246338, 0.0002040863037109375, -20.562163983710374]
+    renderView1.CameraFocalPoint = [-1.6522657871246338, 0.0002040863037109375, 2.094939827802591]
+    renderView1.CameraViewUp = [1.0, 2.220446049250313e-16, 0.0]
+    renderView1.CameraParallelScale = 5.864089973284469
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [-1.6522657871246338, 0.0002040863037109375, -20.562163983710374]
+    renderView1.CameraFocalPoint = [-1.6522657871246338, 0.0002040863037109375, 2.094939827802591]
+    renderView1.CameraViewUp = [1.0, 2.220446049250313e-16, 0.0]
+    renderView1.CameraParallelScale = 5.864089973284469
+
+    # change scalar bar placement
+    activationLUTColorBar.Position = [0.6604804701002419, 0.5891823899371069]
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [-1.6522657871246338, 0.0002040863037109375, -20.562163983710374]
+    renderView1.CameraFocalPoint = [-1.6522657871246338, 0.0002040863037109375, 2.094939827802591]
+    renderView1.CameraViewUp = [1.0, 2.220446049250313e-16, 0.0]
+    renderView1.CameraParallelScale = 5.864089973284469
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [-1.6522657871246338, 0.0002040863037109375, -20.562163983710374]
+    renderView1.CameraFocalPoint = [-1.6522657871246338, 0.0002040863037109375, 2.094939827802591]
+    renderView1.CameraViewUp = [1.0, 2.220446049250313e-16, 0.0]
+    renderView1.CameraParallelScale = 5.864089973284469
+
+    # Properties modified on renderView1
+    renderView1.OrientationAxesVisibility = 0
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [-1.6522657871246338, 0.0002040863037109375, -20.562163983710374]
+    renderView1.CameraFocalPoint = [-1.6522657871246338, 0.0002040863037109375, 2.094939827802591]
+    renderView1.CameraViewUp = [1.0, 2.220446049250313e-16, 0.0]
+    renderView1.CameraParallelScale = 5.864089973284469
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [-1.6522657871246338, 0.0002040863037109375, -20.562163983710374]
+    renderView1.CameraFocalPoint = [-1.6522657871246338, 0.0002040863037109375, 2.094939827802591]
+    renderView1.CameraViewUp = [1.0, 2.220446049250313e-16, 0.0]
+    renderView1.CameraParallelScale = 5.864089973284469
+
+    # get layout
+    layout1 = GetLayout()
+
+    # layout/tab size in pixels
+    layout1.SetSize(2893, 954)
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [-1.6522657871246338, 0.0002040863037109375, -20.562163983710374]
+    renderView1.CameraFocalPoint = [-1.6522657871246338, 0.0002040863037109375, 2.094939827802591]
+    renderView1.CameraViewUp = [1.0, 2.220446049250313e-16, 0.0]
+    renderView1.CameraParallelScale = 5.864089973284469
+
+    # save animation
+    SaveAnimation(filename=outname, viewOrLayout=renderView1, location=16, ImageResolution=[2892, 952],
+        FontScaling='Scale fonts proportionally',
+        OverrideColorPalette='',
+        StereoMode='No change',
+        TransparentBackground=0,
+        FrameRate=30,
+        FrameStride=1,
+        # FrameWindow=[0, 279], 
+        # FFMPEG options
+        Compression=1,
+        Quality='2'
+    )
+    # Adjust camera
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [-1.6522657871246338, 0.0002040863037109375, -20.562163983710374]
+    renderView1.CameraFocalPoint = [-1.6522657871246338, 0.0002040863037109375, 2.094939827802591]
+    renderView1.CameraViewUp = [1.0, 2.220446049250313e-16, 0.0]
+    renderView1.CameraParallelScale = 5.864089973284469
+
+    #================================================================
+    # addendum: following script captures some of the application
+    # state to faithfully reproduce the visualization during playback
+    #================================================================
+
+    #--------------------------------
+    # saving layout sizes for layouts
+
+    # layout/tab size in pixels
+    layout1.SetSize(2893, 954)
+
+    #-----------------------------------
+    # saving camera placements for views
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [-1.6522657871246338, 0.0002040863037109375, -20.562163983710374]
+    renderView1.CameraFocalPoint = [-1.6522657871246338, 0.0002040863037109375, 2.094939827802591]
+    renderView1.CameraViewUp = [1.0, 2.220446049250313e-16, 0.0]
+    renderView1.CameraParallelScale = 5.864089973284469
+
+
+
+    # destroy clip1
+    Delete(clip1)
+    del clip1
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [-1.5625, 0.0, 19.763005504233327]
+    renderView1.CameraFocalPoint = [-1.5625, 0.0, -1.590216487646103]
+    renderView1.CameraViewUp = [1.0, 2.220446049250313e-16, 0.0]
+    renderView1.CameraParallelScale = 5.5266205258003795
+
+    # set active source
+    SetActiveSource(appendAttributes1)
+
+    # hide data in view
+    Hide(warpByVector1, renderView1)
+
+    # show data in view
+    appendAttributes1Display = Show(appendAttributes1, renderView1, 'UnstructuredGridRepresentation')
+
+    # destroy warpByVector1
+    Delete(warpByVector1)
+    del warpByVector1
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [-1.5625, 0.0, 19.763005504233327]
+    renderView1.CameraFocalPoint = [-1.5625, 0.0, -1.590216487646103]
+    renderView1.CameraViewUp = [1.0, 2.220446049250313e-16, 0.0]
+    renderView1.CameraParallelScale = 5.5266205258003795
+
+    # set active source
+    SetActiveSource(displacementxdmf)
+
+    # hide data in view
+    Hide(appendAttributes1, renderView1)
+
+    # show data in view
+    displacementxdmfDisplay = Show(displacementxdmf, renderView1, 'UnstructuredGridRepresentation')
+
+    # destroy appendAttributes1
+    Delete(appendAttributes1)
+    del appendAttributes1
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [-1.5625, 0.0, 19.763005504233327]
+    renderView1.CameraFocalPoint = [-1.5625, 0.0, -1.590216487646103]
+    renderView1.CameraViewUp = [1.0, 2.220446049250313e-16, 0.0]
+    renderView1.CameraParallelScale = 5.5266205258003795
+
+    # destroy displacementxdmf
+    Delete(displacementxdmf)
+    del displacementxdmf
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [-1.5625, 0.0, 19.763005504233327]
+    renderView1.CameraFocalPoint = [-1.5625, 0.0, -1.590216487646103]
+    renderView1.CameraViewUp = [1.0, 2.220446049250313e-16, 0.0]
+    renderView1.CameraParallelScale = 5.5266205258003795
+
+    # destroy activation_resultsxdmf
+    Delete(activation_resultsxdmf)
+    del activation_resultsxdmf
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [-1.5625, 0.0, 19.763005504233327]
+    renderView1.CameraFocalPoint = [-1.5625, 0.0, -1.590216487646103]
+    renderView1.CameraViewUp = [1.0, 2.220446049250313e-16, 0.0]
+    renderView1.CameraParallelScale = 5.5266205258003795
+
+    # update animation scene based on data timesteps
+    animationScene1.UpdateAnimationUsingDataTimeSteps()
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [-1.5625, 0.0, 19.763005504233327]
+    renderView1.CameraFocalPoint = [-1.5625, 0.0, -1.590216487646103]
+    renderView1.CameraViewUp = [1.0, 2.220446049250313e-16, 0.0]
+    renderView1.CameraParallelScale = 5.5266205258003795
+
+    #================================================================
+    # addendum: following script captures some of the application
+    # state to faithfully reproduce the visualization during playback
+    #================================================================
+
+    #--------------------------------
+    # saving layout sizes for layouts
+
+    # layout/tab size in pixels
+    layout1.SetSize(2893, 954)
+
+    #-----------------------------------
+    # saving camera placements for views
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [-1.5625, 0.0, 19.763005504233327]
+    renderView1.CameraFocalPoint = [-1.5625, 0.0, -1.590216487646103]
+    renderView1.CameraViewUp = [1.0, 2.220446049250313e-16, 0.0]
+    renderView1.CameraParallelScale = 5.5266205258003795
+
+
+    ##--------------------------------------------
+    ## You may need to add some code at the end of this python script depending on your usage, eg:
+    #
+    ## Render all views to see them appears
+    # RenderAllViews()
+    #
+    ## Interact with the view, usefull when running from pvpython
+    # Interact()
+    #
+    ## Save a screenshot of the active view
+    # SaveScreenshot("path/to/screenshot.png")
+    #
+    ## Save a screenshot of a layout (multiple splitted view)
+    # SaveScreenshot("path/to/screenshot.png", GetLayout())
+    #
+    ## Save all "Extractors" from the pipeline browser
+    # SaveExtracts()
+    #
+    ## Save a animation of the current active view
+    # SaveAnimation()
+    #
+    ## Please refer to the documentation of paraview.simple
+    ## https://kitware.github.io/paraview-docs/latest/python/paraview.simple.html
+    ##--------------------------------------------
+  
+def save_ani_deformed_activation_cross(fname_act, fname_disp, outname, clip_origin = -1.47839):
+    # trace generated using paraview version 5.12.1
     #import paraview
     #paraview.compatibility.major = 5
     #paraview.compatibility.minor = 12
@@ -2122,6 +2898,386 @@ def save_ani_deformed_activation(fname_act, fname_disp, outname):
     displacementxdmf.PointArrays = []
     displacementxdmf.CellArrays = []
     displacementxdmf.Sets = []
+
+    # show data in view
+    displacementxdmfDisplay = Show(displacementxdmf, renderView1, 'UnstructuredGridRepresentation')
+
+    # trace defaults for the display properties.
+    displacementxdmfDisplay.Selection = None
+    displacementxdmfDisplay.Representation = 'Surface'
+    displacementxdmfDisplay.ColorArrayName = [None, '']
+    displacementxdmfDisplay.LookupTable = None
+    displacementxdmfDisplay.MapScalars = 1
+    displacementxdmfDisplay.MultiComponentsMapping = 0
+    displacementxdmfDisplay.InterpolateScalarsBeforeMapping = 1
+    displacementxdmfDisplay.UseNanColorForMissingArrays = 0
+    displacementxdmfDisplay.Opacity = 1.0
+    displacementxdmfDisplay.PointSize = 2.0
+    displacementxdmfDisplay.LineWidth = 1.0
+    displacementxdmfDisplay.RenderLinesAsTubes = 0
+    displacementxdmfDisplay.RenderPointsAsSpheres = 0
+    displacementxdmfDisplay.Interpolation = 'Gouraud'
+    displacementxdmfDisplay.Specular = 0.0
+    displacementxdmfDisplay.SpecularColor = [1.0, 1.0, 1.0]
+    displacementxdmfDisplay.SpecularPower = 100.0
+    displacementxdmfDisplay.Luminosity = 0.0
+    displacementxdmfDisplay.Ambient = 0.0
+    displacementxdmfDisplay.Diffuse = 1.0
+    displacementxdmfDisplay.Roughness = 0.3
+    displacementxdmfDisplay.Metallic = 0.0
+    displacementxdmfDisplay.EdgeTint = [1.0, 1.0, 1.0]
+    displacementxdmfDisplay.Anisotropy = 0.0
+    displacementxdmfDisplay.AnisotropyRotation = 0.0
+    displacementxdmfDisplay.BaseIOR = 1.5
+    displacementxdmfDisplay.CoatStrength = 0.0
+    displacementxdmfDisplay.CoatIOR = 2.0
+    displacementxdmfDisplay.CoatRoughness = 0.0
+    displacementxdmfDisplay.CoatColor = [1.0, 1.0, 1.0]
+    displacementxdmfDisplay.SelectTCoordArray = 'None'
+    displacementxdmfDisplay.SelectNormalArray = 'None'
+    displacementxdmfDisplay.SelectTangentArray = 'None'
+    displacementxdmfDisplay.Texture = None
+    displacementxdmfDisplay.RepeatTextures = 1
+    displacementxdmfDisplay.InterpolateTextures = 0
+    displacementxdmfDisplay.SeamlessU = 0
+    displacementxdmfDisplay.SeamlessV = 0
+    displacementxdmfDisplay.UseMipmapTextures = 0
+    displacementxdmfDisplay.ShowTexturesOnBackface = 1
+    displacementxdmfDisplay.BaseColorTexture = None
+    displacementxdmfDisplay.NormalTexture = None
+    displacementxdmfDisplay.NormalScale = 1.0
+    displacementxdmfDisplay.CoatNormalTexture = None
+    displacementxdmfDisplay.CoatNormalScale = 1.0
+    displacementxdmfDisplay.MaterialTexture = None
+    displacementxdmfDisplay.OcclusionStrength = 1.0
+    displacementxdmfDisplay.AnisotropyTexture = None
+    displacementxdmfDisplay.EmissiveTexture = None
+    displacementxdmfDisplay.EmissiveFactor = [1.0, 1.0, 1.0]
+    displacementxdmfDisplay.FlipTextures = 0
+    displacementxdmfDisplay.EdgeOpacity = 1.0
+    displacementxdmfDisplay.BackfaceRepresentation = 'Follow Frontface'
+    displacementxdmfDisplay.BackfaceAmbientColor = [1.0, 1.0, 1.0]
+    displacementxdmfDisplay.BackfaceOpacity = 1.0
+    displacementxdmfDisplay.Position = [0.0, 0.0, 0.0]
+    displacementxdmfDisplay.Scale = [1.0, 1.0, 1.0]
+    displacementxdmfDisplay.Orientation = [0.0, 0.0, 0.0]
+    displacementxdmfDisplay.Origin = [0.0, 0.0, 0.0]
+    displacementxdmfDisplay.CoordinateShiftScaleMethod = 'Always Auto Shift Scale'
+    displacementxdmfDisplay.Pickable = 1
+    displacementxdmfDisplay.Triangulate = 0
+    displacementxdmfDisplay.UseShaderReplacements = 0
+    displacementxdmfDisplay.ShaderReplacements = ''
+    displacementxdmfDisplay.NonlinearSubdivisionLevel = 1
+    displacementxdmfDisplay.MatchBoundariesIgnoringCellOrder = 0
+    displacementxdmfDisplay.UseDataPartitions = 0
+    displacementxdmfDisplay.OSPRayUseScaleArray = 'All Approximate'
+    displacementxdmfDisplay.OSPRayScaleArray = 'Displacement'
+    displacementxdmfDisplay.OSPRayScaleFunction = 'Piecewise Function'
+    displacementxdmfDisplay.OSPRayMaterial = 'None'
+    displacementxdmfDisplay.Assembly = ''
+    displacementxdmfDisplay.BlockSelectors = ['/']
+    displacementxdmfDisplay.BlockColors = []
+    displacementxdmfDisplay.BlockOpacities = []
+    displacementxdmfDisplay.Orient = 0
+    displacementxdmfDisplay.OrientationMode = 'Direction'
+    displacementxdmfDisplay.SelectOrientationVectors = 'Displacement'
+    displacementxdmfDisplay.Scaling = 0
+    displacementxdmfDisplay.ScaleMode = 'No Data Scaling Off'
+    displacementxdmfDisplay.ScaleFactor = 0.7499993801116944
+    displacementxdmfDisplay.SelectScaleArray = 'Displacement'
+    displacementxdmfDisplay.GlyphType = 'Arrow'
+    displacementxdmfDisplay.UseGlyphTable = 0
+    displacementxdmfDisplay.GlyphTableIndexArray = 'Displacement'
+    displacementxdmfDisplay.UseCompositeGlyphTable = 0
+    displacementxdmfDisplay.UseGlyphCullingAndLOD = 0
+    displacementxdmfDisplay.LODValues = []
+    displacementxdmfDisplay.ColorByLODIndex = 0
+    displacementxdmfDisplay.GaussianRadius = 0.037499969005584714
+    displacementxdmfDisplay.ShaderPreset = 'Sphere'
+    displacementxdmfDisplay.CustomTriangleScale = 3
+    displacementxdmfDisplay.CustomShader = """ // This custom shader code define a gaussian blur
+    // Please take a look into vtkSMPointGaussianRepresentation.cxx
+    // for other custom shader examples
+    //VTK::Color::Impl
+    float dist2 = dot(offsetVCVSOutput.xy,offsetVCVSOutput.xy);
+    float gaussian = exp(-0.5*dist2);
+    opacity = opacity*gaussian;
+    """
+    displacementxdmfDisplay.Emissive = 0
+    displacementxdmfDisplay.ScaleByArray = 0
+    displacementxdmfDisplay.SetScaleArray = ['POINTS', 'Displacement']
+    displacementxdmfDisplay.ScaleArrayComponent = 'X'
+    displacementxdmfDisplay.UseScaleFunction = 1
+    displacementxdmfDisplay.ScaleTransferFunction = 'Piecewise Function'
+    displacementxdmfDisplay.OpacityByArray = 0
+    displacementxdmfDisplay.OpacityArray = ['POINTS', 'Displacement']
+    displacementxdmfDisplay.OpacityArrayComponent = 'X'
+    displacementxdmfDisplay.OpacityTransferFunction = 'Piecewise Function'
+    displacementxdmfDisplay.DataAxesGrid = 'Grid Axes Representation'
+    displacementxdmfDisplay.SelectionCellLabelBold = 0
+    displacementxdmfDisplay.SelectionCellLabelColor = [0.0, 1.0, 0.0]
+    displacementxdmfDisplay.SelectionCellLabelFontFamily = 'Arial'
+    displacementxdmfDisplay.SelectionCellLabelFontFile = ''
+    displacementxdmfDisplay.SelectionCellLabelFontSize = 18
+    displacementxdmfDisplay.SelectionCellLabelItalic = 0
+    displacementxdmfDisplay.SelectionCellLabelJustification = 'Left'
+    displacementxdmfDisplay.SelectionCellLabelOpacity = 1.0
+    displacementxdmfDisplay.SelectionCellLabelShadow = 0
+    displacementxdmfDisplay.SelectionPointLabelBold = 0
+    displacementxdmfDisplay.SelectionPointLabelColor = [1.0, 1.0, 0.0]
+    displacementxdmfDisplay.SelectionPointLabelFontFamily = 'Arial'
+    displacementxdmfDisplay.SelectionPointLabelFontFile = ''
+    displacementxdmfDisplay.SelectionPointLabelFontSize = 18
+    displacementxdmfDisplay.SelectionPointLabelItalic = 0
+    displacementxdmfDisplay.SelectionPointLabelJustification = 'Left'
+    displacementxdmfDisplay.SelectionPointLabelOpacity = 1.0
+    displacementxdmfDisplay.SelectionPointLabelShadow = 0
+    displacementxdmfDisplay.PolarAxes = 'Polar Axes Representation'
+    displacementxdmfDisplay.ScalarOpacityFunction = None
+    displacementxdmfDisplay.ScalarOpacityUnitDistance = 0.5583539716188769
+    displacementxdmfDisplay.UseSeparateOpacityArray = 0
+    displacementxdmfDisplay.OpacityArrayName = ['POINTS', 'Displacement']
+    displacementxdmfDisplay.OpacityComponent = 'X'
+    displacementxdmfDisplay.SelectMapper = 'Projected tetra'
+    displacementxdmfDisplay.SamplingDimensions = [128, 128, 128]
+    displacementxdmfDisplay.UseFloatingPointFrameBuffer = 1
+    displacementxdmfDisplay.SelectInputVectors = ['POINTS', 'Displacement']
+    displacementxdmfDisplay.NumberOfSteps = 40
+    displacementxdmfDisplay.StepSize = 0.25
+    displacementxdmfDisplay.NormalizeVectors = 1
+    displacementxdmfDisplay.EnhancedLIC = 1
+    displacementxdmfDisplay.ColorMode = 'Blend'
+    displacementxdmfDisplay.LICIntensity = 0.8
+    displacementxdmfDisplay.MapModeBias = 0.0
+    displacementxdmfDisplay.EnhanceContrast = 'Off'
+    displacementxdmfDisplay.LowLICContrastEnhancementFactor = 0.0
+    displacementxdmfDisplay.HighLICContrastEnhancementFactor = 0.0
+    displacementxdmfDisplay.LowColorContrastEnhancementFactor = 0.0
+    displacementxdmfDisplay.HighColorContrastEnhancementFactor = 0.0
+    displacementxdmfDisplay.AntiAlias = 0
+    displacementxdmfDisplay.MaskOnSurface = 1
+    displacementxdmfDisplay.MaskThreshold = 0.0
+    displacementxdmfDisplay.MaskIntensity = 0.0
+    displacementxdmfDisplay.MaskColor = [0.5, 0.5, 0.5]
+    displacementxdmfDisplay.GenerateNoiseTexture = 0
+    displacementxdmfDisplay.NoiseType = 'Gaussian'
+    displacementxdmfDisplay.NoiseTextureSize = 128
+    displacementxdmfDisplay.NoiseGrainSize = 2
+    displacementxdmfDisplay.MinNoiseValue = 0.0
+    displacementxdmfDisplay.MaxNoiseValue = 0.8
+    displacementxdmfDisplay.NumberOfNoiseLevels = 1024
+    displacementxdmfDisplay.ImpulseNoiseProbability = 1.0
+    displacementxdmfDisplay.ImpulseNoiseBackgroundValue = 0.0
+    displacementxdmfDisplay.NoiseGeneratorSeed = 1
+    displacementxdmfDisplay.CompositeStrategy = 'AUTO'
+    displacementxdmfDisplay.UseLICForLOD = 0
+    displacementxdmfDisplay.WriteLog = ''
+
+    # init the 'Piecewise Function' selected for 'OSPRayScaleFunction'
+    displacementxdmfDisplay.OSPRayScaleFunction.Points = [145.0, 0.0, 0.5, 0.0, 216.0, 1.0, 0.5, 0.0]
+    displacementxdmfDisplay.OSPRayScaleFunction.UseLogScale = 0
+
+    # init the 'Arrow' selected for 'GlyphType'
+    displacementxdmfDisplay.GlyphType.TipResolution = 6
+    displacementxdmfDisplay.GlyphType.TipRadius = 0.1
+    displacementxdmfDisplay.GlyphType.TipLength = 0.35
+    displacementxdmfDisplay.GlyphType.ShaftResolution = 6
+    displacementxdmfDisplay.GlyphType.ShaftRadius = 0.03
+    displacementxdmfDisplay.GlyphType.Invert = 0
+
+    # init the 'Piecewise Function' selected for 'ScaleTransferFunction'
+    displacementxdmfDisplay.ScaleTransferFunction.Points = [0.0, 0.0, 0.5, 0.0, 1.1757813367477812e-38, 1.0, 0.5, 0.0]
+    displacementxdmfDisplay.ScaleTransferFunction.UseLogScale = 0
+
+    # init the 'Piecewise Function' selected for 'OpacityTransferFunction'
+    displacementxdmfDisplay.OpacityTransferFunction.Points = [0.0, 0.0, 0.5, 0.0, 1.1757813367477812e-38, 1.0, 0.5, 0.0]
+    displacementxdmfDisplay.OpacityTransferFunction.UseLogScale = 0
+
+    # init the 'Grid Axes Representation' selected for 'DataAxesGrid'
+    displacementxdmfDisplay.DataAxesGrid.XTitle = 'X Axis'
+    displacementxdmfDisplay.DataAxesGrid.YTitle = 'Y Axis'
+    displacementxdmfDisplay.DataAxesGrid.ZTitle = 'Z Axis'
+    displacementxdmfDisplay.DataAxesGrid.XTitleFontFamily = 'Arial'
+    displacementxdmfDisplay.DataAxesGrid.XTitleFontFile = ''
+    displacementxdmfDisplay.DataAxesGrid.XTitleBold = 0
+    displacementxdmfDisplay.DataAxesGrid.XTitleItalic = 0
+    displacementxdmfDisplay.DataAxesGrid.XTitleFontSize = 12
+    displacementxdmfDisplay.DataAxesGrid.XTitleShadow = 0
+    displacementxdmfDisplay.DataAxesGrid.XTitleOpacity = 1.0
+    displacementxdmfDisplay.DataAxesGrid.YTitleFontFamily = 'Arial'
+    displacementxdmfDisplay.DataAxesGrid.YTitleFontFile = ''
+    displacementxdmfDisplay.DataAxesGrid.YTitleBold = 0
+    displacementxdmfDisplay.DataAxesGrid.YTitleItalic = 0
+    displacementxdmfDisplay.DataAxesGrid.YTitleFontSize = 12
+    displacementxdmfDisplay.DataAxesGrid.YTitleShadow = 0
+    displacementxdmfDisplay.DataAxesGrid.YTitleOpacity = 1.0
+    displacementxdmfDisplay.DataAxesGrid.ZTitleFontFamily = 'Arial'
+    displacementxdmfDisplay.DataAxesGrid.ZTitleFontFile = ''
+    displacementxdmfDisplay.DataAxesGrid.ZTitleBold = 0
+    displacementxdmfDisplay.DataAxesGrid.ZTitleItalic = 0
+    displacementxdmfDisplay.DataAxesGrid.ZTitleFontSize = 12
+    displacementxdmfDisplay.DataAxesGrid.ZTitleShadow = 0
+    displacementxdmfDisplay.DataAxesGrid.ZTitleOpacity = 1.0
+    displacementxdmfDisplay.DataAxesGrid.FacesToRender = 63
+    displacementxdmfDisplay.DataAxesGrid.CullBackface = 0
+    displacementxdmfDisplay.DataAxesGrid.CullFrontface = 1
+    displacementxdmfDisplay.DataAxesGrid.ShowGrid = 0
+    displacementxdmfDisplay.DataAxesGrid.ShowEdges = 1
+    displacementxdmfDisplay.DataAxesGrid.ShowTicks = 1
+    displacementxdmfDisplay.DataAxesGrid.LabelUniqueEdgesOnly = 1
+    displacementxdmfDisplay.DataAxesGrid.AxesToLabel = 63
+    displacementxdmfDisplay.DataAxesGrid.XLabelFontFamily = 'Arial'
+    displacementxdmfDisplay.DataAxesGrid.XLabelFontFile = ''
+    displacementxdmfDisplay.DataAxesGrid.XLabelBold = 0
+    displacementxdmfDisplay.DataAxesGrid.XLabelItalic = 0
+    displacementxdmfDisplay.DataAxesGrid.XLabelFontSize = 12
+    displacementxdmfDisplay.DataAxesGrid.XLabelShadow = 0
+    displacementxdmfDisplay.DataAxesGrid.XLabelOpacity = 1.0
+    displacementxdmfDisplay.DataAxesGrid.YLabelFontFamily = 'Arial'
+    displacementxdmfDisplay.DataAxesGrid.YLabelFontFile = ''
+    displacementxdmfDisplay.DataAxesGrid.YLabelBold = 0
+    displacementxdmfDisplay.DataAxesGrid.YLabelItalic = 0
+    displacementxdmfDisplay.DataAxesGrid.YLabelFontSize = 12
+    displacementxdmfDisplay.DataAxesGrid.YLabelShadow = 0
+    displacementxdmfDisplay.DataAxesGrid.YLabelOpacity = 1.0
+    displacementxdmfDisplay.DataAxesGrid.ZLabelFontFamily = 'Arial'
+    displacementxdmfDisplay.DataAxesGrid.ZLabelFontFile = ''
+    displacementxdmfDisplay.DataAxesGrid.ZLabelBold = 0
+    displacementxdmfDisplay.DataAxesGrid.ZLabelItalic = 0
+    displacementxdmfDisplay.DataAxesGrid.ZLabelFontSize = 12
+    displacementxdmfDisplay.DataAxesGrid.ZLabelShadow = 0
+    displacementxdmfDisplay.DataAxesGrid.ZLabelOpacity = 1.0
+    displacementxdmfDisplay.DataAxesGrid.XAxisNotation = 'Mixed'
+    displacementxdmfDisplay.DataAxesGrid.XAxisPrecision = 2
+    displacementxdmfDisplay.DataAxesGrid.XAxisUseCustomLabels = 0
+    displacementxdmfDisplay.DataAxesGrid.XAxisLabels = []
+    displacementxdmfDisplay.DataAxesGrid.YAxisNotation = 'Mixed'
+    displacementxdmfDisplay.DataAxesGrid.YAxisPrecision = 2
+    displacementxdmfDisplay.DataAxesGrid.YAxisUseCustomLabels = 0
+    displacementxdmfDisplay.DataAxesGrid.YAxisLabels = []
+    displacementxdmfDisplay.DataAxesGrid.ZAxisNotation = 'Mixed'
+    displacementxdmfDisplay.DataAxesGrid.ZAxisPrecision = 2
+    displacementxdmfDisplay.DataAxesGrid.ZAxisUseCustomLabels = 0
+    displacementxdmfDisplay.DataAxesGrid.ZAxisLabels = []
+    displacementxdmfDisplay.DataAxesGrid.UseCustomBounds = 0
+    displacementxdmfDisplay.DataAxesGrid.CustomBounds = [0.0, 1.0, 0.0, 1.0, 0.0, 1.0]
+
+    # init the 'Polar Axes Representation' selected for 'PolarAxes'
+    displacementxdmfDisplay.PolarAxes.Visibility = 0
+    displacementxdmfDisplay.PolarAxes.Translation = [0.0, 0.0, 0.0]
+    displacementxdmfDisplay.PolarAxes.Scale = [1.0, 1.0, 1.0]
+    displacementxdmfDisplay.PolarAxes.Orientation = [0.0, 0.0, 0.0]
+    displacementxdmfDisplay.PolarAxes.EnableCustomBounds = [0, 0, 0]
+    displacementxdmfDisplay.PolarAxes.CustomBounds = [0.0, 1.0, 0.0, 1.0, 0.0, 1.0]
+    displacementxdmfDisplay.PolarAxes.EnableCustomRange = 0
+    displacementxdmfDisplay.PolarAxes.CustomRange = [0.0, 1.0]
+    displacementxdmfDisplay.PolarAxes.AutoPole = 1
+    displacementxdmfDisplay.PolarAxes.PolarAxisVisibility = 1
+    displacementxdmfDisplay.PolarAxes.RadialAxesVisibility = 1
+    displacementxdmfDisplay.PolarAxes.DrawRadialGridlines = 1
+    displacementxdmfDisplay.PolarAxes.PolarArcsVisibility = 1
+    displacementxdmfDisplay.PolarAxes.DrawPolarArcsGridlines = 1
+    displacementxdmfDisplay.PolarAxes.NumberOfRadialAxes = 0
+    displacementxdmfDisplay.PolarAxes.DeltaAngleRadialAxes = 45.0
+    displacementxdmfDisplay.PolarAxes.NumberOfPolarAxes = 5
+    displacementxdmfDisplay.PolarAxes.DeltaRangePolarAxes = 0.0
+    displacementxdmfDisplay.PolarAxes.CustomMinRadius = 1
+    displacementxdmfDisplay.PolarAxes.MinimumRadius = 0.0
+    displacementxdmfDisplay.PolarAxes.CustomAngles = 1
+    displacementxdmfDisplay.PolarAxes.MinimumAngle = 0.0
+    displacementxdmfDisplay.PolarAxes.MaximumAngle = 90.0
+    displacementxdmfDisplay.PolarAxes.RadialAxesOriginToPolarAxis = 1
+    displacementxdmfDisplay.PolarAxes.PolarArcResolutionPerDegree = 0.2
+    displacementxdmfDisplay.PolarAxes.Ratio = 1.0
+    displacementxdmfDisplay.PolarAxes.EnableOverallColor = 1
+    displacementxdmfDisplay.PolarAxes.OverallColor = [1.0, 1.0, 1.0]
+    displacementxdmfDisplay.PolarAxes.PolarAxisColor = [1.0, 1.0, 1.0]
+    displacementxdmfDisplay.PolarAxes.PolarArcsColor = [1.0, 1.0, 1.0]
+    displacementxdmfDisplay.PolarAxes.LastRadialAxisColor = [1.0, 1.0, 1.0]
+    displacementxdmfDisplay.PolarAxes.SecondaryPolarArcsColor = [1.0, 1.0, 1.0]
+    displacementxdmfDisplay.PolarAxes.SecondaryRadialAxesColor = [1.0, 1.0, 1.0]
+    displacementxdmfDisplay.PolarAxes.PolarAxisTitleVisibility = 1
+    displacementxdmfDisplay.PolarAxes.PolarAxisTitle = 'Radial Distance'
+    displacementxdmfDisplay.PolarAxes.PolarAxisTitleLocation = 'Bottom'
+    displacementxdmfDisplay.PolarAxes.PolarTitleOffset = [20.0, 20.0]
+    displacementxdmfDisplay.PolarAxes.PolarLabelVisibility = 1
+    displacementxdmfDisplay.PolarAxes.PolarLabelFormat = '%-#6.3g'
+    displacementxdmfDisplay.PolarAxes.PolarLabelExponentLocation = 'Labels'
+    displacementxdmfDisplay.PolarAxes.PolarLabelOffset = 10.0
+    displacementxdmfDisplay.PolarAxes.PolarExponentOffset = 5.0
+    displacementxdmfDisplay.PolarAxes.RadialTitleVisibility = 1
+    displacementxdmfDisplay.PolarAxes.RadialTitleFormat = '%-#3.1f'
+    displacementxdmfDisplay.PolarAxes.RadialTitleLocation = 'Bottom'
+    displacementxdmfDisplay.PolarAxes.RadialTitleOffset = [20.0, 0.0]
+    displacementxdmfDisplay.PolarAxes.RadialUnitsVisibility = 1
+    displacementxdmfDisplay.PolarAxes.ScreenSize = 10.0
+    displacementxdmfDisplay.PolarAxes.PolarAxisTitleOpacity = 1.0
+    displacementxdmfDisplay.PolarAxes.PolarAxisTitleFontFamily = 'Arial'
+    displacementxdmfDisplay.PolarAxes.PolarAxisTitleFontFile = ''
+    displacementxdmfDisplay.PolarAxes.PolarAxisTitleBold = 0
+    displacementxdmfDisplay.PolarAxes.PolarAxisTitleItalic = 0
+    displacementxdmfDisplay.PolarAxes.PolarAxisTitleShadow = 0
+    displacementxdmfDisplay.PolarAxes.PolarAxisTitleFontSize = 12
+    displacementxdmfDisplay.PolarAxes.PolarAxisLabelOpacity = 1.0
+    displacementxdmfDisplay.PolarAxes.PolarAxisLabelFontFamily = 'Arial'
+    displacementxdmfDisplay.PolarAxes.PolarAxisLabelFontFile = ''
+    displacementxdmfDisplay.PolarAxes.PolarAxisLabelBold = 0
+    displacementxdmfDisplay.PolarAxes.PolarAxisLabelItalic = 0
+    displacementxdmfDisplay.PolarAxes.PolarAxisLabelShadow = 0
+    displacementxdmfDisplay.PolarAxes.PolarAxisLabelFontSize = 12
+    displacementxdmfDisplay.PolarAxes.LastRadialAxisTextOpacity = 1.0
+    displacementxdmfDisplay.PolarAxes.LastRadialAxisTextFontFamily = 'Arial'
+    displacementxdmfDisplay.PolarAxes.LastRadialAxisTextFontFile = ''
+    displacementxdmfDisplay.PolarAxes.LastRadialAxisTextBold = 0
+    displacementxdmfDisplay.PolarAxes.LastRadialAxisTextItalic = 0
+    displacementxdmfDisplay.PolarAxes.LastRadialAxisTextShadow = 0
+    displacementxdmfDisplay.PolarAxes.LastRadialAxisTextFontSize = 12
+    displacementxdmfDisplay.PolarAxes.SecondaryRadialAxesTextOpacity = 1.0
+    displacementxdmfDisplay.PolarAxes.SecondaryRadialAxesTextFontFamily = 'Arial'
+    displacementxdmfDisplay.PolarAxes.SecondaryRadialAxesTextFontFile = ''
+    displacementxdmfDisplay.PolarAxes.SecondaryRadialAxesTextBold = 0
+    displacementxdmfDisplay.PolarAxes.SecondaryRadialAxesTextItalic = 0
+    displacementxdmfDisplay.PolarAxes.SecondaryRadialAxesTextShadow = 0
+    displacementxdmfDisplay.PolarAxes.SecondaryRadialAxesTextFontSize = 12
+    displacementxdmfDisplay.PolarAxes.EnableDistanceLOD = 1
+    displacementxdmfDisplay.PolarAxes.DistanceLODThreshold = 0.7
+    displacementxdmfDisplay.PolarAxes.EnableViewAngleLOD = 1
+    displacementxdmfDisplay.PolarAxes.ViewAngleLODThreshold = 0.7
+    displacementxdmfDisplay.PolarAxes.SmallestVisiblePolarAngle = 0.5
+    displacementxdmfDisplay.PolarAxes.PolarTicksVisibility = 1
+    displacementxdmfDisplay.PolarAxes.ArcTicksOriginToPolarAxis = 1
+    displacementxdmfDisplay.PolarAxes.TickLocation = 'Both'
+    displacementxdmfDisplay.PolarAxes.AxisTickVisibility = 1
+    displacementxdmfDisplay.PolarAxes.AxisMinorTickVisibility = 0
+    displacementxdmfDisplay.PolarAxes.AxisTickMatchesPolarAxes = 1
+    displacementxdmfDisplay.PolarAxes.DeltaRangeMajor = 1.0
+    displacementxdmfDisplay.PolarAxes.DeltaRangeMinor = 0.5
+    displacementxdmfDisplay.PolarAxes.ArcTickVisibility = 1
+    displacementxdmfDisplay.PolarAxes.ArcMinorTickVisibility = 0
+    displacementxdmfDisplay.PolarAxes.ArcTickMatchesRadialAxes = 1
+    displacementxdmfDisplay.PolarAxes.DeltaAngleMajor = 10.0
+    displacementxdmfDisplay.PolarAxes.DeltaAngleMinor = 5.0
+    displacementxdmfDisplay.PolarAxes.TickRatioRadiusSize = 0.02
+    displacementxdmfDisplay.PolarAxes.PolarAxisMajorTickSize = 0.0
+    displacementxdmfDisplay.PolarAxes.PolarAxisTickRatioSize = 0.3
+    displacementxdmfDisplay.PolarAxes.PolarAxisMajorTickThickness = 1.0
+    displacementxdmfDisplay.PolarAxes.PolarAxisTickRatioThickness = 0.5
+    displacementxdmfDisplay.PolarAxes.LastRadialAxisMajorTickSize = 0.0
+    displacementxdmfDisplay.PolarAxes.LastRadialAxisTickRatioSize = 0.3
+    displacementxdmfDisplay.PolarAxes.LastRadialAxisMajorTickThickness = 1.0
+    displacementxdmfDisplay.PolarAxes.LastRadialAxisTickRatioThickness = 0.5
+    displacementxdmfDisplay.PolarAxes.ArcMajorTickSize = 0.0
+    displacementxdmfDisplay.PolarAxes.ArcTickRatioSize = 0.3
+    displacementxdmfDisplay.PolarAxes.ArcMajorTickThickness = 1.0
+    displacementxdmfDisplay.PolarAxes.ArcTickRatioThickness = 0.5
+    displacementxdmfDisplay.PolarAxes.Use2DMode = 0
+    displacementxdmfDisplay.PolarAxes.UseLogAxis = 0
+
+    # reset view to fit data
+    renderView1.ResetCamera(False, 0.9)
+
+    # get the material library
+    materialLibrary1 = GetMaterialLibrary()
 
     # show data in view
     activation_resultsxdmfDisplay = Show(activation_resultsxdmf, renderView1, 'UnstructuredGridRepresentation')
@@ -2546,388 +3702,8 @@ def save_ani_deformed_activation(fname_act, fname_disp, outname):
     activation_resultsxdmfDisplay.PolarAxes.Use2DMode = 0
     activation_resultsxdmfDisplay.PolarAxes.UseLogAxis = 0
 
-    # reset view to fit data
-    renderView1.ResetCamera(False, 0.9)
-
-    # get the material library
-    materialLibrary1 = GetMaterialLibrary()
-
     # show color bar/color legend
     activation_resultsxdmfDisplay.SetScalarBarVisibility(renderView1, True)
-
-    # show data in view
-    displacementxdmfDisplay = Show(displacementxdmf, renderView1, 'UnstructuredGridRepresentation')
-
-    # trace defaults for the display properties.
-    displacementxdmfDisplay.Selection = None
-    displacementxdmfDisplay.Representation = 'Surface'
-    displacementxdmfDisplay.ColorArrayName = [None, '']
-    displacementxdmfDisplay.LookupTable = None
-    displacementxdmfDisplay.MapScalars = 1
-    displacementxdmfDisplay.MultiComponentsMapping = 0
-    displacementxdmfDisplay.InterpolateScalarsBeforeMapping = 1
-    displacementxdmfDisplay.UseNanColorForMissingArrays = 0
-    displacementxdmfDisplay.Opacity = 1.0
-    displacementxdmfDisplay.PointSize = 2.0
-    displacementxdmfDisplay.LineWidth = 1.0
-    displacementxdmfDisplay.RenderLinesAsTubes = 0
-    displacementxdmfDisplay.RenderPointsAsSpheres = 0
-    displacementxdmfDisplay.Interpolation = 'Gouraud'
-    displacementxdmfDisplay.Specular = 0.0
-    displacementxdmfDisplay.SpecularColor = [1.0, 1.0, 1.0]
-    displacementxdmfDisplay.SpecularPower = 100.0
-    displacementxdmfDisplay.Luminosity = 0.0
-    displacementxdmfDisplay.Ambient = 0.0
-    displacementxdmfDisplay.Diffuse = 1.0
-    displacementxdmfDisplay.Roughness = 0.3
-    displacementxdmfDisplay.Metallic = 0.0
-    displacementxdmfDisplay.EdgeTint = [1.0, 1.0, 1.0]
-    displacementxdmfDisplay.Anisotropy = 0.0
-    displacementxdmfDisplay.AnisotropyRotation = 0.0
-    displacementxdmfDisplay.BaseIOR = 1.5
-    displacementxdmfDisplay.CoatStrength = 0.0
-    displacementxdmfDisplay.CoatIOR = 2.0
-    displacementxdmfDisplay.CoatRoughness = 0.0
-    displacementxdmfDisplay.CoatColor = [1.0, 1.0, 1.0]
-    displacementxdmfDisplay.SelectTCoordArray = 'None'
-    displacementxdmfDisplay.SelectNormalArray = 'None'
-    displacementxdmfDisplay.SelectTangentArray = 'None'
-    displacementxdmfDisplay.Texture = None
-    displacementxdmfDisplay.RepeatTextures = 1
-    displacementxdmfDisplay.InterpolateTextures = 0
-    displacementxdmfDisplay.SeamlessU = 0
-    displacementxdmfDisplay.SeamlessV = 0
-    displacementxdmfDisplay.UseMipmapTextures = 0
-    displacementxdmfDisplay.ShowTexturesOnBackface = 1
-    displacementxdmfDisplay.BaseColorTexture = None
-    displacementxdmfDisplay.NormalTexture = None
-    displacementxdmfDisplay.NormalScale = 1.0
-    displacementxdmfDisplay.CoatNormalTexture = None
-    displacementxdmfDisplay.CoatNormalScale = 1.0
-    displacementxdmfDisplay.MaterialTexture = None
-    displacementxdmfDisplay.OcclusionStrength = 1.0
-    displacementxdmfDisplay.AnisotropyTexture = None
-    displacementxdmfDisplay.EmissiveTexture = None
-    displacementxdmfDisplay.EmissiveFactor = [1.0, 1.0, 1.0]
-    displacementxdmfDisplay.FlipTextures = 0
-    displacementxdmfDisplay.EdgeOpacity = 1.0
-    displacementxdmfDisplay.BackfaceRepresentation = 'Follow Frontface'
-    displacementxdmfDisplay.BackfaceAmbientColor = [1.0, 1.0, 1.0]
-    displacementxdmfDisplay.BackfaceOpacity = 1.0
-    displacementxdmfDisplay.Position = [0.0, 0.0, 0.0]
-    displacementxdmfDisplay.Scale = [1.0, 1.0, 1.0]
-    displacementxdmfDisplay.Orientation = [0.0, 0.0, 0.0]
-    displacementxdmfDisplay.Origin = [0.0, 0.0, 0.0]
-    displacementxdmfDisplay.CoordinateShiftScaleMethod = 'Always Auto Shift Scale'
-    displacementxdmfDisplay.Pickable = 1
-    displacementxdmfDisplay.Triangulate = 0
-    displacementxdmfDisplay.UseShaderReplacements = 0
-    displacementxdmfDisplay.ShaderReplacements = ''
-    displacementxdmfDisplay.NonlinearSubdivisionLevel = 1
-    displacementxdmfDisplay.MatchBoundariesIgnoringCellOrder = 0
-    displacementxdmfDisplay.UseDataPartitions = 0
-    displacementxdmfDisplay.OSPRayUseScaleArray = 'All Approximate'
-    displacementxdmfDisplay.OSPRayScaleArray = 'Displacement'
-    displacementxdmfDisplay.OSPRayScaleFunction = 'Piecewise Function'
-    displacementxdmfDisplay.OSPRayMaterial = 'None'
-    displacementxdmfDisplay.Assembly = ''
-    displacementxdmfDisplay.BlockSelectors = ['/']
-    displacementxdmfDisplay.BlockColors = []
-    displacementxdmfDisplay.BlockOpacities = []
-    displacementxdmfDisplay.Orient = 0
-    displacementxdmfDisplay.OrientationMode = 'Direction'
-    displacementxdmfDisplay.SelectOrientationVectors = 'Displacement'
-    displacementxdmfDisplay.Scaling = 0
-    displacementxdmfDisplay.ScaleMode = 'No Data Scaling Off'
-    displacementxdmfDisplay.ScaleFactor = 0.7499993801116944
-    displacementxdmfDisplay.SelectScaleArray = 'Displacement'
-    displacementxdmfDisplay.GlyphType = 'Arrow'
-    displacementxdmfDisplay.UseGlyphTable = 0
-    displacementxdmfDisplay.GlyphTableIndexArray = 'Displacement'
-    displacementxdmfDisplay.UseCompositeGlyphTable = 0
-    displacementxdmfDisplay.UseGlyphCullingAndLOD = 0
-    displacementxdmfDisplay.LODValues = []
-    displacementxdmfDisplay.ColorByLODIndex = 0
-    displacementxdmfDisplay.GaussianRadius = 0.037499969005584714
-    displacementxdmfDisplay.ShaderPreset = 'Sphere'
-    displacementxdmfDisplay.CustomTriangleScale = 3
-    displacementxdmfDisplay.CustomShader = """ // This custom shader code define a gaussian blur
-    // Please take a look into vtkSMPointGaussianRepresentation.cxx
-    // for other custom shader examples
-    //VTK::Color::Impl
-    float dist2 = dot(offsetVCVSOutput.xy,offsetVCVSOutput.xy);
-    float gaussian = exp(-0.5*dist2);
-    opacity = opacity*gaussian;
-    """
-    displacementxdmfDisplay.Emissive = 0
-    displacementxdmfDisplay.ScaleByArray = 0
-    displacementxdmfDisplay.SetScaleArray = ['POINTS', 'Displacement']
-    displacementxdmfDisplay.ScaleArrayComponent = 'X'
-    displacementxdmfDisplay.UseScaleFunction = 1
-    displacementxdmfDisplay.ScaleTransferFunction = 'Piecewise Function'
-    displacementxdmfDisplay.OpacityByArray = 0
-    displacementxdmfDisplay.OpacityArray = ['POINTS', 'Displacement']
-    displacementxdmfDisplay.OpacityArrayComponent = 'X'
-    displacementxdmfDisplay.OpacityTransferFunction = 'Piecewise Function'
-    displacementxdmfDisplay.DataAxesGrid = 'Grid Axes Representation'
-    displacementxdmfDisplay.SelectionCellLabelBold = 0
-    displacementxdmfDisplay.SelectionCellLabelColor = [0.0, 1.0, 0.0]
-    displacementxdmfDisplay.SelectionCellLabelFontFamily = 'Arial'
-    displacementxdmfDisplay.SelectionCellLabelFontFile = ''
-    displacementxdmfDisplay.SelectionCellLabelFontSize = 18
-    displacementxdmfDisplay.SelectionCellLabelItalic = 0
-    displacementxdmfDisplay.SelectionCellLabelJustification = 'Left'
-    displacementxdmfDisplay.SelectionCellLabelOpacity = 1.0
-    displacementxdmfDisplay.SelectionCellLabelShadow = 0
-    displacementxdmfDisplay.SelectionPointLabelBold = 0
-    displacementxdmfDisplay.SelectionPointLabelColor = [1.0, 1.0, 0.0]
-    displacementxdmfDisplay.SelectionPointLabelFontFamily = 'Arial'
-    displacementxdmfDisplay.SelectionPointLabelFontFile = ''
-    displacementxdmfDisplay.SelectionPointLabelFontSize = 18
-    displacementxdmfDisplay.SelectionPointLabelItalic = 0
-    displacementxdmfDisplay.SelectionPointLabelJustification = 'Left'
-    displacementxdmfDisplay.SelectionPointLabelOpacity = 1.0
-    displacementxdmfDisplay.SelectionPointLabelShadow = 0
-    displacementxdmfDisplay.PolarAxes = 'Polar Axes Representation'
-    displacementxdmfDisplay.ScalarOpacityFunction = None
-    displacementxdmfDisplay.ScalarOpacityUnitDistance = 0.5583539716188769
-    displacementxdmfDisplay.UseSeparateOpacityArray = 0
-    displacementxdmfDisplay.OpacityArrayName = ['POINTS', 'Displacement']
-    displacementxdmfDisplay.OpacityComponent = 'X'
-    displacementxdmfDisplay.SelectMapper = 'Projected tetra'
-    displacementxdmfDisplay.SamplingDimensions = [128, 128, 128]
-    displacementxdmfDisplay.UseFloatingPointFrameBuffer = 1
-    displacementxdmfDisplay.SelectInputVectors = ['POINTS', 'Displacement']
-    displacementxdmfDisplay.NumberOfSteps = 40
-    displacementxdmfDisplay.StepSize = 0.25
-    displacementxdmfDisplay.NormalizeVectors = 1
-    displacementxdmfDisplay.EnhancedLIC = 1
-    displacementxdmfDisplay.ColorMode = 'Blend'
-    displacementxdmfDisplay.LICIntensity = 0.8
-    displacementxdmfDisplay.MapModeBias = 0.0
-    displacementxdmfDisplay.EnhanceContrast = 'Off'
-    displacementxdmfDisplay.LowLICContrastEnhancementFactor = 0.0
-    displacementxdmfDisplay.HighLICContrastEnhancementFactor = 0.0
-    displacementxdmfDisplay.LowColorContrastEnhancementFactor = 0.0
-    displacementxdmfDisplay.HighColorContrastEnhancementFactor = 0.0
-    displacementxdmfDisplay.AntiAlias = 0
-    displacementxdmfDisplay.MaskOnSurface = 1
-    displacementxdmfDisplay.MaskThreshold = 0.0
-    displacementxdmfDisplay.MaskIntensity = 0.0
-    displacementxdmfDisplay.MaskColor = [0.5, 0.5, 0.5]
-    displacementxdmfDisplay.GenerateNoiseTexture = 0
-    displacementxdmfDisplay.NoiseType = 'Gaussian'
-    displacementxdmfDisplay.NoiseTextureSize = 128
-    displacementxdmfDisplay.NoiseGrainSize = 2
-    displacementxdmfDisplay.MinNoiseValue = 0.0
-    displacementxdmfDisplay.MaxNoiseValue = 0.8
-    displacementxdmfDisplay.NumberOfNoiseLevels = 1024
-    displacementxdmfDisplay.ImpulseNoiseProbability = 1.0
-    displacementxdmfDisplay.ImpulseNoiseBackgroundValue = 0.0
-    displacementxdmfDisplay.NoiseGeneratorSeed = 1
-    displacementxdmfDisplay.CompositeStrategy = 'AUTO'
-    displacementxdmfDisplay.UseLICForLOD = 0
-    displacementxdmfDisplay.WriteLog = ''
-
-    # init the 'Piecewise Function' selected for 'OSPRayScaleFunction'
-    displacementxdmfDisplay.OSPRayScaleFunction.Points = [145.0, 0.0, 0.5, 0.0, 216.0, 1.0, 0.5, 0.0]
-    displacementxdmfDisplay.OSPRayScaleFunction.UseLogScale = 0
-
-    # init the 'Arrow' selected for 'GlyphType'
-    displacementxdmfDisplay.GlyphType.TipResolution = 6
-    displacementxdmfDisplay.GlyphType.TipRadius = 0.1
-    displacementxdmfDisplay.GlyphType.TipLength = 0.35
-    displacementxdmfDisplay.GlyphType.ShaftResolution = 6
-    displacementxdmfDisplay.GlyphType.ShaftRadius = 0.03
-    displacementxdmfDisplay.GlyphType.Invert = 0
-
-    # init the 'Piecewise Function' selected for 'ScaleTransferFunction'
-    displacementxdmfDisplay.ScaleTransferFunction.Points = [0.0, 0.0, 0.5, 0.0, 1.1757813367477812e-38, 1.0, 0.5, 0.0]
-    displacementxdmfDisplay.ScaleTransferFunction.UseLogScale = 0
-
-    # init the 'Piecewise Function' selected for 'OpacityTransferFunction'
-    displacementxdmfDisplay.OpacityTransferFunction.Points = [0.0, 0.0, 0.5, 0.0, 1.1757813367477812e-38, 1.0, 0.5, 0.0]
-    displacementxdmfDisplay.OpacityTransferFunction.UseLogScale = 0
-
-    # init the 'Grid Axes Representation' selected for 'DataAxesGrid'
-    displacementxdmfDisplay.DataAxesGrid.XTitle = 'X Axis'
-    displacementxdmfDisplay.DataAxesGrid.YTitle = 'Y Axis'
-    displacementxdmfDisplay.DataAxesGrid.ZTitle = 'Z Axis'
-    displacementxdmfDisplay.DataAxesGrid.XTitleFontFamily = 'Arial'
-    displacementxdmfDisplay.DataAxesGrid.XTitleFontFile = ''
-    displacementxdmfDisplay.DataAxesGrid.XTitleBold = 0
-    displacementxdmfDisplay.DataAxesGrid.XTitleItalic = 0
-    displacementxdmfDisplay.DataAxesGrid.XTitleFontSize = 12
-    displacementxdmfDisplay.DataAxesGrid.XTitleShadow = 0
-    displacementxdmfDisplay.DataAxesGrid.XTitleOpacity = 1.0
-    displacementxdmfDisplay.DataAxesGrid.YTitleFontFamily = 'Arial'
-    displacementxdmfDisplay.DataAxesGrid.YTitleFontFile = ''
-    displacementxdmfDisplay.DataAxesGrid.YTitleBold = 0
-    displacementxdmfDisplay.DataAxesGrid.YTitleItalic = 0
-    displacementxdmfDisplay.DataAxesGrid.YTitleFontSize = 12
-    displacementxdmfDisplay.DataAxesGrid.YTitleShadow = 0
-    displacementxdmfDisplay.DataAxesGrid.YTitleOpacity = 1.0
-    displacementxdmfDisplay.DataAxesGrid.ZTitleFontFamily = 'Arial'
-    displacementxdmfDisplay.DataAxesGrid.ZTitleFontFile = ''
-    displacementxdmfDisplay.DataAxesGrid.ZTitleBold = 0
-    displacementxdmfDisplay.DataAxesGrid.ZTitleItalic = 0
-    displacementxdmfDisplay.DataAxesGrid.ZTitleFontSize = 12
-    displacementxdmfDisplay.DataAxesGrid.ZTitleShadow = 0
-    displacementxdmfDisplay.DataAxesGrid.ZTitleOpacity = 1.0
-    displacementxdmfDisplay.DataAxesGrid.FacesToRender = 63
-    displacementxdmfDisplay.DataAxesGrid.CullBackface = 0
-    displacementxdmfDisplay.DataAxesGrid.CullFrontface = 1
-    displacementxdmfDisplay.DataAxesGrid.ShowGrid = 0
-    displacementxdmfDisplay.DataAxesGrid.ShowEdges = 1
-    displacementxdmfDisplay.DataAxesGrid.ShowTicks = 1
-    displacementxdmfDisplay.DataAxesGrid.LabelUniqueEdgesOnly = 1
-    displacementxdmfDisplay.DataAxesGrid.AxesToLabel = 63
-    displacementxdmfDisplay.DataAxesGrid.XLabelFontFamily = 'Arial'
-    displacementxdmfDisplay.DataAxesGrid.XLabelFontFile = ''
-    displacementxdmfDisplay.DataAxesGrid.XLabelBold = 0
-    displacementxdmfDisplay.DataAxesGrid.XLabelItalic = 0
-    displacementxdmfDisplay.DataAxesGrid.XLabelFontSize = 12
-    displacementxdmfDisplay.DataAxesGrid.XLabelShadow = 0
-    displacementxdmfDisplay.DataAxesGrid.XLabelOpacity = 1.0
-    displacementxdmfDisplay.DataAxesGrid.YLabelFontFamily = 'Arial'
-    displacementxdmfDisplay.DataAxesGrid.YLabelFontFile = ''
-    displacementxdmfDisplay.DataAxesGrid.YLabelBold = 0
-    displacementxdmfDisplay.DataAxesGrid.YLabelItalic = 0
-    displacementxdmfDisplay.DataAxesGrid.YLabelFontSize = 12
-    displacementxdmfDisplay.DataAxesGrid.YLabelShadow = 0
-    displacementxdmfDisplay.DataAxesGrid.YLabelOpacity = 1.0
-    displacementxdmfDisplay.DataAxesGrid.ZLabelFontFamily = 'Arial'
-    displacementxdmfDisplay.DataAxesGrid.ZLabelFontFile = ''
-    displacementxdmfDisplay.DataAxesGrid.ZLabelBold = 0
-    displacementxdmfDisplay.DataAxesGrid.ZLabelItalic = 0
-    displacementxdmfDisplay.DataAxesGrid.ZLabelFontSize = 12
-    displacementxdmfDisplay.DataAxesGrid.ZLabelShadow = 0
-    displacementxdmfDisplay.DataAxesGrid.ZLabelOpacity = 1.0
-    displacementxdmfDisplay.DataAxesGrid.XAxisNotation = 'Mixed'
-    displacementxdmfDisplay.DataAxesGrid.XAxisPrecision = 2
-    displacementxdmfDisplay.DataAxesGrid.XAxisUseCustomLabels = 0
-    displacementxdmfDisplay.DataAxesGrid.XAxisLabels = []
-    displacementxdmfDisplay.DataAxesGrid.YAxisNotation = 'Mixed'
-    displacementxdmfDisplay.DataAxesGrid.YAxisPrecision = 2
-    displacementxdmfDisplay.DataAxesGrid.YAxisUseCustomLabels = 0
-    displacementxdmfDisplay.DataAxesGrid.YAxisLabels = []
-    displacementxdmfDisplay.DataAxesGrid.ZAxisNotation = 'Mixed'
-    displacementxdmfDisplay.DataAxesGrid.ZAxisPrecision = 2
-    displacementxdmfDisplay.DataAxesGrid.ZAxisUseCustomLabels = 0
-    displacementxdmfDisplay.DataAxesGrid.ZAxisLabels = []
-    displacementxdmfDisplay.DataAxesGrid.UseCustomBounds = 0
-    displacementxdmfDisplay.DataAxesGrid.CustomBounds = [0.0, 1.0, 0.0, 1.0, 0.0, 1.0]
-
-    # init the 'Polar Axes Representation' selected for 'PolarAxes'
-    displacementxdmfDisplay.PolarAxes.Visibility = 0
-    displacementxdmfDisplay.PolarAxes.Translation = [0.0, 0.0, 0.0]
-    displacementxdmfDisplay.PolarAxes.Scale = [1.0, 1.0, 1.0]
-    displacementxdmfDisplay.PolarAxes.Orientation = [0.0, 0.0, 0.0]
-    displacementxdmfDisplay.PolarAxes.EnableCustomBounds = [0, 0, 0]
-    displacementxdmfDisplay.PolarAxes.CustomBounds = [0.0, 1.0, 0.0, 1.0, 0.0, 1.0]
-    displacementxdmfDisplay.PolarAxes.EnableCustomRange = 0
-    displacementxdmfDisplay.PolarAxes.CustomRange = [0.0, 1.0]
-    displacementxdmfDisplay.PolarAxes.AutoPole = 1
-    displacementxdmfDisplay.PolarAxes.PolarAxisVisibility = 1
-    displacementxdmfDisplay.PolarAxes.RadialAxesVisibility = 1
-    displacementxdmfDisplay.PolarAxes.DrawRadialGridlines = 1
-    displacementxdmfDisplay.PolarAxes.PolarArcsVisibility = 1
-    displacementxdmfDisplay.PolarAxes.DrawPolarArcsGridlines = 1
-    displacementxdmfDisplay.PolarAxes.NumberOfRadialAxes = 0
-    displacementxdmfDisplay.PolarAxes.DeltaAngleRadialAxes = 45.0
-    displacementxdmfDisplay.PolarAxes.NumberOfPolarAxes = 5
-    displacementxdmfDisplay.PolarAxes.DeltaRangePolarAxes = 0.0
-    displacementxdmfDisplay.PolarAxes.CustomMinRadius = 1
-    displacementxdmfDisplay.PolarAxes.MinimumRadius = 0.0
-    displacementxdmfDisplay.PolarAxes.CustomAngles = 1
-    displacementxdmfDisplay.PolarAxes.MinimumAngle = 0.0
-    displacementxdmfDisplay.PolarAxes.MaximumAngle = 90.0
-    displacementxdmfDisplay.PolarAxes.RadialAxesOriginToPolarAxis = 1
-    displacementxdmfDisplay.PolarAxes.PolarArcResolutionPerDegree = 0.2
-    displacementxdmfDisplay.PolarAxes.Ratio = 1.0
-    displacementxdmfDisplay.PolarAxes.EnableOverallColor = 1
-    displacementxdmfDisplay.PolarAxes.OverallColor = [1.0, 1.0, 1.0]
-    displacementxdmfDisplay.PolarAxes.PolarAxisColor = [1.0, 1.0, 1.0]
-    displacementxdmfDisplay.PolarAxes.PolarArcsColor = [1.0, 1.0, 1.0]
-    displacementxdmfDisplay.PolarAxes.LastRadialAxisColor = [1.0, 1.0, 1.0]
-    displacementxdmfDisplay.PolarAxes.SecondaryPolarArcsColor = [1.0, 1.0, 1.0]
-    displacementxdmfDisplay.PolarAxes.SecondaryRadialAxesColor = [1.0, 1.0, 1.0]
-    displacementxdmfDisplay.PolarAxes.PolarAxisTitleVisibility = 1
-    displacementxdmfDisplay.PolarAxes.PolarAxisTitle = 'Radial Distance'
-    displacementxdmfDisplay.PolarAxes.PolarAxisTitleLocation = 'Bottom'
-    displacementxdmfDisplay.PolarAxes.PolarTitleOffset = [20.0, 20.0]
-    displacementxdmfDisplay.PolarAxes.PolarLabelVisibility = 1
-    displacementxdmfDisplay.PolarAxes.PolarLabelFormat = '%-#6.3g'
-    displacementxdmfDisplay.PolarAxes.PolarLabelExponentLocation = 'Labels'
-    displacementxdmfDisplay.PolarAxes.PolarLabelOffset = 10.0
-    displacementxdmfDisplay.PolarAxes.PolarExponentOffset = 5.0
-    displacementxdmfDisplay.PolarAxes.RadialTitleVisibility = 1
-    displacementxdmfDisplay.PolarAxes.RadialTitleFormat = '%-#3.1f'
-    displacementxdmfDisplay.PolarAxes.RadialTitleLocation = 'Bottom'
-    displacementxdmfDisplay.PolarAxes.RadialTitleOffset = [20.0, 0.0]
-    displacementxdmfDisplay.PolarAxes.RadialUnitsVisibility = 1
-    displacementxdmfDisplay.PolarAxes.ScreenSize = 10.0
-    displacementxdmfDisplay.PolarAxes.PolarAxisTitleOpacity = 1.0
-    displacementxdmfDisplay.PolarAxes.PolarAxisTitleFontFamily = 'Arial'
-    displacementxdmfDisplay.PolarAxes.PolarAxisTitleFontFile = ''
-    displacementxdmfDisplay.PolarAxes.PolarAxisTitleBold = 0
-    displacementxdmfDisplay.PolarAxes.PolarAxisTitleItalic = 0
-    displacementxdmfDisplay.PolarAxes.PolarAxisTitleShadow = 0
-    displacementxdmfDisplay.PolarAxes.PolarAxisTitleFontSize = 12
-    displacementxdmfDisplay.PolarAxes.PolarAxisLabelOpacity = 1.0
-    displacementxdmfDisplay.PolarAxes.PolarAxisLabelFontFamily = 'Arial'
-    displacementxdmfDisplay.PolarAxes.PolarAxisLabelFontFile = ''
-    displacementxdmfDisplay.PolarAxes.PolarAxisLabelBold = 0
-    displacementxdmfDisplay.PolarAxes.PolarAxisLabelItalic = 0
-    displacementxdmfDisplay.PolarAxes.PolarAxisLabelShadow = 0
-    displacementxdmfDisplay.PolarAxes.PolarAxisLabelFontSize = 12
-    displacementxdmfDisplay.PolarAxes.LastRadialAxisTextOpacity = 1.0
-    displacementxdmfDisplay.PolarAxes.LastRadialAxisTextFontFamily = 'Arial'
-    displacementxdmfDisplay.PolarAxes.LastRadialAxisTextFontFile = ''
-    displacementxdmfDisplay.PolarAxes.LastRadialAxisTextBold = 0
-    displacementxdmfDisplay.PolarAxes.LastRadialAxisTextItalic = 0
-    displacementxdmfDisplay.PolarAxes.LastRadialAxisTextShadow = 0
-    displacementxdmfDisplay.PolarAxes.LastRadialAxisTextFontSize = 12
-    displacementxdmfDisplay.PolarAxes.SecondaryRadialAxesTextOpacity = 1.0
-    displacementxdmfDisplay.PolarAxes.SecondaryRadialAxesTextFontFamily = 'Arial'
-    displacementxdmfDisplay.PolarAxes.SecondaryRadialAxesTextFontFile = ''
-    displacementxdmfDisplay.PolarAxes.SecondaryRadialAxesTextBold = 0
-    displacementxdmfDisplay.PolarAxes.SecondaryRadialAxesTextItalic = 0
-    displacementxdmfDisplay.PolarAxes.SecondaryRadialAxesTextShadow = 0
-    displacementxdmfDisplay.PolarAxes.SecondaryRadialAxesTextFontSize = 12
-    displacementxdmfDisplay.PolarAxes.EnableDistanceLOD = 1
-    displacementxdmfDisplay.PolarAxes.DistanceLODThreshold = 0.7
-    displacementxdmfDisplay.PolarAxes.EnableViewAngleLOD = 1
-    displacementxdmfDisplay.PolarAxes.ViewAngleLODThreshold = 0.7
-    displacementxdmfDisplay.PolarAxes.SmallestVisiblePolarAngle = 0.5
-    displacementxdmfDisplay.PolarAxes.PolarTicksVisibility = 1
-    displacementxdmfDisplay.PolarAxes.ArcTicksOriginToPolarAxis = 1
-    displacementxdmfDisplay.PolarAxes.TickLocation = 'Both'
-    displacementxdmfDisplay.PolarAxes.AxisTickVisibility = 1
-    displacementxdmfDisplay.PolarAxes.AxisMinorTickVisibility = 0
-    displacementxdmfDisplay.PolarAxes.AxisTickMatchesPolarAxes = 1
-    displacementxdmfDisplay.PolarAxes.DeltaRangeMajor = 1.0
-    displacementxdmfDisplay.PolarAxes.DeltaRangeMinor = 0.5
-    displacementxdmfDisplay.PolarAxes.ArcTickVisibility = 1
-    displacementxdmfDisplay.PolarAxes.ArcMinorTickVisibility = 0
-    displacementxdmfDisplay.PolarAxes.ArcTickMatchesRadialAxes = 1
-    displacementxdmfDisplay.PolarAxes.DeltaAngleMajor = 10.0
-    displacementxdmfDisplay.PolarAxes.DeltaAngleMinor = 5.0
-    displacementxdmfDisplay.PolarAxes.TickRatioRadiusSize = 0.02
-    displacementxdmfDisplay.PolarAxes.PolarAxisMajorTickSize = 0.0
-    displacementxdmfDisplay.PolarAxes.PolarAxisTickRatioSize = 0.3
-    displacementxdmfDisplay.PolarAxes.PolarAxisMajorTickThickness = 1.0
-    displacementxdmfDisplay.PolarAxes.PolarAxisTickRatioThickness = 0.5
-    displacementxdmfDisplay.PolarAxes.LastRadialAxisMajorTickSize = 0.0
-    displacementxdmfDisplay.PolarAxes.LastRadialAxisTickRatioSize = 0.3
-    displacementxdmfDisplay.PolarAxes.LastRadialAxisMajorTickThickness = 1.0
-    displacementxdmfDisplay.PolarAxes.LastRadialAxisTickRatioThickness = 0.5
-    displacementxdmfDisplay.PolarAxes.ArcMajorTickSize = 0.0
-    displacementxdmfDisplay.PolarAxes.ArcTickRatioSize = 0.3
-    displacementxdmfDisplay.PolarAxes.ArcMajorTickThickness = 1.0
-    displacementxdmfDisplay.PolarAxes.ArcTickRatioThickness = 0.5
-    displacementxdmfDisplay.PolarAxes.Use2DMode = 0
-    displacementxdmfDisplay.PolarAxes.UseLogAxis = 0
 
     # update the view to ensure updated data information
     renderView1.Update()
@@ -3165,11 +3941,11 @@ def save_ani_deformed_activation(fname_act, fname_disp, outname):
     appendAttributes1Display.GlyphType.Invert = 0
 
     # init the 'Piecewise Function' selected for 'ScaleTransferFunction'
-    appendAttributes1Display.ScaleTransferFunction.Points = [-0.3587955832481384, 0.0, 0.5, 0.0, 0.015052489005029202, 1.0, 0.5, 0.0]
+    appendAttributes1Display.ScaleTransferFunction.Points = [-0.28369444608688354, 0.0, 0.5, 0.0, 0.0175445768982172, 1.0, 0.5, 0.0]
     appendAttributes1Display.ScaleTransferFunction.UseLogScale = 0
 
     # init the 'Piecewise Function' selected for 'OpacityTransferFunction'
-    appendAttributes1Display.OpacityTransferFunction.Points = [-0.3587955832481384, 0.0, 0.5, 0.0, 0.015052489005029202, 1.0, 0.5, 0.0]
+    appendAttributes1Display.OpacityTransferFunction.Points = [-0.28369444608688354, 0.0, 0.5, 0.0, 0.0175445768982172, 1.0, 0.5, 0.0]
     appendAttributes1Display.OpacityTransferFunction.UseLogScale = 0
 
     # init the 'Grid Axes Representation' selected for 'DataAxesGrid'
@@ -3447,7 +4223,7 @@ def save_ani_deformed_activation(fname_act, fname_disp, outname):
     warpByVector1Display.SelectOrientationVectors = 'Displacement'
     warpByVector1Display.Scaling = 0
     warpByVector1Display.ScaleMode = 'No Data Scaling Off'
-    warpByVector1Display.ScaleFactor = 0.8265689373016358
+    warpByVector1Display.ScaleFactor = 0.8380639553070068
     warpByVector1Display.SelectScaleArray = 'Displacement'
     warpByVector1Display.GlyphType = 'Arrow'
     warpByVector1Display.UseGlyphTable = 0
@@ -3456,7 +4232,7 @@ def save_ani_deformed_activation(fname_act, fname_disp, outname):
     warpByVector1Display.UseGlyphCullingAndLOD = 0
     warpByVector1Display.LODValues = []
     warpByVector1Display.ColorByLODIndex = 0
-    warpByVector1Display.GaussianRadius = 0.04132844686508179
+    warpByVector1Display.GaussianRadius = 0.04190319776535034
     warpByVector1Display.ShaderPreset = 'Sphere'
     warpByVector1Display.CustomTriangleScale = 3
     warpByVector1Display.CustomShader = """ // This custom shader code define a gaussian blur
@@ -3498,7 +4274,7 @@ def save_ani_deformed_activation(fname_act, fname_disp, outname):
     warpByVector1Display.SelectionPointLabelShadow = 0
     warpByVector1Display.PolarAxes = 'Polar Axes Representation'
     warpByVector1Display.ScalarOpacityFunction = None
-    warpByVector1Display.ScalarOpacityUnitDistance = 0.6049373330719228
+    warpByVector1Display.ScalarOpacityUnitDistance = 0.6092618537762925
     warpByVector1Display.UseSeparateOpacityArray = 0
     warpByVector1Display.OpacityArrayName = ['POINTS', 'Displacement']
     warpByVector1Display.OpacityComponent = 'X'
@@ -3550,11 +4326,11 @@ def save_ani_deformed_activation(fname_act, fname_disp, outname):
     warpByVector1Display.GlyphType.Invert = 0
 
     # init the 'Piecewise Function' selected for 'ScaleTransferFunction'
-    warpByVector1Display.ScaleTransferFunction.Points = [-0.3587955832481384, 0.0, 0.5, 0.0, 0.015052489005029202, 1.0, 0.5, 0.0]
+    warpByVector1Display.ScaleTransferFunction.Points = [-0.28369444608688354, 0.0, 0.5, 0.0, 0.0175445768982172, 1.0, 0.5, 0.0]
     warpByVector1Display.ScaleTransferFunction.UseLogScale = 0
 
     # init the 'Piecewise Function' selected for 'OpacityTransferFunction'
-    warpByVector1Display.OpacityTransferFunction.Points = [-0.3587955832481384, 0.0, 0.5, 0.0, 0.015052489005029202, 1.0, 0.5, 0.0]
+    warpByVector1Display.OpacityTransferFunction.Points = [-0.28369444608688354, 0.0, 0.5, 0.0, 0.0175445768982172, 1.0, 0.5, 0.0]
     warpByVector1Display.OpacityTransferFunction.UseLogScale = 0
 
     # init the 'Grid Axes Representation' selected for 'DataAxesGrid'
@@ -3845,6 +4621,47 @@ def save_ani_deformed_activation(fname_act, fname_disp, outname):
     renderView1.CameraFocalPoint = [-1.8397653102874754, -0.0002174377441406233, 0.00017523765563968354]
     renderView1.CameraViewUp = [0.8071906614968228, 0.00046011853910021307, 0.5902906269654395]
     renderView1.CameraParallelScale = 6.774639986020588
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [13.609066213065542, -0.4531025349827244, -21.12491736285597]
+    renderView1.CameraFocalPoint = [-1.8397653102874754, -0.0002174377441406233, 0.00017523765563968354]
+    renderView1.CameraViewUp = [0.8071906614968228, 0.00046011853910021307, 0.5902906269654395]
+    renderView1.CameraParallelScale = 6.774639986020588
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [13.609066213065542, -0.4531025349827244, -21.12491736285597]
+    renderView1.CameraFocalPoint = [-1.8397653102874754, -0.0002174377441406233, 0.00017523765563968354]
+    renderView1.CameraViewUp = [0.8071906614968228, 0.00046011853910021307, 0.5902906269654395]
+    renderView1.CameraParallelScale = 6.774639986020588
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [13.609066213065542, -0.4531025349827244, -21.12491736285597]
+    renderView1.CameraFocalPoint = [-1.8397653102874754, -0.0002174377441406233, 0.00017523765563968354]
+    renderView1.CameraViewUp = [0.8071906614968228, 0.00046011853910021307, 0.5902906269654395]
+    renderView1.CameraParallelScale = 6.774639986020588
+
+    # Rescale transfer function
+    activationLUT.RescaleTransferFunction(-0.004698578733950853, 242.50637817382812)
+
+    # Rescale transfer function
+    activationPWF.RescaleTransferFunction(-0.004698578733950853, 242.50637817382812)
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [13.609066213065542, -0.4531025349827244, -21.12491736285597]
+    renderView1.CameraFocalPoint = [-1.8397653102874754, -0.0002174377441406233, 0.00017523765563968354]
+    renderView1.CameraViewUp = [0.8071906614968228, 0.00046011853910021307, 0.5902906269654395]
+    renderView1.CameraParallelScale = 6.774639986020588
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [13.609066213065542, -0.4531025349827244, -21.12491736285597]
+    renderView1.CameraFocalPoint = [-1.8397653102874754, -0.0002174377441406233, 0.00017523765563968354]
+    renderView1.CameraViewUp = [0.8071906614968228, 0.00046011853910021307, 0.5902906269654395]
+    renderView1.CameraParallelScale = 6.774639986020588
 
     # get color legend/bar for activationLUT in view renderView1
     activationLUTColorBar = GetScalarBar(activationLUT, renderView1)
@@ -3906,7 +4723,8 @@ def save_ani_deformed_activation(fname_act, fname_disp, outname):
     renderView1.CameraParallelScale = 6.774639986020588
 
     # change scalar bar placement
-    activationLUTColorBar.Position = [0.8896543380573799, 0.021048218029350124]
+    activationLUTColorBar.Position = [0.6387037677151746, 0.6227253668763103]
+    activationLUTColorBar.ScalarBarLength = 0.32999999999999996
     # Adjust camera
 
     # current camera placement for renderView1
@@ -3917,52 +4735,10 @@ def save_ani_deformed_activation(fname_act, fname_disp, outname):
     # Adjust camera
 
     # current camera placement for renderView1
-    renderView1.CameraPosition = [-18.609813627269045, 11.186647982614469, -16.40833277158532]
-    renderView1.CameraFocalPoint = [-1.7266383847805484, -0.07841624644585307, 0.12036225781750175]
-    renderView1.CameraViewUp = [0.7635871339070862, 0.3305145051626268, -0.5547024885545995]
+    renderView1.CameraPosition = [13.609066213065542, -0.4531025349827244, -21.12491736285597]
+    renderView1.CameraFocalPoint = [-1.8397653102874754, -0.0002174377441406233, 0.00017523765563968354]
+    renderView1.CameraViewUp = [0.8071906614968228, 0.00046011853910021307, 0.5902906269654395]
     renderView1.CameraParallelScale = 6.774639986020588
-    # Adjust camera
-
-    # current camera placement for renderView1
-    renderView1.CameraPosition = [-18.609813627269045, 11.186647982614469, -16.40833277158532]
-    renderView1.CameraFocalPoint = [-1.7266383847805484, -0.07841624644585307, 0.12036225781750175]
-    renderView1.CameraViewUp = [0.7635871339070862, 0.3305145051626268, -0.5547024885545995]
-    renderView1.CameraParallelScale = 6.774639986020588
-
-    # Properties modified on renderView1
-    renderView1.CenterOfRotation = [-1.5625, 0.0, -1.590216487646103]
-    renderView1.CameraPosition = [-1.5625, 0.0, 19.763005504233327]
-    renderView1.CameraFocalPoint = [-1.5625, 0.0, -1.590216487646103]
-    renderView1.CameraViewUp = [1.0, 2.220446049250313e-16, 0.0]
-    renderView1.CameraParallelScale = 5.5266205258003795
-    # Adjust camera
-
-    # current camera placement for renderView1
-    renderView1.CameraPosition = [-1.5625, 0.0, 19.763005504233327]
-    renderView1.CameraFocalPoint = [-1.5625, 0.0, -1.590216487646103]
-    renderView1.CameraViewUp = [1.0, 2.220446049250313e-16, 0.0]
-    renderView1.CameraParallelScale = 5.5266205258003795
-
-    # Properties modified on renderView1
-    renderView1.CenterOfRotation = [-1.5599879622459412, 3.1113624572753906e-05, 0.0]
-    renderView1.CameraPosition = [16.309323544981513, 17.12210150863431, 0.16176197503508613]
-    renderView1.CameraFocalPoint = [-1.5599879622459427, 3.11136245735383e-05, 4.668121317989413e-18]
-    renderView1.CameraViewUp = [0.6918640928229762, -0.722008158198098, -0.005319450876782903]
-    renderView1.CameraParallelScale = 6.405464202365381
-    # Adjust camera
-
-    # current camera placement for renderView1
-    renderView1.CameraPosition = [16.309323544981513, 17.12210150863431, 0.16176197503508613]
-    renderView1.CameraFocalPoint = [-1.5599879622459427, 3.11136245735383e-05, 4.668121317989413e-18]
-    renderView1.CameraViewUp = [0.6918640928229762, -0.722008158198098, -0.005319450876782903]
-    renderView1.CameraParallelScale = 6.405464202365381
-    # Adjust camera
-
-    # current camera placement for renderView1
-    renderView1.CameraPosition = [16.309323544981513, 17.12210150863431, 0.16176197503508613]
-    renderView1.CameraFocalPoint = [-1.5599879622459427, 3.11136245735383e-05, 4.668121317989413e-18]
-    renderView1.CameraViewUp = [0.6918640928229762, -0.722008158198098, -0.005319450876782903]
-    renderView1.CameraParallelScale = 6.405464202365381
 
     # create a new 'Clip'
     clip1 = Clip(registrationName='Clip1', Input=warpByVector1)
@@ -3975,146 +4751,41 @@ def save_ani_deformed_activation(fname_act, fname_disp, outname):
     clip1.Exact = 0
 
     # init the 'Plane' selected for 'ClipType'
-    clip1.ClipType.Origin = [-1.6920201778411865, -0.00015974044799804688, -7.939338684082031e-05]
+    clip1.ClipType.Origin = [-1.6522657871246338, 0.00021028518676757812, -0.0002200603485107422]
     clip1.ClipType.Normal = [1.0, 0.0, 0.0]
     clip1.ClipType.Offset = 0.0
 
     # init the 'Plane' selected for 'HyperTreeGridClipper'
-    clip1.HyperTreeGridClipper.Origin = [-1.6920201778411865, -0.00015974044799804688, -7.939338684082031e-05]
+    clip1.HyperTreeGridClipper.Origin = [-1.6522657871246338, 0.00021028518676757812, -0.0002200603485107422]
     clip1.HyperTreeGridClipper.Normal = [1.0, 0.0, 0.0]
     clip1.HyperTreeGridClipper.Offset = 0.0
     # Adjust camera
 
     # current camera placement for renderView1
-    renderView1.CameraPosition = [16.309323544981513, 17.12210150863431, 0.16176197503508613]
-    renderView1.CameraFocalPoint = [-1.5599879622459427, 3.11136245735383e-05, 4.668121317989413e-18]
-    renderView1.CameraViewUp = [0.6918640928229762, -0.722008158198098, -0.005319450876782903]
-    renderView1.CameraParallelScale = 6.405464202365381
+    renderView1.CameraPosition = [13.609066213065542, -0.4531025349827244, -21.12491736285597]
+    renderView1.CameraFocalPoint = [-1.8397653102874754, -0.0002174377441406233, 0.00017523765563968354]
+    renderView1.CameraViewUp = [0.8071906614968228, 0.00046011853910021307, 0.5902906269654395]
+    renderView1.CameraParallelScale = 6.774639986020588
     # Adjust camera
 
     # current camera placement for renderView1
-    renderView1.CameraPosition = [16.309323544981513, 17.12210150863431, 0.16176197503508613]
-    renderView1.CameraFocalPoint = [-1.5599879622459427, 3.11136245735383e-05, 4.668121317989413e-18]
-    renderView1.CameraViewUp = [0.6918640928229762, -0.722008158198098, -0.005319450876782903]
-    renderView1.CameraParallelScale = 6.405464202365381
-    # Adjust camera
-
-    # current camera placement for renderView1
-    renderView1.CameraPosition = [16.309323544981513, 17.12210150863431, 0.16176197503508613]
-    renderView1.CameraFocalPoint = [-1.5599879622459427, 3.11136245735383e-05, 4.668121317989413e-18]
-    renderView1.CameraViewUp = [0.6918640928229762, -0.722008158198098, -0.005319450876782903]
-    renderView1.CameraParallelScale = 6.405464202365381
-    # Adjust camera
-
-    # current camera placement for renderView1
-    renderView1.CameraPosition = [16.309323544981513, 17.12210150863431, 0.16176197503508613]
-    renderView1.CameraFocalPoint = [-1.5599879622459427, 3.11136245735383e-05, 4.668121317989413e-18]
-    renderView1.CameraViewUp = [0.6918640928229762, -0.722008158198098, -0.005319450876782903]
-    renderView1.CameraParallelScale = 6.405464202365381
-
-    # Properties modified on renderView1
-    renderView1.CenterOfRotation = [-1.5625, 0.0, -1.590216487646103]
-    renderView1.CameraPosition = [-1.5625, 0.0, 19.763005504233327]
-    renderView1.CameraFocalPoint = [-1.5625, 0.0, -1.590216487646103]
-    renderView1.CameraViewUp = [1.0, 2.220446049250313e-16, 0.0]
-    renderView1.CameraParallelScale = 5.5266205258003795
-    # Adjust camera
-
-    # current camera placement for renderView1
-    renderView1.CameraPosition = [-1.5625, 0.0, 19.763005504233327]
-    renderView1.CameraFocalPoint = [-1.5625, 0.0, -1.590216487646103]
-    renderView1.CameraViewUp = [1.0, 2.220446049250313e-16, 0.0]
-    renderView1.CameraParallelScale = 5.5266205258003795
-    # Adjust camera
-
-    # current camera placement for renderView1
-    renderView1.CameraPosition = [-1.5625, 0.0, 19.763005504233327]
-    renderView1.CameraFocalPoint = [-1.5625, 0.0, -1.590216487646103]
-    renderView1.CameraViewUp = [1.0, 2.220446049250313e-16, 0.0]
-    renderView1.CameraParallelScale = 5.5266205258003795
-    # Adjust camera
-
-    # current camera placement for renderView1
-    renderView1.CameraPosition = [-1.5625, 0.0, 19.763005504233327]
-    renderView1.CameraFocalPoint = [-1.5625, 0.0, -1.590216487646103]
-    renderView1.CameraViewUp = [1.0, 2.220446049250313e-16, 0.0]
-    renderView1.CameraParallelScale = 5.5266205258003795
-
-    # Properties modified on renderView1
-    renderView1.CenterOfRotation = [-1.5625, 0.0, 0.0]
-    renderView1.CameraPosition = [17.39973890545381, 0.3221369373642374, 15.381237247145213]
-    renderView1.CameraFocalPoint = [-1.5625, 0.0, 0.0]
-    renderView1.CameraViewUp = [0.6298529936308681, 0.008400773694759368, -0.7766689342413299]
-    renderView1.CameraParallelScale = 6.319917701868932
-    # Adjust camera
-
-    # current camera placement for renderView1
-    renderView1.CameraPosition = [17.39973890545381, 0.3221369373642374, 15.381237247145213]
-    renderView1.CameraFocalPoint = [-1.5625, 0.0, 0.0]
-    renderView1.CameraViewUp = [0.6298529936308681, 0.008400773694759368, -0.7766689342413299]
-    renderView1.CameraParallelScale = 6.319917701868932
-    # Adjust camera
-
-    # current camera placement for renderView1
-    renderView1.CameraPosition = [17.39973890545381, 0.3221369373642374, 15.381237247145213]
-    renderView1.CameraFocalPoint = [-1.5625, 0.0, 0.0]
-    renderView1.CameraViewUp = [0.6298529936308681, 0.008400773694759368, -0.7766689342413299]
-    renderView1.CameraParallelScale = 6.319917701868932
-    # Adjust camera
-
-    # current camera placement for renderView1
-    renderView1.CameraPosition = [17.39973890545381, 0.3221369373642374, 15.381237247145213]
-    renderView1.CameraFocalPoint = [-1.5625, 0.0, 0.0]
-    renderView1.CameraViewUp = [0.6298529936308681, 0.008400773694759368, -0.7766689342413299]
-    renderView1.CameraParallelScale = 6.319917701868932
-
-    # Properties modified on renderView1
-    renderView1.CenterOfRotation = [-1.5599879622459412, 3.1113624572753906e-05, 0.0]
-    renderView1.CameraPosition = [16.309323544981513, 17.12210150863431, 0.16176197503508613]
-    renderView1.CameraFocalPoint = [-1.5599879622459427, 3.11136245735383e-05, 4.668121317989413e-18]
-    renderView1.CameraViewUp = [0.6918640928229762, -0.722008158198098, -0.005319450876782903]
-    renderView1.CameraParallelScale = 6.405464202365381
-    # Adjust camera
-
-    # current camera placement for renderView1
-    renderView1.CameraPosition = [16.309323544981513, 17.12210150863431, 0.16176197503508613]
-    renderView1.CameraFocalPoint = [-1.5599879622459427, 3.11136245735383e-05, 4.668121317989413e-18]
-    renderView1.CameraViewUp = [0.6918640928229762, -0.722008158198098, -0.005319450876782903]
-    renderView1.CameraParallelScale = 6.405464202365381
-
-    # Properties modified on renderView1
-    renderView1.CenterOfRotation = [-1.5625, 0.0, -1.590216487646103]
-    renderView1.CameraPosition = [-1.5625, 0.0, 19.763005504233327]
-    renderView1.CameraFocalPoint = [-1.5625, 0.0, -1.590216487646103]
-    renderView1.CameraViewUp = [1.0, 2.220446049250313e-16, 0.0]
-    renderView1.CameraParallelScale = 5.5266205258003795
-    # Adjust camera
-
-    # current camera placement for renderView1
-    renderView1.CameraPosition = [-1.5625, 0.0, 19.763005504233327]
-    renderView1.CameraFocalPoint = [-1.5625, 0.0, -1.590216487646103]
-    renderView1.CameraViewUp = [1.0, 2.220446049250313e-16, 0.0]
-    renderView1.CameraParallelScale = 5.5266205258003795
-    # Adjust camera
-
-    # current camera placement for renderView1
-    renderView1.CameraPosition = [-1.5625, 0.0, 19.763005504233327]
-    renderView1.CameraFocalPoint = [-1.5625, 0.0, -1.590216487646103]
-    renderView1.CameraViewUp = [1.0, 2.220446049250313e-16, 0.0]
-    renderView1.CameraParallelScale = 5.5266205258003795
+    renderView1.CameraPosition = [13.609066213065542, -0.4531025349827244, -21.12491736285597]
+    renderView1.CameraFocalPoint = [-1.8397653102874754, -0.0002174377441406233, 0.00017523765563968354]
+    renderView1.CameraViewUp = [0.8071906614968228, 0.00046011853910021307, 0.5902906269654395]
+    renderView1.CameraParallelScale = 6.774639986020588
 
     # toggle interactive widget visibility (only when running from the GUI)
     HideInteractiveWidgets(proxy=clip1.ClipType)
     # Adjust camera
 
     # current camera placement for renderView1
-    renderView1.CameraPosition = [-1.5625, 0.0, 19.763005504233327]
-    renderView1.CameraFocalPoint = [-1.5625, 0.0, -1.590216487646103]
-    renderView1.CameraViewUp = [1.0, 2.220446049250313e-16, 0.0]
-    renderView1.CameraParallelScale = 5.5266205258003795
+    renderView1.CameraPosition = [13.609066213065542, -0.4531025349827244, -21.12491736285597]
+    renderView1.CameraFocalPoint = [-1.8397653102874754, -0.0002174377441406233, 0.00017523765563968354]
+    renderView1.CameraViewUp = [0.8071906614968228, 0.00046011853910021307, 0.5902906269654395]
+    renderView1.CameraParallelScale = 6.774639986020588
 
     # Properties modified on clip1.ClipType
-    clip1.ClipType.Normal = [0.0, 0.0, 1.0]
+    clip1.ClipType.Origin = [clip_origin, 0.00021028518676757812, -0.0002200603485107422]
 
     # show data in view
     clip1Display = Show(clip1, renderView1, 'UnstructuredGridRepresentation')
@@ -4200,7 +4871,7 @@ def save_ani_deformed_activation(fname_act, fname_disp, outname):
     clip1Display.SelectOrientationVectors = 'Displacement'
     clip1Display.Scaling = 0
     clip1Display.ScaleMode = 'No Data Scaling Off'
-    clip1Display.ScaleFactor = 0.8263938903808594
+    clip1Display.ScaleFactor = 0.7941803932189941
     clip1Display.SelectScaleArray = 'Displacement'
     clip1Display.GlyphType = 'Arrow'
     clip1Display.UseGlyphTable = 0
@@ -4209,7 +4880,7 @@ def save_ani_deformed_activation(fname_act, fname_disp, outname):
     clip1Display.UseGlyphCullingAndLOD = 0
     clip1Display.LODValues = []
     clip1Display.ColorByLODIndex = 0
-    clip1Display.GaussianRadius = 0.04131969451904297
+    clip1Display.GaussianRadius = 0.03970901966094971
     clip1Display.ShaderPreset = 'Sphere'
     clip1Display.CustomTriangleScale = 3
     clip1Display.CustomShader = """ // This custom shader code define a gaussian blur
@@ -4251,7 +4922,7 @@ def save_ani_deformed_activation(fname_act, fname_disp, outname):
     clip1Display.SelectionPointLabelShadow = 0
     clip1Display.PolarAxes = 'Polar Axes Representation'
     clip1Display.ScalarOpacityFunction = activationPWF
-    clip1Display.ScalarOpacityUnitDistance = 0.531356814475039
+    clip1Display.ScalarOpacityUnitDistance = 0.5317323227970959
     clip1Display.UseSeparateOpacityArray = 0
     clip1Display.OpacityArrayName = ['POINTS', 'Displacement']
     clip1Display.OpacityComponent = 'X'
@@ -4303,11 +4974,11 @@ def save_ani_deformed_activation(fname_act, fname_disp, outname):
     clip1Display.GlyphType.Invert = 0
 
     # init the 'Piecewise Function' selected for 'ScaleTransferFunction'
-    clip1Display.ScaleTransferFunction.Points = [-0.3587955832481384, 0.0, 0.5, 0.0, 0.014920719899237156, 1.0, 0.5, 0.0]
+    clip1Display.ScaleTransferFunction.Points = [-0.28369444608688354, 0.0, 0.5, 0.0, -0.1369963138351956, 1.0, 0.5, 0.0]
     clip1Display.ScaleTransferFunction.UseLogScale = 0
 
     # init the 'Piecewise Function' selected for 'OpacityTransferFunction'
-    clip1Display.OpacityTransferFunction.Points = [-0.3587955832481384, 0.0, 0.5, 0.0, 0.014920719899237156, 1.0, 0.5, 0.0]
+    clip1Display.OpacityTransferFunction.Points = [-0.28369444608688354, 0.0, 0.5, 0.0, -0.1369963138351956, 1.0, 0.5, 0.0]
     clip1Display.OpacityTransferFunction.UseLogScale = 0
 
     # init the 'Grid Axes Representation' selected for 'DataAxesGrid'
@@ -4501,114 +5172,501 @@ def save_ani_deformed_activation(fname_act, fname_disp, outname):
     # Adjust camera
 
     # current camera placement for renderView1
-    renderView1.CameraPosition = [-1.5625, 0.0, 19.763005504233327]
-    renderView1.CameraFocalPoint = [-1.5625, 0.0, -1.590216487646103]
-    renderView1.CameraViewUp = [1.0, 2.220446049250313e-16, 0.0]
-    renderView1.CameraParallelScale = 5.5266205258003795
+    renderView1.CameraPosition = [13.609066213065542, -0.4531025349827244, -21.12491736285597]
+    renderView1.CameraFocalPoint = [-1.8397653102874754, -0.0002174377441406233, 0.00017523765563968354]
+    renderView1.CameraViewUp = [0.8071906614968228, 0.00046011853910021307, 0.5902906269654395]
+    renderView1.CameraParallelScale = 6.774639986020588
     # Adjust camera
 
     # current camera placement for renderView1
-    renderView1.CameraPosition = [-1.5625, 0.0, 19.763005504233327]
-    renderView1.CameraFocalPoint = [-1.5625, 0.0, -1.590216487646103]
-    renderView1.CameraViewUp = [1.0, 2.220446049250313e-16, 0.0]
-    renderView1.CameraParallelScale = 5.5266205258003795
+    renderView1.CameraPosition = [13.609066213065542, -0.4531025349827244, -21.12491736285597]
+    renderView1.CameraFocalPoint = [-1.8397653102874754, -0.0002174377441406233, 0.00017523765563968354]
+    renderView1.CameraViewUp = [0.8071906614968228, 0.00046011853910021307, 0.5902906269654395]
+    renderView1.CameraParallelScale = 6.774639986020588
     # Adjust camera
 
     # current camera placement for renderView1
-    renderView1.CameraPosition = [-1.5625, 0.0, 19.763005504233327]
-    renderView1.CameraFocalPoint = [-1.5625, 0.0, -1.590216487646103]
-    renderView1.CameraViewUp = [1.0, 2.220446049250313e-16, 0.0]
-    renderView1.CameraParallelScale = 5.5266205258003795
+    renderView1.CameraPosition = [13.609066213065542, -0.4531025349827244, -21.12491736285597]
+    renderView1.CameraFocalPoint = [-1.8397653102874754, -0.0002174377441406233, 0.00017523765563968354]
+    renderView1.CameraViewUp = [0.8071906614968228, 0.00046011853910021307, 0.5902906269654395]
+    renderView1.CameraParallelScale = 6.774639986020588
+
+    renderView1.ResetActiveCameraToNegativeX()
+
+    # reset view to fit data
+    renderView1.ResetCamera(False, 0.9)
     # Adjust camera
 
     # current camera placement for renderView1
-    renderView1.CameraPosition = [-1.5625, 0.0, 19.763005504233327]
-    renderView1.CameraFocalPoint = [-1.5625, 0.0, -1.590216487646103]
-    renderView1.CameraViewUp = [1.0, 2.220446049250313e-16, 0.0]
-    renderView1.CameraParallelScale = 5.5266205258003795
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
 
-    # change scalar bar placement
-    activationLUTColorBar.Position = [0.8225959211890771, 0.20763102725366878]
-    activationLUTColorBar.ScalarBarLength = 0.32999999999999985
+    # create a new 'Cell Data to Point Data'
+    cellDatatoPointData1 = CellDatatoPointData(registrationName='CellDatatoPointData1', Input=clip1)
+    cellDatatoPointData1.ProcessAllArrays = 1
+    cellDatatoPointData1.CellDataArraytoprocess = ['Activation']
+    cellDatatoPointData1.PassCellData = 0
+    cellDatatoPointData1.PieceInvariant = 0
     # Adjust camera
 
     # current camera placement for renderView1
-    renderView1.CameraPosition = [-1.5625, 0.0, 19.763005504233327]
-    renderView1.CameraFocalPoint = [-1.5625, 0.0, -1.590216487646103]
-    renderView1.CameraViewUp = [1.0, 2.220446049250313e-16, 0.0]
-    renderView1.CameraParallelScale = 5.5266205258003795
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+
+    # show data in view
+    cellDatatoPointData1Display = Show(cellDatatoPointData1, renderView1, 'UnstructuredGridRepresentation')
+
+    # trace defaults for the display properties.
+    cellDatatoPointData1Display.Selection = None
+    cellDatatoPointData1Display.Representation = 'Surface'
+    cellDatatoPointData1Display.ColorArrayName = [None, '']
+    cellDatatoPointData1Display.LookupTable = None
+    cellDatatoPointData1Display.MapScalars = 1
+    cellDatatoPointData1Display.MultiComponentsMapping = 0
+    cellDatatoPointData1Display.InterpolateScalarsBeforeMapping = 1
+    cellDatatoPointData1Display.UseNanColorForMissingArrays = 0
+    cellDatatoPointData1Display.Opacity = 1.0
+    cellDatatoPointData1Display.PointSize = 2.0
+    cellDatatoPointData1Display.LineWidth = 1.0
+    cellDatatoPointData1Display.RenderLinesAsTubes = 0
+    cellDatatoPointData1Display.RenderPointsAsSpheres = 0
+    cellDatatoPointData1Display.Interpolation = 'Gouraud'
+    cellDatatoPointData1Display.Specular = 0.0
+    cellDatatoPointData1Display.SpecularColor = [1.0, 1.0, 1.0]
+    cellDatatoPointData1Display.SpecularPower = 100.0
+    cellDatatoPointData1Display.Luminosity = 0.0
+    cellDatatoPointData1Display.Ambient = 0.0
+    cellDatatoPointData1Display.Diffuse = 1.0
+    cellDatatoPointData1Display.Roughness = 0.3
+    cellDatatoPointData1Display.Metallic = 0.0
+    cellDatatoPointData1Display.EdgeTint = [1.0, 1.0, 1.0]
+    cellDatatoPointData1Display.Anisotropy = 0.0
+    cellDatatoPointData1Display.AnisotropyRotation = 0.0
+    cellDatatoPointData1Display.BaseIOR = 1.5
+    cellDatatoPointData1Display.CoatStrength = 0.0
+    cellDatatoPointData1Display.CoatIOR = 2.0
+    cellDatatoPointData1Display.CoatRoughness = 0.0
+    cellDatatoPointData1Display.CoatColor = [1.0, 1.0, 1.0]
+    cellDatatoPointData1Display.SelectTCoordArray = 'None'
+    cellDatatoPointData1Display.SelectNormalArray = 'None'
+    cellDatatoPointData1Display.SelectTangentArray = 'None'
+    cellDatatoPointData1Display.Texture = None
+    cellDatatoPointData1Display.RepeatTextures = 1
+    cellDatatoPointData1Display.InterpolateTextures = 0
+    cellDatatoPointData1Display.SeamlessU = 0
+    cellDatatoPointData1Display.SeamlessV = 0
+    cellDatatoPointData1Display.UseMipmapTextures = 0
+    cellDatatoPointData1Display.ShowTexturesOnBackface = 1
+    cellDatatoPointData1Display.BaseColorTexture = None
+    cellDatatoPointData1Display.NormalTexture = None
+    cellDatatoPointData1Display.NormalScale = 1.0
+    cellDatatoPointData1Display.CoatNormalTexture = None
+    cellDatatoPointData1Display.CoatNormalScale = 1.0
+    cellDatatoPointData1Display.MaterialTexture = None
+    cellDatatoPointData1Display.OcclusionStrength = 1.0
+    cellDatatoPointData1Display.AnisotropyTexture = None
+    cellDatatoPointData1Display.EmissiveTexture = None
+    cellDatatoPointData1Display.EmissiveFactor = [1.0, 1.0, 1.0]
+    cellDatatoPointData1Display.FlipTextures = 0
+    cellDatatoPointData1Display.EdgeOpacity = 1.0
+    cellDatatoPointData1Display.BackfaceRepresentation = 'Follow Frontface'
+    cellDatatoPointData1Display.BackfaceAmbientColor = [1.0, 1.0, 1.0]
+    cellDatatoPointData1Display.BackfaceOpacity = 1.0
+    cellDatatoPointData1Display.Position = [0.0, 0.0, 0.0]
+    cellDatatoPointData1Display.Scale = [1.0, 1.0, 1.0]
+    cellDatatoPointData1Display.Orientation = [0.0, 0.0, 0.0]
+    cellDatatoPointData1Display.Origin = [0.0, 0.0, 0.0]
+    cellDatatoPointData1Display.CoordinateShiftScaleMethod = 'Always Auto Shift Scale'
+    cellDatatoPointData1Display.Pickable = 1
+    cellDatatoPointData1Display.Triangulate = 0
+    cellDatatoPointData1Display.UseShaderReplacements = 0
+    cellDatatoPointData1Display.ShaderReplacements = ''
+    cellDatatoPointData1Display.NonlinearSubdivisionLevel = 1
+    cellDatatoPointData1Display.MatchBoundariesIgnoringCellOrder = 0
+    cellDatatoPointData1Display.UseDataPartitions = 0
+    cellDatatoPointData1Display.OSPRayUseScaleArray = 'All Approximate'
+    cellDatatoPointData1Display.OSPRayScaleArray = 'Activation'
+    cellDatatoPointData1Display.OSPRayScaleFunction = 'Piecewise Function'
+    cellDatatoPointData1Display.OSPRayMaterial = 'None'
+    cellDatatoPointData1Display.Assembly = ''
+    cellDatatoPointData1Display.BlockSelectors = ['/']
+    cellDatatoPointData1Display.BlockColors = []
+    cellDatatoPointData1Display.BlockOpacities = []
+    cellDatatoPointData1Display.Orient = 0
+    cellDatatoPointData1Display.OrientationMode = 'Direction'
+    cellDatatoPointData1Display.SelectOrientationVectors = 'Displacement'
+    cellDatatoPointData1Display.Scaling = 0
+    cellDatatoPointData1Display.ScaleMode = 'No Data Scaling Off'
+    cellDatatoPointData1Display.ScaleFactor = 0.7941803932189941
+    cellDatatoPointData1Display.SelectScaleArray = 'Activation'
+    cellDatatoPointData1Display.GlyphType = 'Arrow'
+    cellDatatoPointData1Display.UseGlyphTable = 0
+    cellDatatoPointData1Display.GlyphTableIndexArray = 'Activation'
+    cellDatatoPointData1Display.UseCompositeGlyphTable = 0
+    cellDatatoPointData1Display.UseGlyphCullingAndLOD = 0
+    cellDatatoPointData1Display.LODValues = []
+    cellDatatoPointData1Display.ColorByLODIndex = 0
+    cellDatatoPointData1Display.GaussianRadius = 0.03970901966094971
+    cellDatatoPointData1Display.ShaderPreset = 'Sphere'
+    cellDatatoPointData1Display.CustomTriangleScale = 3
+    cellDatatoPointData1Display.CustomShader = """ // This custom shader code define a gaussian blur
+    // Please take a look into vtkSMPointGaussianRepresentation.cxx
+    // for other custom shader examples
+    //VTK::Color::Impl
+    float dist2 = dot(offsetVCVSOutput.xy,offsetVCVSOutput.xy);
+    float gaussian = exp(-0.5*dist2);
+    opacity = opacity*gaussian;
+    """
+    cellDatatoPointData1Display.Emissive = 0
+    cellDatatoPointData1Display.ScaleByArray = 0
+    cellDatatoPointData1Display.SetScaleArray = ['POINTS', 'Activation']
+    cellDatatoPointData1Display.ScaleArrayComponent = ''
+    cellDatatoPointData1Display.UseScaleFunction = 1
+    cellDatatoPointData1Display.ScaleTransferFunction = 'Piecewise Function'
+    cellDatatoPointData1Display.OpacityByArray = 0
+    cellDatatoPointData1Display.OpacityArray = ['POINTS', 'Activation']
+    cellDatatoPointData1Display.OpacityArrayComponent = ''
+    cellDatatoPointData1Display.OpacityTransferFunction = 'Piecewise Function'
+    cellDatatoPointData1Display.DataAxesGrid = 'Grid Axes Representation'
+    cellDatatoPointData1Display.SelectionCellLabelBold = 0
+    cellDatatoPointData1Display.SelectionCellLabelColor = [0.0, 1.0, 0.0]
+    cellDatatoPointData1Display.SelectionCellLabelFontFamily = 'Arial'
+    cellDatatoPointData1Display.SelectionCellLabelFontFile = ''
+    cellDatatoPointData1Display.SelectionCellLabelFontSize = 18
+    cellDatatoPointData1Display.SelectionCellLabelItalic = 0
+    cellDatatoPointData1Display.SelectionCellLabelJustification = 'Left'
+    cellDatatoPointData1Display.SelectionCellLabelOpacity = 1.0
+    cellDatatoPointData1Display.SelectionCellLabelShadow = 0
+    cellDatatoPointData1Display.SelectionPointLabelBold = 0
+    cellDatatoPointData1Display.SelectionPointLabelColor = [1.0, 1.0, 0.0]
+    cellDatatoPointData1Display.SelectionPointLabelFontFamily = 'Arial'
+    cellDatatoPointData1Display.SelectionPointLabelFontFile = ''
+    cellDatatoPointData1Display.SelectionPointLabelFontSize = 18
+    cellDatatoPointData1Display.SelectionPointLabelItalic = 0
+    cellDatatoPointData1Display.SelectionPointLabelJustification = 'Left'
+    cellDatatoPointData1Display.SelectionPointLabelOpacity = 1.0
+    cellDatatoPointData1Display.SelectionPointLabelShadow = 0
+    cellDatatoPointData1Display.PolarAxes = 'Polar Axes Representation'
+    cellDatatoPointData1Display.ScalarOpacityFunction = None
+    cellDatatoPointData1Display.ScalarOpacityUnitDistance = 0.5317323227970959
+    cellDatatoPointData1Display.UseSeparateOpacityArray = 0
+    cellDatatoPointData1Display.OpacityArrayName = ['POINTS', 'Activation']
+    cellDatatoPointData1Display.OpacityComponent = ''
+    cellDatatoPointData1Display.SelectMapper = 'Projected tetra'
+    cellDatatoPointData1Display.SamplingDimensions = [128, 128, 128]
+    cellDatatoPointData1Display.UseFloatingPointFrameBuffer = 1
+    cellDatatoPointData1Display.SelectInputVectors = ['POINTS', 'Displacement']
+    cellDatatoPointData1Display.NumberOfSteps = 40
+    cellDatatoPointData1Display.StepSize = 0.25
+    cellDatatoPointData1Display.NormalizeVectors = 1
+    cellDatatoPointData1Display.EnhancedLIC = 1
+    cellDatatoPointData1Display.ColorMode = 'Blend'
+    cellDatatoPointData1Display.LICIntensity = 0.8
+    cellDatatoPointData1Display.MapModeBias = 0.0
+    cellDatatoPointData1Display.EnhanceContrast = 'Off'
+    cellDatatoPointData1Display.LowLICContrastEnhancementFactor = 0.0
+    cellDatatoPointData1Display.HighLICContrastEnhancementFactor = 0.0
+    cellDatatoPointData1Display.LowColorContrastEnhancementFactor = 0.0
+    cellDatatoPointData1Display.HighColorContrastEnhancementFactor = 0.0
+    cellDatatoPointData1Display.AntiAlias = 0
+    cellDatatoPointData1Display.MaskOnSurface = 1
+    cellDatatoPointData1Display.MaskThreshold = 0.0
+    cellDatatoPointData1Display.MaskIntensity = 0.0
+    cellDatatoPointData1Display.MaskColor = [0.5, 0.5, 0.5]
+    cellDatatoPointData1Display.GenerateNoiseTexture = 0
+    cellDatatoPointData1Display.NoiseType = 'Gaussian'
+    cellDatatoPointData1Display.NoiseTextureSize = 128
+    cellDatatoPointData1Display.NoiseGrainSize = 2
+    cellDatatoPointData1Display.MinNoiseValue = 0.0
+    cellDatatoPointData1Display.MaxNoiseValue = 0.8
+    cellDatatoPointData1Display.NumberOfNoiseLevels = 1024
+    cellDatatoPointData1Display.ImpulseNoiseProbability = 1.0
+    cellDatatoPointData1Display.ImpulseNoiseBackgroundValue = 0.0
+    cellDatatoPointData1Display.NoiseGeneratorSeed = 1
+    cellDatatoPointData1Display.CompositeStrategy = 'AUTO'
+    cellDatatoPointData1Display.UseLICForLOD = 0
+    cellDatatoPointData1Display.WriteLog = ''
+
+    # init the 'Piecewise Function' selected for 'OSPRayScaleFunction'
+    cellDatatoPointData1Display.OSPRayScaleFunction.Points = [145.0, 0.0, 0.5, 0.0, 216.0, 1.0, 0.5, 0.0]
+    cellDatatoPointData1Display.OSPRayScaleFunction.UseLogScale = 0
+
+    # init the 'Arrow' selected for 'GlyphType'
+    cellDatatoPointData1Display.GlyphType.TipResolution = 6
+    cellDatatoPointData1Display.GlyphType.TipRadius = 0.1
+    cellDatatoPointData1Display.GlyphType.TipLength = 0.35
+    cellDatatoPointData1Display.GlyphType.ShaftResolution = 6
+    cellDatatoPointData1Display.GlyphType.ShaftRadius = 0.03
+    cellDatatoPointData1Display.GlyphType.Invert = 0
+
+    # init the 'Piecewise Function' selected for 'ScaleTransferFunction'
+    cellDatatoPointData1Display.ScaleTransferFunction.Points = [0.0, 0.0, 0.5, 0.0, 1.1757813367477812e-38, 1.0, 0.5, 0.0]
+    cellDatatoPointData1Display.ScaleTransferFunction.UseLogScale = 0
+
+    # init the 'Piecewise Function' selected for 'OpacityTransferFunction'
+    cellDatatoPointData1Display.OpacityTransferFunction.Points = [0.0, 0.0, 0.5, 0.0, 1.1757813367477812e-38, 1.0, 0.5, 0.0]
+    cellDatatoPointData1Display.OpacityTransferFunction.UseLogScale = 0
+
+    # init the 'Grid Axes Representation' selected for 'DataAxesGrid'
+    cellDatatoPointData1Display.DataAxesGrid.XTitle = 'X Axis'
+    cellDatatoPointData1Display.DataAxesGrid.YTitle = 'Y Axis'
+    cellDatatoPointData1Display.DataAxesGrid.ZTitle = 'Z Axis'
+    cellDatatoPointData1Display.DataAxesGrid.XTitleFontFamily = 'Arial'
+    cellDatatoPointData1Display.DataAxesGrid.XTitleFontFile = ''
+    cellDatatoPointData1Display.DataAxesGrid.XTitleBold = 0
+    cellDatatoPointData1Display.DataAxesGrid.XTitleItalic = 0
+    cellDatatoPointData1Display.DataAxesGrid.XTitleFontSize = 12
+    cellDatatoPointData1Display.DataAxesGrid.XTitleShadow = 0
+    cellDatatoPointData1Display.DataAxesGrid.XTitleOpacity = 1.0
+    cellDatatoPointData1Display.DataAxesGrid.YTitleFontFamily = 'Arial'
+    cellDatatoPointData1Display.DataAxesGrid.YTitleFontFile = ''
+    cellDatatoPointData1Display.DataAxesGrid.YTitleBold = 0
+    cellDatatoPointData1Display.DataAxesGrid.YTitleItalic = 0
+    cellDatatoPointData1Display.DataAxesGrid.YTitleFontSize = 12
+    cellDatatoPointData1Display.DataAxesGrid.YTitleShadow = 0
+    cellDatatoPointData1Display.DataAxesGrid.YTitleOpacity = 1.0
+    cellDatatoPointData1Display.DataAxesGrid.ZTitleFontFamily = 'Arial'
+    cellDatatoPointData1Display.DataAxesGrid.ZTitleFontFile = ''
+    cellDatatoPointData1Display.DataAxesGrid.ZTitleBold = 0
+    cellDatatoPointData1Display.DataAxesGrid.ZTitleItalic = 0
+    cellDatatoPointData1Display.DataAxesGrid.ZTitleFontSize = 12
+    cellDatatoPointData1Display.DataAxesGrid.ZTitleShadow = 0
+    cellDatatoPointData1Display.DataAxesGrid.ZTitleOpacity = 1.0
+    cellDatatoPointData1Display.DataAxesGrid.FacesToRender = 63
+    cellDatatoPointData1Display.DataAxesGrid.CullBackface = 0
+    cellDatatoPointData1Display.DataAxesGrid.CullFrontface = 1
+    cellDatatoPointData1Display.DataAxesGrid.ShowGrid = 0
+    cellDatatoPointData1Display.DataAxesGrid.ShowEdges = 1
+    cellDatatoPointData1Display.DataAxesGrid.ShowTicks = 1
+    cellDatatoPointData1Display.DataAxesGrid.LabelUniqueEdgesOnly = 1
+    cellDatatoPointData1Display.DataAxesGrid.AxesToLabel = 63
+    cellDatatoPointData1Display.DataAxesGrid.XLabelFontFamily = 'Arial'
+    cellDatatoPointData1Display.DataAxesGrid.XLabelFontFile = ''
+    cellDatatoPointData1Display.DataAxesGrid.XLabelBold = 0
+    cellDatatoPointData1Display.DataAxesGrid.XLabelItalic = 0
+    cellDatatoPointData1Display.DataAxesGrid.XLabelFontSize = 12
+    cellDatatoPointData1Display.DataAxesGrid.XLabelShadow = 0
+    cellDatatoPointData1Display.DataAxesGrid.XLabelOpacity = 1.0
+    cellDatatoPointData1Display.DataAxesGrid.YLabelFontFamily = 'Arial'
+    cellDatatoPointData1Display.DataAxesGrid.YLabelFontFile = ''
+    cellDatatoPointData1Display.DataAxesGrid.YLabelBold = 0
+    cellDatatoPointData1Display.DataAxesGrid.YLabelItalic = 0
+    cellDatatoPointData1Display.DataAxesGrid.YLabelFontSize = 12
+    cellDatatoPointData1Display.DataAxesGrid.YLabelShadow = 0
+    cellDatatoPointData1Display.DataAxesGrid.YLabelOpacity = 1.0
+    cellDatatoPointData1Display.DataAxesGrid.ZLabelFontFamily = 'Arial'
+    cellDatatoPointData1Display.DataAxesGrid.ZLabelFontFile = ''
+    cellDatatoPointData1Display.DataAxesGrid.ZLabelBold = 0
+    cellDatatoPointData1Display.DataAxesGrid.ZLabelItalic = 0
+    cellDatatoPointData1Display.DataAxesGrid.ZLabelFontSize = 12
+    cellDatatoPointData1Display.DataAxesGrid.ZLabelShadow = 0
+    cellDatatoPointData1Display.DataAxesGrid.ZLabelOpacity = 1.0
+    cellDatatoPointData1Display.DataAxesGrid.XAxisNotation = 'Mixed'
+    cellDatatoPointData1Display.DataAxesGrid.XAxisPrecision = 2
+    cellDatatoPointData1Display.DataAxesGrid.XAxisUseCustomLabels = 0
+    cellDatatoPointData1Display.DataAxesGrid.XAxisLabels = []
+    cellDatatoPointData1Display.DataAxesGrid.YAxisNotation = 'Mixed'
+    cellDatatoPointData1Display.DataAxesGrid.YAxisPrecision = 2
+    cellDatatoPointData1Display.DataAxesGrid.YAxisUseCustomLabels = 0
+    cellDatatoPointData1Display.DataAxesGrid.YAxisLabels = []
+    cellDatatoPointData1Display.DataAxesGrid.ZAxisNotation = 'Mixed'
+    cellDatatoPointData1Display.DataAxesGrid.ZAxisPrecision = 2
+    cellDatatoPointData1Display.DataAxesGrid.ZAxisUseCustomLabels = 0
+    cellDatatoPointData1Display.DataAxesGrid.ZAxisLabels = []
+    cellDatatoPointData1Display.DataAxesGrid.UseCustomBounds = 0
+    cellDatatoPointData1Display.DataAxesGrid.CustomBounds = [0.0, 1.0, 0.0, 1.0, 0.0, 1.0]
+
+    # init the 'Polar Axes Representation' selected for 'PolarAxes'
+    cellDatatoPointData1Display.PolarAxes.Visibility = 0
+    cellDatatoPointData1Display.PolarAxes.Translation = [0.0, 0.0, 0.0]
+    cellDatatoPointData1Display.PolarAxes.Scale = [1.0, 1.0, 1.0]
+    cellDatatoPointData1Display.PolarAxes.Orientation = [0.0, 0.0, 0.0]
+    cellDatatoPointData1Display.PolarAxes.EnableCustomBounds = [0, 0, 0]
+    cellDatatoPointData1Display.PolarAxes.CustomBounds = [0.0, 1.0, 0.0, 1.0, 0.0, 1.0]
+    cellDatatoPointData1Display.PolarAxes.EnableCustomRange = 0
+    cellDatatoPointData1Display.PolarAxes.CustomRange = [0.0, 1.0]
+    cellDatatoPointData1Display.PolarAxes.AutoPole = 1
+    cellDatatoPointData1Display.PolarAxes.PolarAxisVisibility = 1
+    cellDatatoPointData1Display.PolarAxes.RadialAxesVisibility = 1
+    cellDatatoPointData1Display.PolarAxes.DrawRadialGridlines = 1
+    cellDatatoPointData1Display.PolarAxes.PolarArcsVisibility = 1
+    cellDatatoPointData1Display.PolarAxes.DrawPolarArcsGridlines = 1
+    cellDatatoPointData1Display.PolarAxes.NumberOfRadialAxes = 0
+    cellDatatoPointData1Display.PolarAxes.DeltaAngleRadialAxes = 45.0
+    cellDatatoPointData1Display.PolarAxes.NumberOfPolarAxes = 5
+    cellDatatoPointData1Display.PolarAxes.DeltaRangePolarAxes = 0.0
+    cellDatatoPointData1Display.PolarAxes.CustomMinRadius = 1
+    cellDatatoPointData1Display.PolarAxes.MinimumRadius = 0.0
+    cellDatatoPointData1Display.PolarAxes.CustomAngles = 1
+    cellDatatoPointData1Display.PolarAxes.MinimumAngle = 0.0
+    cellDatatoPointData1Display.PolarAxes.MaximumAngle = 90.0
+    cellDatatoPointData1Display.PolarAxes.RadialAxesOriginToPolarAxis = 1
+    cellDatatoPointData1Display.PolarAxes.PolarArcResolutionPerDegree = 0.2
+    cellDatatoPointData1Display.PolarAxes.Ratio = 1.0
+    cellDatatoPointData1Display.PolarAxes.EnableOverallColor = 1
+    cellDatatoPointData1Display.PolarAxes.OverallColor = [1.0, 1.0, 1.0]
+    cellDatatoPointData1Display.PolarAxes.PolarAxisColor = [1.0, 1.0, 1.0]
+    cellDatatoPointData1Display.PolarAxes.PolarArcsColor = [1.0, 1.0, 1.0]
+    cellDatatoPointData1Display.PolarAxes.LastRadialAxisColor = [1.0, 1.0, 1.0]
+    cellDatatoPointData1Display.PolarAxes.SecondaryPolarArcsColor = [1.0, 1.0, 1.0]
+    cellDatatoPointData1Display.PolarAxes.SecondaryRadialAxesColor = [1.0, 1.0, 1.0]
+    cellDatatoPointData1Display.PolarAxes.PolarAxisTitleVisibility = 1
+    cellDatatoPointData1Display.PolarAxes.PolarAxisTitle = 'Radial Distance'
+    cellDatatoPointData1Display.PolarAxes.PolarAxisTitleLocation = 'Bottom'
+    cellDatatoPointData1Display.PolarAxes.PolarTitleOffset = [20.0, 20.0]
+    cellDatatoPointData1Display.PolarAxes.PolarLabelVisibility = 1
+    cellDatatoPointData1Display.PolarAxes.PolarLabelFormat = '%-#6.3g'
+    cellDatatoPointData1Display.PolarAxes.PolarLabelExponentLocation = 'Labels'
+    cellDatatoPointData1Display.PolarAxes.PolarLabelOffset = 10.0
+    cellDatatoPointData1Display.PolarAxes.PolarExponentOffset = 5.0
+    cellDatatoPointData1Display.PolarAxes.RadialTitleVisibility = 1
+    cellDatatoPointData1Display.PolarAxes.RadialTitleFormat = '%-#3.1f'
+    cellDatatoPointData1Display.PolarAxes.RadialTitleLocation = 'Bottom'
+    cellDatatoPointData1Display.PolarAxes.RadialTitleOffset = [20.0, 0.0]
+    cellDatatoPointData1Display.PolarAxes.RadialUnitsVisibility = 1
+    cellDatatoPointData1Display.PolarAxes.ScreenSize = 10.0
+    cellDatatoPointData1Display.PolarAxes.PolarAxisTitleOpacity = 1.0
+    cellDatatoPointData1Display.PolarAxes.PolarAxisTitleFontFamily = 'Arial'
+    cellDatatoPointData1Display.PolarAxes.PolarAxisTitleFontFile = ''
+    cellDatatoPointData1Display.PolarAxes.PolarAxisTitleBold = 0
+    cellDatatoPointData1Display.PolarAxes.PolarAxisTitleItalic = 0
+    cellDatatoPointData1Display.PolarAxes.PolarAxisTitleShadow = 0
+    cellDatatoPointData1Display.PolarAxes.PolarAxisTitleFontSize = 12
+    cellDatatoPointData1Display.PolarAxes.PolarAxisLabelOpacity = 1.0
+    cellDatatoPointData1Display.PolarAxes.PolarAxisLabelFontFamily = 'Arial'
+    cellDatatoPointData1Display.PolarAxes.PolarAxisLabelFontFile = ''
+    cellDatatoPointData1Display.PolarAxes.PolarAxisLabelBold = 0
+    cellDatatoPointData1Display.PolarAxes.PolarAxisLabelItalic = 0
+    cellDatatoPointData1Display.PolarAxes.PolarAxisLabelShadow = 0
+    cellDatatoPointData1Display.PolarAxes.PolarAxisLabelFontSize = 12
+    cellDatatoPointData1Display.PolarAxes.LastRadialAxisTextOpacity = 1.0
+    cellDatatoPointData1Display.PolarAxes.LastRadialAxisTextFontFamily = 'Arial'
+    cellDatatoPointData1Display.PolarAxes.LastRadialAxisTextFontFile = ''
+    cellDatatoPointData1Display.PolarAxes.LastRadialAxisTextBold = 0
+    cellDatatoPointData1Display.PolarAxes.LastRadialAxisTextItalic = 0
+    cellDatatoPointData1Display.PolarAxes.LastRadialAxisTextShadow = 0
+    cellDatatoPointData1Display.PolarAxes.LastRadialAxisTextFontSize = 12
+    cellDatatoPointData1Display.PolarAxes.SecondaryRadialAxesTextOpacity = 1.0
+    cellDatatoPointData1Display.PolarAxes.SecondaryRadialAxesTextFontFamily = 'Arial'
+    cellDatatoPointData1Display.PolarAxes.SecondaryRadialAxesTextFontFile = ''
+    cellDatatoPointData1Display.PolarAxes.SecondaryRadialAxesTextBold = 0
+    cellDatatoPointData1Display.PolarAxes.SecondaryRadialAxesTextItalic = 0
+    cellDatatoPointData1Display.PolarAxes.SecondaryRadialAxesTextShadow = 0
+    cellDatatoPointData1Display.PolarAxes.SecondaryRadialAxesTextFontSize = 12
+    cellDatatoPointData1Display.PolarAxes.EnableDistanceLOD = 1
+    cellDatatoPointData1Display.PolarAxes.DistanceLODThreshold = 0.7
+    cellDatatoPointData1Display.PolarAxes.EnableViewAngleLOD = 1
+    cellDatatoPointData1Display.PolarAxes.ViewAngleLODThreshold = 0.7
+    cellDatatoPointData1Display.PolarAxes.SmallestVisiblePolarAngle = 0.5
+    cellDatatoPointData1Display.PolarAxes.PolarTicksVisibility = 1
+    cellDatatoPointData1Display.PolarAxes.ArcTicksOriginToPolarAxis = 1
+    cellDatatoPointData1Display.PolarAxes.TickLocation = 'Both'
+    cellDatatoPointData1Display.PolarAxes.AxisTickVisibility = 1
+    cellDatatoPointData1Display.PolarAxes.AxisMinorTickVisibility = 0
+    cellDatatoPointData1Display.PolarAxes.AxisTickMatchesPolarAxes = 1
+    cellDatatoPointData1Display.PolarAxes.DeltaRangeMajor = 1.0
+    cellDatatoPointData1Display.PolarAxes.DeltaRangeMinor = 0.5
+    cellDatatoPointData1Display.PolarAxes.ArcTickVisibility = 1
+    cellDatatoPointData1Display.PolarAxes.ArcMinorTickVisibility = 0
+    cellDatatoPointData1Display.PolarAxes.ArcTickMatchesRadialAxes = 1
+    cellDatatoPointData1Display.PolarAxes.DeltaAngleMajor = 10.0
+    cellDatatoPointData1Display.PolarAxes.DeltaAngleMinor = 5.0
+    cellDatatoPointData1Display.PolarAxes.TickRatioRadiusSize = 0.02
+    cellDatatoPointData1Display.PolarAxes.PolarAxisMajorTickSize = 0.0
+    cellDatatoPointData1Display.PolarAxes.PolarAxisTickRatioSize = 0.3
+    cellDatatoPointData1Display.PolarAxes.PolarAxisMajorTickThickness = 1.0
+    cellDatatoPointData1Display.PolarAxes.PolarAxisTickRatioThickness = 0.5
+    cellDatatoPointData1Display.PolarAxes.LastRadialAxisMajorTickSize = 0.0
+    cellDatatoPointData1Display.PolarAxes.LastRadialAxisTickRatioSize = 0.3
+    cellDatatoPointData1Display.PolarAxes.LastRadialAxisMajorTickThickness = 1.0
+    cellDatatoPointData1Display.PolarAxes.LastRadialAxisTickRatioThickness = 0.5
+    cellDatatoPointData1Display.PolarAxes.ArcMajorTickSize = 0.0
+    cellDatatoPointData1Display.PolarAxes.ArcTickRatioSize = 0.3
+    cellDatatoPointData1Display.PolarAxes.ArcMajorTickThickness = 1.0
+    cellDatatoPointData1Display.PolarAxes.ArcTickRatioThickness = 0.5
+    cellDatatoPointData1Display.PolarAxes.Use2DMode = 0
+    cellDatatoPointData1Display.PolarAxes.UseLogAxis = 0
+
+    # hide data in view
+    Hide(clip1, renderView1)
+
+    # update the view to ensure updated data information
+    renderView1.Update()
     # Adjust camera
 
     # current camera placement for renderView1
-    renderView1.CameraPosition = [-21.61824108396462, -4.524886384853641, 4.176302584690653]
-    renderView1.CameraFocalPoint = [-1.5625000000000009, -2.4357443660438578e-18, -1.5902164876461027]
-    renderView1.CameraViewUp = [0.3127596878681064, -0.20404396557615398, 0.9276569612505488]
-    renderView1.CameraParallelScale = 5.5266205258003795
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
     # Adjust camera
 
     # current camera placement for renderView1
-    renderView1.CameraPosition = [-21.61824108396462, -4.524886384853641, 4.176302584690653]
-    renderView1.CameraFocalPoint = [-1.5625000000000009, -2.4357443660438578e-18, -1.5902164876461027]
-    renderView1.CameraViewUp = [0.3127596878681064, -0.20404396557615398, 0.9276569612505488]
-    renderView1.CameraParallelScale = 5.5266205258003795
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
 
-    # Properties modified on renderView1
-    renderView1.CameraPosition = [-1.5625, 0.0, 19.763005504233327]
-    renderView1.CameraFocalPoint = [-1.5625, 0.0, -1.590216487646103]
-    renderView1.CameraViewUp = [1.0, 2.220446049250313e-16, 0.0]
+    # set scalar coloring
+    ColorBy(cellDatatoPointData1Display, ('POINTS', 'Activation'))
+
+    # rescale color and/or opacity maps used to include current data range
+    cellDatatoPointData1Display.RescaleTransferFunctionToDataRange(True, False)
+
+    # show color bar/color legend
+    cellDatatoPointData1Display.SetScalarBarVisibility(renderView1, True)
     # Adjust camera
 
     # current camera placement for renderView1
-    renderView1.CameraPosition = [-1.5625, 0.0, 19.763005504233327]
-    renderView1.CameraFocalPoint = [-1.5625, 0.0, -1.590216487646103]
-    renderView1.CameraViewUp = [1.0, 2.220446049250313e-16, 0.0]
-    renderView1.CameraParallelScale = 5.5266205258003795
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
     # Adjust camera
 
     # current camera placement for renderView1
-    renderView1.CameraPosition = [-1.5625, 0.0, 19.763005504233327]
-    renderView1.CameraFocalPoint = [-1.5625, 0.0, -1.590216487646103]
-    renderView1.CameraViewUp = [1.0, 2.220446049250313e-16, 0.0]
-    renderView1.CameraParallelScale = 5.5266205258003795
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
     # Adjust camera
 
     # current camera placement for renderView1
-    renderView1.CameraPosition = [-1.5625, 0.0, 19.763005504233327]
-    renderView1.CameraFocalPoint = [-1.5625, 0.0, -1.590216487646103]
-    renderView1.CameraViewUp = [1.0, 2.220446049250313e-16, 0.0]
-    renderView1.CameraParallelScale = 5.5266205258003795
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+
+    # Rescale transfer function
+    activationLUT.RescaleTransferFunction(-0.004698578733950853, 242.50450134277344)
+
+    # Rescale transfer function
+    activationPWF.RescaleTransferFunction(-0.004698578733950853, 242.50450134277344)
     # Adjust camera
 
     # current camera placement for renderView1
-    renderView1.CameraPosition = [-1.5625, 0.0, 19.763005504233327]
-    renderView1.CameraFocalPoint = [-1.5625, 0.0, -1.590216487646103]
-    renderView1.CameraViewUp = [1.0, 2.220446049250313e-16, 0.0]
-    renderView1.CameraParallelScale = 5.5266205258003795
-
-    # change scalar bar placement
-    activationLUTColorBar.Position = [0.7023055651572762, 0.5787002096436059]
-    activationLUTColorBar.ScalarBarLength = 0.32999999999999985
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
     # Adjust camera
 
     # current camera placement for renderView1
-    renderView1.CameraPosition = [-1.5625, 0.0, 19.763005504233327]
-    renderView1.CameraFocalPoint = [-1.5625, 0.0, -1.590216487646103]
-    renderView1.CameraViewUp = [1.0, 2.220446049250313e-16, 0.0]
-    renderView1.CameraParallelScale = 5.5266205258003795
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
     # Adjust camera
 
     # current camera placement for renderView1
-    renderView1.CameraPosition = [-1.5625, 0.0, 19.763005504233327]
-    renderView1.CameraFocalPoint = [-1.5625, 0.0, -1.590216487646103]
-    renderView1.CameraViewUp = [1.0, 2.220446049250313e-16, 0.0]
-    renderView1.CameraParallelScale = 5.5266205258003795
-    # Adjust camera
-
-    # current camera placement for renderView1
-    renderView1.CameraPosition = [-1.5625, 0.0, 19.763005504233327]
-    renderView1.CameraFocalPoint = [-1.5625, 0.0, -1.590216487646103]
-    renderView1.CameraViewUp = [1.0, 2.220446049250313e-16, 0.0]
-    renderView1.CameraParallelScale = 5.5266205258003795
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
 
     # get layout
     layout1 = GetLayout()
@@ -4617,11 +5675,13 @@ def save_ani_deformed_activation(fname_act, fname_disp, outname):
     layout1.SetSize(2893, 954)
 
     # current camera placement for renderView1
-    renderView1.CameraPosition = [-1.5625, 0.0, 19.763005504233327]
-    renderView1.CameraFocalPoint = [-1.5625, 0.0, -1.590216487646103]
-    renderView1.CameraViewUp = [1.0, 2.220446049250313e-16, 0.0]
-    renderView1.CameraParallelScale = 5.5266205258003795
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
 
+    Hide(displacementxdmf, renderView1)
+    
     # save animation
     SaveAnimation(filename=outname, viewOrLayout=renderView1, location=16, ImageResolution=[2892, 952],
         FontScaling='Scale fonts proportionally',
@@ -4630,17 +5690,2056 @@ def save_ani_deformed_activation(fname_act, fname_disp, outname):
         TransparentBackground=0,
         FrameRate=30,
         FrameStride=1,
-        FrameWindow=[0, 279], 
+        FrameWindow=[0, 284], 
         # FFMPEG options
         Compression=1,
-        Quality='2'
-    )
+        Quality='2')
     # Adjust camera
+
     # current camera placement for renderView1
-    renderView1.CameraPosition = [-1.5625, 0.0, 19.763005504233327]
-    renderView1.CameraFocalPoint = [-1.5625, 0.0, -1.590216487646103]
-    renderView1.CameraViewUp = [1.0, 2.220446049250313e-16, 0.0]
-    renderView1.CameraParallelScale = 5.5266205258003795
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+
+    # set active source
+    SetActiveSource(clip1)
+
+    # hide data in view
+    Hide(cellDatatoPointData1, renderView1)
+
+    # show data in view
+    clip1Display = Show(clip1, renderView1, 'UnstructuredGridRepresentation')
+
+    # show color bar/color legend
+    clip1Display.SetScalarBarVisibility(renderView1, True)
+
+    # destroy cellDatatoPointData1
+    Delete(cellDatatoPointData1)
+    del cellDatatoPointData1
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
 
     # set active source
     SetActiveSource(warpByVector1)
@@ -4660,10 +7759,10 @@ def save_ani_deformed_activation(fname_act, fname_disp, outname):
     # Adjust camera
 
     # current camera placement for renderView1
-    renderView1.CameraPosition = [-1.5625, 0.0, 19.763005504233327]
-    renderView1.CameraFocalPoint = [-1.5625, 0.0, -1.590216487646103]
-    renderView1.CameraViewUp = [1.0, 2.220446049250313e-16, 0.0]
-    renderView1.CameraParallelScale = 5.5266205258003795
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
 
     # set active source
     SetActiveSource(appendAttributes1)
@@ -4680,19 +7779,22 @@ def save_ani_deformed_activation(fname_act, fname_disp, outname):
     # Adjust camera
 
     # current camera placement for renderView1
-    renderView1.CameraPosition = [-1.5625, 0.0, 19.763005504233327]
-    renderView1.CameraFocalPoint = [-1.5625, 0.0, -1.590216487646103]
-    renderView1.CameraViewUp = [1.0, 2.220446049250313e-16, 0.0]
-    renderView1.CameraParallelScale = 5.5266205258003795
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
 
     # set active source
-    SetActiveSource(displacementxdmf)
+    SetActiveSource(activation_resultsxdmf)
 
     # hide data in view
     Hide(appendAttributes1, renderView1)
 
     # show data in view
-    displacementxdmfDisplay = Show(displacementxdmf, renderView1, 'UnstructuredGridRepresentation')
+    activation_resultsxdmfDisplay = Show(activation_resultsxdmf, renderView1, 'UnstructuredGridRepresentation')
+
+    # show color bar/color legend
+    activation_resultsxdmfDisplay.SetScalarBarVisibility(renderView1, True)
 
     # destroy appendAttributes1
     Delete(appendAttributes1)
@@ -4700,21 +7802,10 @@ def save_ani_deformed_activation(fname_act, fname_disp, outname):
     # Adjust camera
 
     # current camera placement for renderView1
-    renderView1.CameraPosition = [-1.5625, 0.0, 19.763005504233327]
-    renderView1.CameraFocalPoint = [-1.5625, 0.0, -1.590216487646103]
-    renderView1.CameraViewUp = [1.0, 2.220446049250313e-16, 0.0]
-    renderView1.CameraParallelScale = 5.5266205258003795
-
-    # destroy displacementxdmf
-    Delete(displacementxdmf)
-    del displacementxdmf
-    # Adjust camera
-
-    # current camera placement for renderView1
-    renderView1.CameraPosition = [-1.5625, 0.0, 19.763005504233327]
-    renderView1.CameraFocalPoint = [-1.5625, 0.0, -1.590216487646103]
-    renderView1.CameraViewUp = [1.0, 2.220446049250313e-16, 0.0]
-    renderView1.CameraParallelScale = 5.5266205258003795
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
 
     # destroy activation_resultsxdmf
     Delete(activation_resultsxdmf)
@@ -4722,20 +7813,31 @@ def save_ani_deformed_activation(fname_act, fname_disp, outname):
     # Adjust camera
 
     # current camera placement for renderView1
-    renderView1.CameraPosition = [-1.5625, 0.0, 19.763005504233327]
-    renderView1.CameraFocalPoint = [-1.5625, 0.0, -1.590216487646103]
-    renderView1.CameraViewUp = [1.0, 2.220446049250313e-16, 0.0]
-    renderView1.CameraParallelScale = 5.5266205258003795
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
+
+    # destroy displacementxdmf
+    Delete(displacementxdmf)
+    del displacementxdmf
+    # Adjust camera
+
+    # current camera placement for renderView1
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
 
     # update animation scene based on data timesteps
     animationScene1.UpdateAnimationUsingDataTimeSteps()
     # Adjust camera
 
     # current camera placement for renderView1
-    renderView1.CameraPosition = [-1.5625, 0.0, 19.763005504233327]
-    renderView1.CameraFocalPoint = [-1.5625, 0.0, -1.590216487646103]
-    renderView1.CameraViewUp = [1.0, 2.220446049250313e-16, 0.0]
-    renderView1.CameraParallelScale = 5.5266205258003795
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
 
     #================================================================
     # addendum: following script captures some of the application
@@ -4752,10 +7854,10 @@ def save_ani_deformed_activation(fname_act, fname_disp, outname):
     # saving camera placements for views
 
     # current camera placement for renderView1
-    renderView1.CameraPosition = [-1.5625, 0.0, 19.763005504233327]
-    renderView1.CameraFocalPoint = [-1.5625, 0.0, -1.590216487646103]
-    renderView1.CameraViewUp = [1.0, 2.220446049250313e-16, 0.0]
-    renderView1.CameraParallelScale = 5.5266205258003795
+    renderView1.CameraPosition = [19.514307645521704, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraFocalPoint = [-3.3289607763290405, -0.0006878376007080078, -0.0002740621566772461]
+    renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+    renderView1.CameraParallelScale = 5.912272919963976
 
 
     ##--------------------------------------------
@@ -4816,10 +7918,12 @@ for folder_name in os.listdir(base_folder):
     # outname = os.path.join(base_outdir, "Fibers", f"{folder_name}_fibers.png")
     # # Run the plot_fibers function
     # plot_fibers(fname, outname)
+    print(f"start processing {folder_name} ...")
     fname_act = os.path.join(folder_path, "Activation_results.xdmf")
     fname_disp = os.path.join(folder_path, "displacement.xdmf")
     outname = os.path.join(base_outdir, "Animations",f"{folder_name}_deformed_act.avi")
     save_ani_deformed_activation(fname_act, fname_disp, outname)
-    
+    outname = os.path.join(base_outdir, "Animations",f"{folder_name}_deformed_act_cross.avi")
+    save_ani_deformed_activation_cross(fname_act, fname_disp, outname)
     
     print(f"Processed {folder_name} and saved output")
