@@ -97,6 +97,40 @@ def calculate_tow_index(ppeaks_ind, mid_ejection_ind=150):
     return tow_indices_percent
 
 
+def tow_map(ppeaks, num_long_segments, num_circ_segments, outdir, prominence, mid_ejection_ind, fname_suffix=""):
+    # Create a grid with num_circ_segments columns and num_long_segments rows
+    fig, ax = plt.subplots(figsize=(num_circ_segments, num_long_segments))
+        
+    for i in range(num_long_segments):  # Rows
+        for j in range(num_circ_segments):  # Columns
+            index = i * num_circ_segments + j  # Calculate the 1D index for the ppeaks list
+            
+            # Determine the color based on the values in ppeaks[index] relative to mid_ejection_ind
+            if ppeaks[index].size == 0:
+                color = 'gray'
+            elif np.all(ppeaks[index] < mid_ejection_ind):
+                color = 'yellow'
+            elif np.all(ppeaks[index] > mid_ejection_ind):
+                color = 'orange'
+            else:
+                color = 'red'
+                
+            rect = plt.Rectangle((j, num_long_segments - i - 1), 1, 1, color=color)
+            ax.add_patch(rect)
+    
+    ax.set_xlim(0, num_circ_segments)
+    ax.set_ylim(0, num_long_segments)
+    ax.set_aspect('equal')
+    
+    ax.axis('off')
+    
+    # Set filename suffix if provided
+    if fname_suffix:
+        fname_suffix = f"_{fname_suffix}"
+    output_path = outdir.as_posix() + f"/00_tow_map_{prominence}{fname_suffix}.png"
+    plt.savefig(output_path, bbox_inches='tight')
+    plt.close(fig)
+
 def export_results(outdir, ejection_fraction, tow_indices_percent,prominence, fname_suffix=""):
     outdir = Path(outdir)
     data = tow_indices_percent
@@ -180,6 +214,20 @@ def plot_valve_events_time(ax, time, AVO_index, AVC_index, MVO_index, MVC_index)
 def parse_arguments(args=None):
     parser = argparse.ArgumentParser()
     # Segmentation parameters
+    parser.add_argument(
+        "-c",
+        "--num_circ_segments",
+        default=72,
+        type=int,
+        help="The number of circumferential compartments per slice",
+    )
+    parser.add_argument(
+        "-l",
+        "--num_long_segments",
+        default=6,
+        type=int,
+        help="The number of slices (longitudinal)",
+    )
     # Output folder
     parser.add_argument(
         "-o",
@@ -215,6 +263,9 @@ def main(args=None) -> int:
     outdir = data_folder / f"{args.outdir}"
     outdir_plots = data_folder / f"{args.outdir}/plots_{prominence}"
     outdir_plots.mkdir(exist_ok=True, parents=True)
+    
+    num_long_segments = args.num_long_segments
+    num_circ_segments = args.num_circ_segments
 
     # loading circulation data
     fname = data_folder / "results_data.csv"
@@ -248,7 +299,7 @@ def main(args=None) -> int:
         fname = outdir_plots / f"comp_{i}.png"
         plt.savefig(fname=fname)
         plt.close()
-
+    tow_map(ppeaks_ind, num_long_segments, num_circ_segments, outdir, prominence, mid_ejection_ind)
     tow_indices_percent = calculate_tow_index(
         ppeaks_ind, mid_ejection_ind=mid_ejection_ind
     )
@@ -302,7 +353,7 @@ def main(args=None) -> int:
         fname = outdir_plots / f"comp_{i}.png"
         plt.savefig(fname=fname)
         plt.close()
-
+    tow_map(ppeaks_ind, num_long_segments, num_circ_segments, outdir, prominence, mid_ejection_ind, fname_suffix="circ")
     tow_indices_percent = calculate_tow_index(
         ppeaks_ind, mid_ejection_ind=mid_ejection_ind
     )
