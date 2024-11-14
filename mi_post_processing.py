@@ -10,6 +10,17 @@ from structlog import get_logger
 logger = get_logger()
 
 #%%
+def load_results(outdir, num_time_step=500, fname_suffix = ""):
+    outdir = Path(outdir)
+    if not fname_suffix=="":
+        fname_suffix = f"_{fname_suffix}"
+    data_ave = np.loadtxt(
+        outdir.as_posix() + f"/data_ave{fname_suffix}.csv", delimiter=",", skiprows=1
+    )
+    data_std = np.loadtxt(
+        outdir.as_posix() + f"/data_ave{fname_suffix}.csv", delimiter=",", skiprows=1
+    )
+    return data_ave, data_std
 
 def load_infarct_from_file(
     fname: Path, mesh: dolfin.mesh
@@ -129,6 +140,13 @@ def main(args=None) -> int:
     infarct_fname = data_folder / "RoI.xdmf"
     infarct_comp = compute_infarct_compartment(infarct_fname, geo)
     infarct_comp_slice = slice_data(infarct_comp, slice_no, num_circ_segments)
+    # loading strain data in fiber direction and slicing
+    outdir = data_folder / f"{args.outdir}"
+    data_ave, data_std = load_results(outdir)
+    time = data_ave[:, 0]
+    Ecc_ave = data_ave[:, 1:]
+    Ecc_ave_slice = slice_data(Ecc_ave, slice_no, num_circ_segments)
+    
     
 if __name__ == "__main__":
     main()
