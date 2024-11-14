@@ -328,8 +328,15 @@ class HeartModelPulse:
         a_function = dolfin.Function(V)        
         a_function.vector()[:] = self.material.parameters['a'] * self.infarct.vector()[:]
         self.material.parameters['a'] = a_function
-
-        return self.material
+        
+        return pulse.HolzapfelOgden(
+            activation=self.activation,
+            active_model="active_stress",
+            parameters=self.material.parameters,
+            f0=self.geometry.f0,
+            s0=self.geometry.s0,
+            n0=self.geometry.n0,
+        )
         
     def apply_bcs(self):
         bcs = pulse.BoundaryConditions(
