@@ -3,14 +3,14 @@ import subprocess
 from concurrent.futures import ThreadPoolExecutor
 
 # Define the base directory containing the folders
-base_directory = Path('/home/shared/01_results_24_11_06')
+base_directory = Path('/home/shared/01_results_24_11_14')
 
 # Define a function to create commands for a specific folder
 def create_commands(address):
     return [
-        # f'python3 TugOfWar/post_processing.py --data_folder "{address}" -o 72_6',
+        f'python3 TugOfWar/post_processing.py --data_folder "{address}" -o 72_6',
         f'python3 TugOfWar/peak_detection.py --data_folder "{address}" -o 72_6 -p 0.01',
-        f'python3 TugOfWar/peak_detection.py --data_folder "{address}" -o 72_6 -p 0.02',
+        # f'python3 TugOfWar/peak_detection.py --data_folder "{address}" -o 72_6 -p 0.02',
         f'python3 TugOfWar/peak_detection.py --data_folder "{address}" -o 72_6 -p 0.03'
     ]
 
