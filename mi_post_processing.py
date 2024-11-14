@@ -43,6 +43,17 @@ def compute_infarct_compartment(infarct_fname, geo):
             
     return infarct_comp
             
+def slice_data(data, slice_no, num_circ_segments):
+    n_i = (slice_no-1)*num_circ_segments
+    n_f = n_i + num_circ_segments
+    if len(data.shape) == 1:
+        return data[n_i:n_f]
+    elif len(data.shape) == 2:
+        return data[:, n_i:n_f]
+    else:
+        logger.error("Data input has 3 or more dimensions")
+        return 0
+    
             
 #%%
 def parse_arguments(args=None):
@@ -66,7 +77,7 @@ def parse_arguments(args=None):
     parser.add_argument(
         "-s",
         "--slice",
-        default=0,
+        default=5,
         type=int,
         help="The number of slice to be processed",
     )
@@ -105,7 +116,7 @@ def main(args=None) -> int:
     num_long_segments = args.num_long_segments
     num_circ_segments = args.num_circ_segments
 
-    slice = args.slice
+    slice_no = args.slice
     
     
     try:
@@ -117,7 +128,7 @@ def main(args=None) -> int:
         
     infarct_fname = data_folder / "RoI.xdmf"
     infarct_comp = compute_infarct_compartment(infarct_fname, geo)
-   
-
+    infarct_comp_slice = slice_data(infarct_comp, slice_no, num_circ_segments)
+    
 if __name__ == "__main__":
     main()
