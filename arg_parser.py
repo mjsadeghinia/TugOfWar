@@ -193,13 +193,13 @@ def parse_arguments(args=None):
     )
     parser.add_argument(
         "--systematic_resistance",
-        default=10,
+        default=35,
         type=float,
         help="The systematic resistance in the circulation model.",
     )
     parser.add_argument(
         "--systematic_compliance",
-        default=10,
+        default=5,
         type=float,
         help="The systematic compliance in the circulation model.",
     )
