@@ -133,7 +133,7 @@ def parse_arguments(args=None):
      # flag for using EP based modeling
     parser.add_argument(
         "--bz_thickness",
-        default=0.8,
+        default=0.0,
         type=float,
         help="The thickness of border zone",
     )
