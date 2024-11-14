@@ -2,14 +2,12 @@ from pathlib import Path
 import csv
 import matplotlib.pyplot as plt
 import matplotlib.lines as mlines
-import matplotlib.cm as cm
-import numpy as np
-import utils
+from matplotlib.cm import get_cmap
 
 def generate_color_map(results_dir, folder_list=None):
     """
     Generate a color map based on the folders in results_dir or a provided list of folders,
-    using the 'jet' colormap.
+    using distinct colormaps 'tab10' and 'tab20'.
     
     Args:
         results_dir (str): Path to the directory containing the folders.
@@ -20,10 +18,20 @@ def generate_color_map(results_dir, folder_list=None):
     """
     # Determine the folders to use
     folders = folder_list if folder_list else [f.name for f in Path(results_dir).iterdir() if f.is_dir()]
+    num_folders = len(folders)
     
-    # Generate the jet colormap and sample colors based on the number of folders
-    cmap = plt.get_cmap("Spectral")
-    colors = [cmap(i / (len(folders) - 1)) for i in range(len(folders))]
+    # Choose the colormap based on the number of folders
+    if num_folders <= 10:
+        cmap = get_cmap("tab10")
+        num_colors = cmap.N
+    elif num_folders <= 20:
+        cmap = get_cmap("tab20")
+        num_colors = cmap.N
+    else:
+        raise ValueError(f"The number of folders ({num_folders}) exceeds the combined distinct colors in tab10 and tab20 (20).")
+    
+    # Generate colors based on the number of folders
+    colors = [cmap(i / num_colors) for i in range(num_folders)]
     
     # Map each folder to a color
     color_map = {folder: colors[i] for i, folder in enumerate(folders)}
@@ -139,46 +147,14 @@ def plot_ejection_fraction_tow_index(results_dir, experiments_data, color_map, s
     plt.show()
 
 def main():
-    results_dir = "/home/shared/01_results_24_11_06"
+    results_dir = "/home/shared/01_results_24_11_14"
     color_map = generate_color_map(results_dir)
-    # breakpoint()
-    selected_experiments = ['0_fibers90', '0_fibers-60 ','0_fibers-30', '0_fibers0']
-    # color_map_level_0 = generate_color_map(results_dir, folder_list=selected_experiments)
+    selected_experiments = None
     save_path = 'PV_level_0.png'
     experiments_data = get_experiment_data(results_dir, selected_experiments)
     plot_pressure_volume(experiments_data, color_map, save_path)
     plot_ejection_fraction_tow_index(results_dir, experiments_data, color_map, selected_folders=selected_experiments, outname="EF_tow_level_0")
-
-    selected_experiments = ['1_ep', '0_fibers-30']
-    # color_map_level_1_1 = generate_color_map(results_dir, folder_list=selected_experiments)
-    save_path = 'PV_level_1_1.png'
-    experiments_data = get_experiment_data(results_dir, selected_experiments)
-    plot_pressure_volume(experiments_data, color_map, save_path)
-    plot_ejection_fraction_tow_index(results_dir, experiments_data, color_map, selected_folders=selected_experiments, outname="EF_tow_level_1_1")
-
-    selected_experiments = ['0_fibers-30', '0_fibers-60 ', '1_fibers-30to30' , '1_fibers-60to60']
-    # color_map_level_1_1 = generate_color_map(results_dir, folder_list=selected_experiments)
-    save_path = 'PV_level_1_2.png'
-    experiments_data = get_experiment_data(results_dir, selected_experiments)
-    plot_pressure_volume(experiments_data, color_map, save_path)
-    plot_ejection_fraction_tow_index(results_dir, experiments_data, color_map, selected_folders=selected_experiments, outname="EF_tow_level_1_2")
-
     
-    selected_experiments = ['0_fibers-30', '1_ep',  '1_fibers-60to60' , '2_fibers-30to30_ep']
-    # color_map_level_1_1 = generate_color_map(results_dir, folder_list=selected_experiments)
-    save_path = 'PV_level_2.png'
-    experiments_data = get_experiment_data(results_dir, selected_experiments)
-    plot_pressure_volume(experiments_data, color_map, save_path)
-    plot_ejection_fraction_tow_index(results_dir, experiments_data, color_map, selected_folders=selected_experiments, outname="EF_tow_level_2")
-
-    
-    
-
-    
-    
-    # plot_ejection_fraction_tow_index(results_dir, experiments_data, color_map, selected_folders=selected_experiments)
-
 if __name__ == "__main__":
     main()
     
-# ['0_fibers90', '0_fibers+60', '2_fibers-30to30_ep', '1_ep_git-', '1_fibers-30to30', '1_ep_git+', '1_ep', '0_fibers0', '1_ep_gil+', '1_fibers-60to60', '1_ep_gil-', '0_fibers-60 ', '0_fibers+30']
