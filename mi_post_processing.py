@@ -174,6 +174,11 @@ def plot_ring(ppeak_flags, infarct_comp_slice, save_path, num_circ_segments_new=
             ax.bar(x=(theta_start + theta_end) / 2, height=1, width=theta_end - theta_start,
                    facecolor='none', edgecolor='black', linewidth=1, align='center')
             
+    ax.bar(x=(np.pi), height=.5, width=np.pi*2,
+        facecolor='white', edgecolor='black', linewidth=1, align='center')
+    ax.bar(x=(np.pi), height=.499, width=np.pi*2,
+        facecolor='white', edgecolor='none', linewidth=0, align='center')
+    
     # Save the plot
     plt.savefig(save_path, bbox_inches='tight', dpi=300)
     plt.close()
