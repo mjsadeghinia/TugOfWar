@@ -125,15 +125,17 @@ def get_flag_value_for_peaks(peaks, mid_ejection_ind):
     else:
         return 3
 
-def plot_ring(ppeak_flags, infarct_comp_slice, save_path):
+def plot_ring(ppeak_flags, infarct_comp_slice, save_path, num_circ_segments_new=4):
     """
     Plots a ring with N segments, where N is the size of the input arrays.
     Adds a white circle in the center to make it a hollow ring.
+    Optionally adds another slice every `num_circ_segments_new` segments with a width of 4.
     
     Parameters:
     - ppeak_flags: 1D numpy array of size N with values 0, 1, 2, or 3.
     - infarct_comp_slice: 1D numpy array of size N with values 0 or 1.
     - save_path: File path to save the plot.
+    - num_circ_segments_new: Optional, draw an extra slice every `num_circ_segments_new` segments. Default is 4.
     """
     N = len(ppeak_flags)
     if len(infarct_comp_slice) != N:
@@ -166,6 +168,12 @@ def plot_ring(ppeak_flags, infarct_comp_slice, save_path):
         ax.bar(x=(theta_start + theta_end) / 2, height=1, width=theta_end - theta_start,
                color=color, edgecolor=edge_color, linewidth=2, align='center')
 
+        # Add extra slice every num_circ_segments_new segments
+        if i % num_circ_segments_new == 0:
+            theta_end = angles[i + num_circ_segments_new]
+            ax.bar(x=(theta_start + theta_end) / 2, height=1, width=theta_end - theta_start,
+                   facecolor='none', edgecolor='black', linewidth=1, align='center')
+            
     # Save the plot
     plt.savefig(save_path, bbox_inches='tight', dpi=300)
     plt.close()
