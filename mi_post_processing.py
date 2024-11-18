@@ -2,6 +2,8 @@ from pathlib import Path
 import numpy as np
 import matplotlib.pyplot as plt
 import argparse
+from scipy.signal import find_peaks
+from scipy.interpolate import splrep, splev
 
 import dolfin
 import geometry
@@ -64,8 +66,115 @@ def slice_data(data, slice_no, num_circ_segments):
     else:
         logger.error("Data input has 3 or more dimensions")
         return 0
+
+def extract_circ_results(fname):
+    data = np.loadtxt(fname, delimiter=",", skiprows=1)
+    ejection_indices = np.where(data[:, 5] > 0.0)[0]
+    # MVO and MVC is found based on ejection (outflow)
+    AVO_index = ejection_indices[0]
+    AVC_index = ejection_indices[-1]
+    mid_ejection_ind = ejection_indices[int(len(ejection_indices) / 2)]
+
+    # MVO and MVC is found based on atrium pressure with threshold of 1kpa
+    MVC_index = np.min(np.where(data[:, 3] > 1)[0])
+    MVO_index = np.max(np.where(data[AVC_index:, 3] < 1)[0]) + AVC_index
+
+    EDV = data[AVO_index - 1, 2]
+    ESV = data[AVC_index + 1, 2]
+    ejection_fraction = (EDV - ESV) / EDV
+
+    return (
+        ejection_fraction,
+        AVO_index,
+        AVC_index,
+        mid_ejection_ind,
+        MVO_index,
+        MVC_index,
+    )
+  
+def bspline_fit_and_extrapolate(data_x, data_y, extrapolate_factor=0.1):
+    # Fit B-spline to the data
+    tck = splrep(data_x, data_y, s=0)
+    # Extend the time series by 10%
+    extended_time = np.linspace(
+        data_x.min(),
+        data_x.max() * (1 + extrapolate_factor),
+        len(data_x) + int(len(data_x) * extrapolate_factor),
+    )
+    # Evaluate the B-spline over the extended time range
+    smoothed_data_y = splev(extended_time, tck)
+
+    return extended_time, smoothed_data_y
+ 
+def peak_detection(data, time, prominence=0.03):
+    extended_time, smoothed_data_y = bspline_fit_and_extrapolate(
+        time, data, extrapolate_factor=0.1
+    )
+    ppeaks_ind_data = find_peaks(smoothed_data_y, prominence=prominence)
+    npeaks_ind_data = find_peaks(-smoothed_data_y, prominence=prominence)
+    return ppeaks_ind_data[0], npeaks_ind_data[0]
+
+def get_flag_value_for_peaks(peaks, mid_ejection_ind):
+    # Determine the flag value based on the values in ppeaks[index] relative to mid_ejection_ind
+    if peaks.size == 0:
+        return 0
+    elif np.all(peaks < mid_ejection_ind):
+        return 1
+    elif np.all(peaks > mid_ejection_ind):
+        return 2
+    else:
+        return 3
+
+def plot_ring(ppeak_flags, infarct_comp_slice, save_path):
+    """
+    Plots a ring with N segments, where N is the size of the input arrays.
+    Adds a white circle in the center to make it a hollow ring.
     
-            
+    Parameters:
+    - ppeak_flags: 1D numpy array of size N with values 0, 1, 2, or 3.
+    - infarct_comp_slice: 1D numpy array of size N with values 0 or 1.
+    - save_path: File path to save the plot.
+    """
+    N = len(ppeak_flags)
+    if len(infarct_comp_slice) != N:
+        raise ValueError("ppeak_flags and infarct_comp_slice must have the same length.")
+
+    # Angles for the slices
+    angles = np.linspace(0, 2 * np.pi, N + 1)
+
+    # Colors for the face based on ppeak_flags
+    face_colors = ['grey' if flag == 0 else
+                   'yellow' if flag == 1 else
+                   'orange' if flag == 2 else
+                   'red' for flag in ppeak_flags]
+
+    # Create figure and axis
+    fig, ax = plt.subplots(figsize=(8, 8), subplot_kw={'projection': 'polar'})
+    ax.axis('off')  # Hide axes
+    ax.set_theta_zero_location('N')
+    ax.set_theta_direction(-1)
+    ax.set_yticks([])  # Hide the radial ticks
+
+    # Plot each segment
+    for i in range(N):
+        theta_start = angles[i]
+        theta_end = angles[i + 1]
+        color = face_colors[i]
+        edge_color = 'red' if infarct_comp_slice[i] == 1 else None
+
+        # Draw the slice
+        ax.bar(x=(theta_start + theta_end) / 2, height=1, width=theta_end - theta_start,
+               color=color, edgecolor=edge_color, linewidth=2, align='center')
+
+    # Save the plot
+    plt.savefig(save_path, bbox_inches='tight', dpi=300)
+    plt.close()
+
+
+
+
+
+       
 #%%
 def parse_arguments(args=None):
     parser = argparse.ArgumentParser()
@@ -91,6 +200,14 @@ def parse_arguments(args=None):
         default=5,
         type=int,
         help="The number of slice to be processed",
+    )
+    
+    parser.add_argument(
+        "-n",
+        "--num_comp",
+        default=4,
+        type=int,
+        help="The number of compartment for post processing segmentation",
     )
     
     # Output folder
@@ -126,6 +243,7 @@ def main(args=None) -> int:
     outdir = data_folder / f"{args.outdir}"
     num_long_segments = args.num_long_segments
     num_circ_segments = args.num_circ_segments
+    num_comp = args.num_comp
 
     slice_no = args.slice
     
@@ -136,7 +254,14 @@ def main(args=None) -> int:
     except Exception:
         geo_folder = Path(data_folder) / "lv_coarse"
         geo = geometry.load_geo_with_cfun(geo_folder)
-        
+
+    # loading circulation data
+    fname = data_folder / "results_data.csv"
+    ejection_fraction, AVO_ind, AVC_ind, mid_ejection_ind, MVO_index, MVC_index = (
+        extract_circ_results(fname)
+    )
+    
+    
     infarct_fname = data_folder / "RoI.xdmf"
     infarct_comp = compute_infarct_compartment(infarct_fname, geo)
     infarct_comp_slice = slice_data(infarct_comp, slice_no, num_circ_segments)
@@ -144,8 +269,21 @@ def main(args=None) -> int:
     outdir = data_folder / f"{args.outdir}"
     data_ave, data_std = load_results(outdir)
     time = data_ave[:, 0]
-    Ecc_ave = data_ave[:, 1:]
-    Ecc_ave_slice = slice_data(Ecc_ave, slice_no, num_circ_segments)
+    Eff_ave = data_ave[:, 1:]
+    Eff_ave_slice = slice_data(Eff_ave, slice_no, num_circ_segments)
+    num_circ_segments_new = int(num_circ_segments/num_comp)
+    ppeak_flags = []
+    npeak_flags = []
+    for i in range(num_circ_segments):
+        data = Eff_ave_slice[:,i]
+        ppeaks, npeaks = peak_detection(data, time, prominence=prominence)
+        ppeak_flag = get_flag_value_for_peaks(ppeaks, mid_ejection_ind)
+        npeak_flag = get_flag_value_for_peaks(npeaks, mid_ejection_ind)
+        ppeak_flags.append(ppeak_flag)
+        npeak_flags.append(npeak_flag)
+    
+    fname = outdir / f'mi_slice_{slice_no}'
+    plot_ring(ppeak_flags, infarct_comp_slice, fname.as_posix())
     
 if __name__ == "__main__":
     main()
