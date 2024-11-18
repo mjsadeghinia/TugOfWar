@@ -97,7 +97,7 @@ def parse_arguments(args=None):
     parser.add_argument(
         "-o",
         "--outdir",
-        default="peak_detection",
+        default="72_6",
         type=Path,
         help="The output directory in the folder_data",
     )
@@ -146,7 +146,6 @@ def main(args=None) -> int:
     time = data_ave[:, 0]
     Ecc_ave = data_ave[:, 1:]
     Ecc_ave_slice = slice_data(Ecc_ave, slice_no, num_circ_segments)
-    
     
 if __name__ == "__main__":
     main()
