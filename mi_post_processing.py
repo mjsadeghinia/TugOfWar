@@ -125,7 +125,7 @@ def get_flag_value_for_peaks(peaks, mid_ejection_ind):
     else:
         return 3
 
-def plot_ring(ppeak_flags, infarct_comp_slice, save_path, num_circ_segments_new=4):
+def plot_ring(ppeak_flags, infarct_comp_slice, save_path, num_segments_comp=4):
     """
     Plots a ring with N segments, where N is the size of the input arrays.
     Adds a white circle in the center to make it a hollow ring.
@@ -169,8 +169,8 @@ def plot_ring(ppeak_flags, infarct_comp_slice, save_path, num_circ_segments_new=
                color=color, edgecolor=edge_color, linewidth=2, align='center')
 
         # Add extra slice every num_circ_segments_new segments
-        if i % num_circ_segments_new == 0:
-            theta_end = angles[i + num_circ_segments_new]
+        if i % num_segments_comp == 0:
+            theta_end = angles[i + num_segments_comp]
             ax.bar(x=(theta_start + theta_end) / 2, height=1, width=theta_end - theta_start,
                    facecolor='none', edgecolor='black', linewidth=1, align='center')
             
@@ -218,7 +218,7 @@ def parse_arguments(args=None):
     
     parser.add_argument(
         "-n",
-        "--num_comp",
+        "--num_segments_comp",
         default=4,
         type=int,
         help="The number of compartment for post processing segmentation",
@@ -257,7 +257,7 @@ def main(args=None) -> int:
     outdir = data_folder / f"{args.outdir}"
     num_long_segments = args.num_long_segments
     num_circ_segments = args.num_circ_segments
-    num_comp = args.num_comp
+    num_segments_comp = args.num_segments_comp
 
     slice_nums = args.slice_nums
     
@@ -286,7 +286,7 @@ def main(args=None) -> int:
     Eff_ave = data_ave[:, 1:]
     for slice_num in slice_nums:
         Eff_ave_slice = slice_data(Eff_ave, slice_num, num_circ_segments)
-        num_circ_segments_new = int(num_circ_segments/num_comp)
+        
         ppeak_flags = []
         npeak_flags = []
         for i in range(num_circ_segments):
@@ -299,7 +299,8 @@ def main(args=None) -> int:
             
         infarct_comp_slice = slice_data(infarct_comp, slice_num, num_circ_segments)
         fname = outdir / f'mi_slice_{slice_num}'
-        plot_ring(ppeak_flags, infarct_comp_slice, fname.as_posix())
+        plot_ring(ppeak_flags, infarct_comp_slice, fname.as_posix(), num_segments_comp=num_segments_comp)
+        calculate_segment_towi(ppeak_flags, infarct_comp_slice, num_segments_comp)
     
 if __name__ == "__main__":
     main()
