@@ -196,9 +196,10 @@ def parse_arguments(args=None):
     
     parser.add_argument(
         "-s",
-        "--slice",
+        "--slice_nums",
         default=5,
         type=int,
+        nargs='+',
         help="The number of slice to be processed",
     )
     
@@ -245,7 +246,7 @@ def main(args=None) -> int:
     num_circ_segments = args.num_circ_segments
     num_comp = args.num_comp
 
-    slice_no = args.slice
+    slice_nums = args.slice_nums
     
     
     try:
@@ -264,26 +265,28 @@ def main(args=None) -> int:
     
     infarct_fname = data_folder / "RoI.xdmf"
     infarct_comp = compute_infarct_compartment(infarct_fname, geo)
-    infarct_comp_slice = slice_data(infarct_comp, slice_no, num_circ_segments)
+    
     # loading strain data in fiber direction and slicing
     outdir = data_folder / f"{args.outdir}"
     data_ave, data_std = load_results(outdir)
     time = data_ave[:, 0]
     Eff_ave = data_ave[:, 1:]
-    Eff_ave_slice = slice_data(Eff_ave, slice_no, num_circ_segments)
-    num_circ_segments_new = int(num_circ_segments/num_comp)
-    ppeak_flags = []
-    npeak_flags = []
-    for i in range(num_circ_segments):
-        data = Eff_ave_slice[:,i]
-        ppeaks, npeaks = peak_detection(data, time, prominence=prominence)
-        ppeak_flag = get_flag_value_for_peaks(ppeaks, mid_ejection_ind)
-        npeak_flag = get_flag_value_for_peaks(npeaks, mid_ejection_ind)
-        ppeak_flags.append(ppeak_flag)
-        npeak_flags.append(npeak_flag)
-    
-    fname = outdir / f'mi_slice_{slice_no}'
-    plot_ring(ppeak_flags, infarct_comp_slice, fname.as_posix())
+    for slice_num in slice_nums:
+        Eff_ave_slice = slice_data(Eff_ave, slice_num, num_circ_segments)
+        num_circ_segments_new = int(num_circ_segments/num_comp)
+        ppeak_flags = []
+        npeak_flags = []
+        for i in range(num_circ_segments):
+            data = Eff_ave_slice[:,i]
+            ppeaks, npeaks = peak_detection(data, time, prominence=prominence)
+            ppeak_flag = get_flag_value_for_peaks(ppeaks, mid_ejection_ind)
+            npeak_flag = get_flag_value_for_peaks(npeaks, mid_ejection_ind)
+            ppeak_flags.append(ppeak_flag)
+            npeak_flags.append(npeak_flag)
+            
+        infarct_comp_slice = slice_data(infarct_comp, slice_num, num_circ_segments)
+        fname = outdir / f'mi_slice_{slice_num}'
+        plot_ring(ppeak_flags, infarct_comp_slice, fname.as_posix())
     
 if __name__ == "__main__":
     main()
