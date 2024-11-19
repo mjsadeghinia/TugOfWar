@@ -101,6 +101,13 @@ def parse_arguments(args=None):
         help="The flag for whether adding Infarct region or not (ONLY IN EP MODEL)",
     )
     
+    # flag for using EP based modeling
+    parser.add_argument(
+        "-micomp",
+        action="store_true",
+        help="The flag for whether adding Infarct as an compartment (hardcoded) or based on mi center",
+    )
+    
     parser.add_argument(
         "--mi_center",
         default="(-1.47839,3.52203e-16,3.15815)",
