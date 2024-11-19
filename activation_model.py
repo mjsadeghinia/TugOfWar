@@ -730,7 +730,29 @@ def create_infarct(outdir, geo, mi_center, mi_severity, iz_radius, bz_thickness,
                 varname,
                 0.0,
                 dolfin.XDMFFile.Encoding.HDF5,
-                False,
+                True,
+            )
+    return infarct
+
+def create_compartment_infarct(outdir, geo, comp_list, save_flag = True, varname = "infarct", fname = "infarct"):
+    V = dolfin.FunctionSpace(geo.mesh, "DG", 0)
+    infarct = dolfin.Function(V)
+    infarct.vector()[:] = 0
+    segments = geo.cfun
+    num_segments = len(set(segments.array()))
+    cfuns = set(geo.cfun.array())
+    for c in comp_list:
+        num_elem = geometry.get_elems(geo.cfun, c)
+        infarct.vector()[num_elem] = 1
+    
+    if save_flag:
+        with dolfin.XDMFFile((outdir / f"{fname}.xdmf").as_posix()) as xdmf:
+            xdmf.write_checkpoint(
+                infarct,
+                varname,
+                0.0,
+                dolfin.XDMFFile.Encoding.HDF5,
+                True,
             )
     return infarct
 
@@ -771,6 +793,9 @@ def create_ep_activation_function(
     mi_severity,
     iz_radius,
     bz_thickness,
+    micomp_flag,
+    infarct_comp
+    
 ):
     try:
         activations = cmpute_ep_activation(
@@ -784,7 +809,10 @@ def create_ep_activation_function(
         )
         fname = outdir / "activation.xdmf"
         if mi_flag:
-            infarct = create_infarct(outdir, geo, mi_center, mi_severity, iz_radius, bz_thickness)
+            if micomp_flag:
+                infarct = create_compartment_infarct(outdir, geo, infarct_comp)
+            else:
+                infarct = create_infarct(outdir, geo, mi_center, mi_severity, iz_radius, bz_thickness)
             save_mi_activation_as_dolfin_function(geo, activations, infarct, fname)
         else:
             save_activation_as_dolfin_function(geo, activations, fname)

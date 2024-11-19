@@ -109,6 +109,14 @@ def parse_arguments(args=None):
     )
     
     parser.add_argument(
+        "--infarct_comp",
+        default=5,
+        type=int,
+        nargs='+',
+        help="The number of slice to be processed",
+    )
+    
+    parser.add_argument(
         "--mi_center",
         default="(-1.47839,3.52203e-16,3.15815)",
         type=str,
