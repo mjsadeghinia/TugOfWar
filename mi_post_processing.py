@@ -276,8 +276,11 @@ def main(args=None) -> int:
     )
     
     
-    infarct_fname = data_folder / "RoI.xdmf"
-    infarct_comp = compute_infarct_compartment(infarct_fname, geo)
+    infarct_fname = data_folder / "RoI.xdmf"   
+    if not infarct_fname.exists():
+        infarct_comp = np.zeros(int(num_circ_segments*num_long_segments))
+    else:    
+        infarct_comp = compute_infarct_compartment(infarct_fname, geo)
     
     # loading strain data in fiber direction and slicing
     outdir = data_folder / f"{args.outdir}"
