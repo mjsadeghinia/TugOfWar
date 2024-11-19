@@ -125,6 +125,20 @@ def get_flag_value_for_peaks(peaks, mid_ejection_ind):
     else:
         return 3
 
+def calculate_segment_towi(ppeak_flags, infarct_comp_slice, num_segments_comp):
+    num_comp = len(ppeak_flags)
+    if num_comp % num_segments_comp > 0:
+        logger.error('the current number of compartments are not dividable by the specified number of segments')
+    
+    towi = []
+    for i in range(int(num_comp/num_segments_comp)):
+        ind_i = num_segments_comp * i
+        inf_f = num_segments_comp * (i+1)
+        tow_cells = np.sum(infarct_comp_slice[ind_i:inf_f])
+        towi.append(tow_cells/num_segments_comp)        
+
+    return towi
+
 def plot_ring(ppeak_flags, infarct_comp_slice, save_path, num_segments_comp=4):
     """
     Plots a ring with N segments, where N is the size of the input arrays.
@@ -303,7 +317,7 @@ def main(args=None) -> int:
         infarct_comp_slice = slice_data(infarct_comp, slice_num, num_circ_segments)
         fname = outdir / f'mi_slice_{slice_num}'
         plot_ring(ppeak_flags, infarct_comp_slice, fname.as_posix(), num_segments_comp=num_segments_comp)
-        calculate_segment_towi(ppeak_flags, infarct_comp_slice, num_segments_comp)
+        towi = calculate_segment_towi(ppeak_flags, infarct_comp_slice, num_segments_comp)
     
 if __name__ == "__main__":
     main()
