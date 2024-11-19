@@ -134,7 +134,7 @@ def calculate_segment_towi(ppeak_flags, infarct_comp_slice, num_segments_comp):
     for i in range(int(num_comp/num_segments_comp)):
         ind_i = num_segments_comp * i
         inf_f = num_segments_comp * (i+1)
-        tow_cells = np.sum(infarct_comp_slice[ind_i:inf_f])
+        tow_cells = np.count_nonzero(ppeak_flags[ind_i:inf_f])
         towi.append(tow_cells/num_segments_comp)        
 
     return towi
@@ -197,8 +197,36 @@ def plot_ring(ppeak_flags, infarct_comp_slice, save_path, num_segments_comp=4):
     plt.savefig(save_path, bbox_inches='tight', dpi=300)
     plt.close()
 
+def segment_infarc(infarct_comp, num_segments_comp):
+    num_comp = len(infarct_comp)
+    num_segments = int(num_comp/num_segments_comp)
+    infarct_segments = np.zeros((num_segments))
+    for i in range(num_segments):
+        ind_i = i * num_segments_comp
+        ind_f = (i + 1) * num_segments_comp
+        if np.any(infarct_comp[ind_i:ind_f]):
+            infarct_segments[i] = 1
+    return infarct_segments
 
+def plot_towi(towi, infarct_segments, fname):
+    fig, ax = plt.subplots(figsize=(8, 8))
+    # # Generate colors based on infarct_segments
+    # colors = ['red' if seg == 1 else 'gray' for seg in infarct_segments]
 
+        # Multiply towi by 100
+    towi_scaled = [value * 100 for value in towi]
+    # infarct_segments_scaled = [value * 100 for value in infarct_segments]
+    # Plot with updated y-axis and x-ticks
+    plt.figure(figsize=(10, 2))
+    plt.bar(range(1, len(towi_scaled) + 1), infarct_segments * 100, edgecolor='none', facecolor = 'red', alpha = 0.5)
+    plt.bar(range(1, len(towi_scaled) + 1), towi_scaled, edgecolor='black', facecolor = 'none', hatch='//')
+    plt.xticks(range(1, len(towi_scaled) + 1))  # Set x-ticks as integers from 1 to len(towi)
+    plt.yticks(range(0, 101, 20))  # Set y-axis from 0 to 100 with intervals of 20
+    plt.ylim(0, 100)
+    plt.xlabel('Segments')
+    plt.ylabel('Tug of War index (%)')
+    plt.savefig(fname, bbox_inches='tight', dpi=300)
+    plt.close()
 
 
        
@@ -318,6 +346,10 @@ def main(args=None) -> int:
         fname = outdir / f'mi_slice_{slice_num}'
         plot_ring(ppeak_flags, infarct_comp_slice, fname.as_posix(), num_segments_comp=num_segments_comp)
         towi = calculate_segment_towi(ppeak_flags, infarct_comp_slice, num_segments_comp)
+        
+        infarct_segments = segment_infarc(infarct_comp_slice, num_segments_comp)
+        fname = outdir / f'towi_slice_{slice_num}'
+        plot_towi(towi, infarct_segments, fname.as_posix())
     
 if __name__ == "__main__":
     main()
