@@ -7886,9 +7886,9 @@ def save_ani_deformed_activation_cross(fname_act, fname_disp, outname, clip_orig
     ##--------------------------------------------
   
 # Define your base directory and output directory
-base_folder = "/Users/javad/Docker/TugOfWar/01_results_24_11_14/"
+base_folder = "/Users/javad/Docker/TugOfWar/01_results_24_11_21/"
 # base_folder = "/Users/javad/Docker/TugOfWar/test/"
-base_outdir = "/Users/javad/Library/CloudStorage/GoogleDrive-Sadeghinia@simula.no/My Drive/02_Tug of War/Presentations/Results_24_11_14/"
+base_outdir = "/Users/javad/Library/CloudStorage/GoogleDrive-Sadeghinia@simula.no/My Drive/02_Tug of War/Presentations/Results_24_11_21/"
 # Create the output directory if it doesn't exist
 outfolder = os.path.join(base_outdir, "Animations")
 os.makedirs(base_outdir, exist_ok=True)
@@ -7924,8 +7924,8 @@ for folder_name in os.listdir(base_folder):
     outname = os.path.join(base_outdir, "Animations",f"{folder_name}_deformed_act.avi")
     save_ani_deformed_activation(fname_act, fname_disp, outname)
     outname = os.path.join(base_outdir, "Animations",f"{folder_name}_deformed_act_cross_mid.avi")
-    save_ani_deformed_activation_cross(fname_act, fname_disp, outname)
+    save_ani_deformed_activation_cross(fname_act, fname_disp, outname, clip_origin=-1.59006)
     outname = os.path.join(base_outdir, "Animations",f"{folder_name}_deformed_act_cross_apex.avi")
-    save_ani_deformed_activation_cross(fname_act, fname_disp, outname, clip_origin=-3.84297)
+    save_ani_deformed_activation_cross(fname_act, fname_disp, outname, clip_origin=-3.90184)
     
     print(f"Processed {folder_name} and saved output")

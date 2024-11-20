@@ -94,7 +94,7 @@ def process_videos_in_folder(folder_path, rec_percentage):
 
 # Example usage
 if __name__ == "__main__":
-    folder_path = "/home/shared/01_results_24_11_14_videos"  # Replace with your folder path
+    folder_path = "/home/shared/01_results_24_11_21_videos"  # Replace with your folder path
     rectangle_percentage = (0.35, 0, 0.35, 0.9)  # Crop rectangle as percentages (x%, y%, width%, height%)
 
     process_videos_in_folder(folder_path, rectangle_percentage)
