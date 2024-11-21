@@ -61,8 +61,9 @@ def main(args=None) -> int:
     iz_radius = args.iz_radius                      # The number of cfun for infarct zone
     bz_thickness = args.bz_thickness                # The number of cfun for border  zone
     mi_center = ast.literal_eval(args.mi_center)
-    
+    micomp_flag = args.micomp
     infarct = None
+    infarct_comp = args.infarct_comp
     
     if ep_flag:
         EP_folder = outdir / "EP"
@@ -72,8 +73,11 @@ def main(args=None) -> int:
         geo = geometry.load_geo_with_cfun(geo_folder)
         activation_fname = outdir / "activation.xdmf"
         if mi_flag:
-            # Creating a region of interest by assuing mi_severity = 1 just for showing the region of interest
-            RoI = activation_model.create_infarct(outdir, geo, mi_center, 1, iz_radius, bz_thickness, save_flag=True, varname= "RoI", fname="RoI")
+            if micomp_flag:
+                RoI = activation_model.create_compartment_infarct(outdir, geo, infarct_comp, save_flag = True, varname= "RoI", fname="RoI")
+            else:
+                # Creating a region of interest by assuing mi_severity = 1 just for showing the region of interest
+                RoI = activation_model.create_infarct(outdir, geo, mi_center, 1, iz_radius, bz_thickness, save_flag=True, varname= "RoI", fname="RoI")
         if not activation_fname.exists():
             geo = geometry.recreate_cfun(geo, segmentation_schema, geo_folder)
             activation_fname = activation_model.create_ep_activation_function(
@@ -89,6 +93,8 @@ def main(args=None) -> int:
                 mi_severity,
                 iz_radius,
                 bz_thickness,
+                micomp_flag,
+                infarct_comp
             )
     else:
         ## Creating Geometry
@@ -111,7 +117,10 @@ def main(args=None) -> int:
         )
     # Model Generation
     # Creating a stiff_region by assuing mi_severity = 1 and bz_thickness=0, i.e. no borderzone
-    StiffRegion = activation_model.create_infarct(outdir, geo, mi_center, 1.0, iz_radius, 0.0, save_flag=True, varname= "StiffRegion", fname="StiffRegion")
+    if micomp_flag:
+        StiffRegion = activation_model.create_compartment_infarct(outdir, geo, infarct_comp, save_flag = True, varname= "StiffRegion", fname="StiffRegion")
+    else:
+        StiffRegion = activation_model.create_infarct(outdir, geo, mi_center, 1.0, iz_radius, 0.0, save_flag=True, varname= "StiffRegion", fname="StiffRegion")
     heart_model = HeartModelPulse(geo=geo, bc_params=bc_params, infarct = StiffRegion, infarct_stiffness_percent=infarct_stiffness_percent)
     circulation_model = CirculationModel(params=circ_params)
     collector = DataCollector(outdir=outdir, problem=heart_model)
