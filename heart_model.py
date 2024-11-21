@@ -412,15 +412,23 @@ class HeartModelPulse:
         return neumann_bc
 
     def _robin_bc(self):
+        robin_bc = []
         if self.bc_params["pericardium_spring"] > 0.0:
-            robin_bc = [
+            robin_bc_peri = [
                 pulse.RobinBC(
                     value=dolfin.Constant(self.bc_params["pericardium_spring"]),
                     marker=self.geometry.markers["EPI"][0],
                 ),
             ]
-        else:
-            robin_bc = []
+            robin_bc.append(robin_bc_peri)
+        if self.bc_params["base_spring"] > 0.0:
+            robin_bc_base = [
+                pulse.RobinBC(
+                    value=dolfin.Constant(self.bc_params["base_spring"]),
+                    marker=self.geometry.markers["BASE"][0],
+                ),
+            ]
+            robin_bc.append(robin_bc_base)
         return robin_bc
 
     def _get_geo_params(self, geo_params):
