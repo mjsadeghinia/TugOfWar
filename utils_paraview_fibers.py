@@ -7927,5 +7927,6 @@ for folder_name in os.listdir(base_folder):
     save_ani_deformed_activation_cross(fname_act, fname_disp, outname, clip_origin=-1.59006)
     outname = os.path.join(base_outdir, "Animations",f"{folder_name}_deformed_act_cross_apex.avi")
     save_ani_deformed_activation_cross(fname_act, fname_disp, outname, clip_origin=-3.90184)
-    
+    outname = os.path.join(base_outdir, "Animations",f"{folder_name}_deformed_act_cross_multislice.avi")
+    save_ani_deformed_activation_cross(fname_act, fname_disp, outname, clip_origin=-3.06505)
     print(f"Processed {folder_name} and saved output")
