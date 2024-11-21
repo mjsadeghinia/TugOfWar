@@ -350,6 +350,32 @@ def main(args=None) -> int:
         infarct_segments = segment_infarc(infarct_comp_slice, num_segments_comp)
         fname = outdir / f'towi_slice_{slice_num}'
         plot_towi(towi, infarct_segments, fname.as_posix())
+        
+        
+    data_ave, data_std = load_results(outdir, fname_suffix='circ')
+    time = data_ave[:, 0]
+    Eff_ave = data_ave[:, 1:]
+    for slice_num in slice_nums:
+        Eff_ave_slice = slice_data(Eff_ave, slice_num, num_circ_segments)
+        
+        ppeak_flags = []
+        npeak_flags = []
+        for i in range(num_circ_segments):
+            data = Eff_ave_slice[:,i]
+            ppeaks, npeaks = peak_detection(data, time, prominence=prominence)
+            ppeak_flag = get_flag_value_for_peaks(ppeaks, mid_ejection_ind)
+            npeak_flag = get_flag_value_for_peaks(npeaks, mid_ejection_ind)
+            ppeak_flags.append(ppeak_flag)
+            npeak_flags.append(npeak_flag)
+            
+        infarct_comp_slice = slice_data(infarct_comp, slice_num, num_circ_segments)
+        fname = outdir / f'mi_slice_{slice_num}_circ'
+        plot_ring(ppeak_flags, infarct_comp_slice, fname.as_posix(), num_segments_comp=num_segments_comp)
+        towi = calculate_segment_towi(ppeak_flags, infarct_comp_slice, num_segments_comp)
+        
+        infarct_segments = segment_infarc(infarct_comp_slice, num_segments_comp)
+        fname = outdir / f'towi_slice_{slice_num}_circ'
+        plot_towi(towi, infarct_segments, fname.as_posix())
     
 if __name__ == "__main__":
     main()
