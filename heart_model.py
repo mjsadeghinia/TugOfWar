@@ -341,7 +341,7 @@ class HeartModelPulse:
     def apply_bcs(self):
         bcs = pulse.BoundaryConditions(
             # dirichlet=(self._fixed_base_x,),
-            dirichlet=(self._moving_base,),
+            dirichlet=(self._free_base,),
             neumann=self._neumann_bc(),
             robin=self._robin_bc(),
         )
