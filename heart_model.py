@@ -377,7 +377,7 @@ class HeartModelPulse:
         )
         return endo_ring_fixed
     
-    def _moving_base(self, W):
+    def _free_base(self, W):
         return []
     
     def _fixed_base(self, W):
