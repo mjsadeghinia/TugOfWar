@@ -340,7 +340,8 @@ class HeartModelPulse:
         
     def apply_bcs(self):
         bcs = pulse.BoundaryConditions(
-            dirichlet=(self._fixed_base_x,),
+            # dirichlet=(self._fixed_base_x,),
+            dirichlet=(self._moving_base,),
             neumann=self._neumann_bc(),
             robin=self._robin_bc(),
         )
@@ -375,7 +376,10 @@ class HeartModelPulse:
             method="pointwise",
         )
         return endo_ring_fixed
-
+    
+    def _moving_base(self, W):
+        return []
+    
     def _fixed_base(self, W):
         V = W if W.sub(0).num_sub_spaces() == 0 else W.sub(0)
 
@@ -414,20 +418,16 @@ class HeartModelPulse:
     def _robin_bc(self):
         robin_bc = []
         if self.bc_params["pericardium_spring"] > 0.0:
-            robin_bc_peri = [
-                pulse.RobinBC(
+            robin_bc_peri = pulse.RobinBC(
                     value=dolfin.Constant(self.bc_params["pericardium_spring"]),
                     marker=self.geometry.markers["EPI"][0],
-                ),
-            ]
+                )
             robin_bc.append(robin_bc_peri)
         if self.bc_params["base_spring"] > 0.0:
-            robin_bc_base = [
-                pulse.RobinBC(
+            robin_bc_base = pulse.RobinBC(
                     value=dolfin.Constant(self.bc_params["base_spring"]),
                     marker=self.geometry.markers["BASE"][0],
-                ),
-            ]
+                )
             robin_bc.append(robin_bc_base)
         return robin_bc
 
