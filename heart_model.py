@@ -169,7 +169,7 @@ class HeartModelPulse:
         target_activation = dolfin.Function(self.activation.ufl_function_space())
         target_activation.vector()[:] = 0
         volume = self.compute_volume(activation_value=target_activation, pressure_value=atrium_pressure)
-        results_u, _ = self.problem.state.split(deepcopy=True)
+        results_u, _, r = self.problem.state.split(deepcopy=True)
         self.F0 = pulse.kinematics.DeformationGradient(results_u)
         return volume
 
@@ -183,7 +183,7 @@ class HeartModelPulse:
         """
         fname = outdir / "displacement.xdmf"
 
-        results_u, _ = self.problem.state.split(deepcopy=True)
+        results_u, _, r = self.problem.state.split(deepcopy=True)
         results_u.t = t
         with dolfin.XDMFFile(self.comm, fname.as_posix()) as xdmf:
             xdmf.write_checkpoint(
