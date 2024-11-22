@@ -417,6 +417,7 @@ class HeartModelPulse:
 
     def _robin_bc(self):
         robin_bc = []
+        robin_bc = []
         if self.bc_params["pericardium_spring"] > 0.0:
             robin_bc_peri = pulse.RobinBC(
                     value=dolfin.Constant(self.bc_params["pericardium_spring"]),
