@@ -37,13 +37,13 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Copy files of interest from experiment folders to an output directory.")
     parser.add_argument(
         "--root_dir",
-        default="/home/shared/01_results_24_11_14",
+        default="/home/shared/01_results_24_11_27",
         type=str,
         help='Path to the root directory containing experiment folders',
     )
     parser.add_argument(
         "--out_dir",
-        default="/home/shared/01_results_24_11_14_compare",
+        default="/home/shared/01_results_24_11_27_compare",
         type=str,
         help='Path to the output directory'
         )

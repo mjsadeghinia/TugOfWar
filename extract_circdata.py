@@ -53,8 +53,8 @@ def process_directory(input_dir, output_file):
 
 def main():
     parser = argparse.ArgumentParser(description="Process results_data.csv files in subdirectories.")
-    parser.add_argument("--input_dir", default="/home/shared/01_results_24_11_14", type=str, help="Directory containing subdirectories with results_data.csv")
-    parser.add_argument("--output_file", default="/home/shared/01_results_24_11_14_compare/timings.csv", type=str, help="Output CSV file path")
+    parser.add_argument("--input_dir", default="/home/shared/01_results_24_11_27", type=str, help="Directory containing subdirectories with results_data.csv")
+    parser.add_argument("--output_file", default="/home/shared/01_results_24_11_27_compare/timings.csv", type=str, help="Output CSV file path")
     args = parser.parse_args()
 
     process_directory(args.input_dir, args.output_file)
