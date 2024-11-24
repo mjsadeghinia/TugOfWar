@@ -285,7 +285,7 @@ def parse_arguments(args=None):
     parser.add_argument(
         "-p",
         "--prominence",
-        default=0.03,
+        default=0.001,
         type=float,
         help="The prominence for the peak detection algorithm",
     )
