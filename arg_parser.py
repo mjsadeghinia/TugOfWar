@@ -208,7 +208,7 @@ def parse_arguments(args=None):
     )
     parser.add_argument(
         "--systematic_resistance",
-        default=35,
+        default=30,
         type=float,
         help="The systematic resistance in the circulation model.",
     )
@@ -240,7 +240,7 @@ def parse_arguments(args=None):
     )
     parser.add_argument(
         "--base_spring",
-        default=0,
+        default=0.0001,
         type=float,
         help="HeartModel BC: The stiffness of the spring at the base.",
     )

@@ -7886,9 +7886,9 @@ def save_ani_deformed_activation_cross(fname_act, fname_disp, outname, clip_orig
     ##--------------------------------------------
   
 # Define your base directory and output directory
-base_folder = "/Users/javad/Docker/TugOfWar/01_results_24_11_21/"
+base_folder = "/Users/javad/Docker/TugOfWar/01_results_24_11_27/"
 # base_folder = "/Users/javad/Docker/TugOfWar/test/"
-base_outdir = "/Users/javad/Library/CloudStorage/GoogleDrive-Sadeghinia@simula.no/My Drive/02_Tug of War/Presentations/Results_24_11_21/"
+base_outdir = "/Users/javad/Library/CloudStorage/GoogleDrive-Sadeghinia@simula.no/My Drive/02_Tug of War/Presentations/Results_24_11_27/"
 # Create the output directory if it doesn't exist
 outfolder = os.path.join(base_outdir, "Animations")
 os.makedirs(base_outdir, exist_ok=True)

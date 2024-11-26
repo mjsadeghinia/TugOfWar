@@ -169,7 +169,7 @@ class HeartModelPulse:
         target_activation = dolfin.Function(self.activation.ufl_function_space())
         target_activation.vector()[:] = 0
         volume = self.compute_volume(activation_value=target_activation, pressure_value=atrium_pressure)
-        results_u, _ = self.problem.state.split(deepcopy=True)
+        results_u, _, r = self.problem.state.split(deepcopy=True)
         self.F0 = pulse.kinematics.DeformationGradient(results_u)
         return volume
 
@@ -183,7 +183,7 @@ class HeartModelPulse:
         """
         fname = outdir / "displacement.xdmf"
 
-        results_u, _ = self.problem.state.split(deepcopy=True)
+        results_u, _, r = self.problem.state.split(deepcopy=True)
         results_u.t = t
         with dolfin.XDMFFile(self.comm, fname.as_posix()) as xdmf:
             xdmf.write_checkpoint(
@@ -340,7 +340,8 @@ class HeartModelPulse:
         
     def apply_bcs(self):
         bcs = pulse.BoundaryConditions(
-            dirichlet=(self._fixed_base_x,),
+            # dirichlet=(self._fixed_base_x,),
+            dirichlet=(self._free_base,),
             neumann=self._neumann_bc(),
             robin=self._robin_bc(),
         )
@@ -375,7 +376,10 @@ class HeartModelPulse:
             method="pointwise",
         )
         return endo_ring_fixed
-
+    
+    def _free_base(self, W):
+        return []
+    
     def _fixed_base(self, W):
         V = W if W.sub(0).num_sub_spaces() == 0 else W.sub(0)
 
@@ -412,15 +416,20 @@ class HeartModelPulse:
         return neumann_bc
 
     def _robin_bc(self):
+        robin_bc = []
+        robin_bc = []
         if self.bc_params["pericardium_spring"] > 0.0:
-            robin_bc = [
-                pulse.RobinBC(
+            robin_bc_peri = pulse.RobinBC(
                     value=dolfin.Constant(self.bc_params["pericardium_spring"]),
                     marker=self.geometry.markers["EPI"][0],
-                ),
-            ]
-        else:
-            robin_bc = []
+                )
+            robin_bc.append(robin_bc_peri)
+        if self.bc_params["base_spring"] > 0.0:
+            robin_bc_base = pulse.RobinBC(
+                    value=dolfin.Constant(self.bc_params["base_spring"]),
+                    marker=self.geometry.markers["BASE"][0],
+                )
+            robin_bc.append(robin_bc_base)
         return robin_bc
 
     def _get_geo_params(self, geo_params):

@@ -65,13 +65,13 @@ def main(args=None) -> int:
     infarct = None
     infarct_comp = args.infarct_comp
     
+    activation_fname = outdir / "activation.xdmf"
     if ep_flag:
         EP_folder = outdir / "EP"
         if not EP_folder.exists():
             arg_parser.copy_epdir_to_outdir(args.epdir, outdir)
         geo_folder = outdir / "lv_coarse"
         geo = geometry.load_geo_with_cfun(geo_folder)
-        activation_fname = outdir / "activation.xdmf"
         if mi_flag:
             if micomp_flag:
                 RoI = activation_model.create_compartment_infarct(outdir, geo, infarct_comp, save_flag = True, varname= "RoI", fname="RoI")
@@ -103,18 +103,18 @@ def main(args=None) -> int:
             geo_params=geo_params,
             segmentation_schema=segmentation_schema,
         )
-
-        ## Creating Activation
-        activation_fname = activation_model.create_activation_function(
-            outdir,
-            geo,
-            segmentation_schema,
-            scenario,
-            activation_mode,
-            activation_variation,
-            num_time_step,
-            random_flag=True,
-        )
+        if not activation_fname.exists():
+            ## Creating Activation
+            activation_fname = activation_model.create_activation_function(
+                outdir,
+                geo,
+                segmentation_schema,
+                scenario,
+                activation_mode,
+                activation_variation,
+                num_time_step,
+                random_flag=True,
+            )
     # Model Generation
     # Creating a stiff_region by assuing mi_severity = 1 and bz_thickness=0, i.e. no borderzone
     if micomp_flag:

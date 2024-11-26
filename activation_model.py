@@ -42,8 +42,8 @@ def default_parameters() -> Dict[str, float]:
         t_sys=0.16,
         t_dias=0.484,
         gamma=0.005,
-        a_max=11,       # Faster rate to reduce IVC duration
-        a_min=-9,       # Slower relaxation to increase IVR duraion
+        a_max=9,       # Faster rate to reduce IVC duration
+        a_min=-11,       # Slower relaxation to increase IVR duraion
         sigma_0=250e3,
     )
 
@@ -669,6 +669,11 @@ def cmpute_ep_activation(
             t_span=(0.0, 1.0)
             ind = np.where(cell_MP>37)[0][0]
             activation_params = default_parameters()
+            if activation_mode == 'decay':
+                activation_params["a_min"] =  activation_variation
+            if activation_mode == 'rate':
+                activation_params["a_max"] = activation_variation
+                activation_params["a_min"] =  -25
             sys_duration = activation_params["t_dias"] - activation_params["t_sys"]
             activation_params["t_sys"] = t_eval[ind]
             activation_params["t_dias"] = activation_params["t_sys"] + sys_duration
