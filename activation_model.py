@@ -42,7 +42,7 @@ def default_parameters() -> Dict[str, float]:
         t_sys=0.16,
         t_dias=0.484,
         gamma=0.005,
-        a_max=5,       # Faster rate to reduce IVC duration
+        a_max=7,       # Faster rate to reduce IVC duration
         a_min=-13,       # Slower relaxation to increase IVR duraion
         sigma_0=250e3,
     )
