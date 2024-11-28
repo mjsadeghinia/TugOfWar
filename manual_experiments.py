@@ -76,27 +76,26 @@ commands_processor_9 = [
     # f'python3 TugOfWar/mi_post_processing.py -s 1 2 3 4 5 6  -f "{address9}" -p 0.001'
 ]
 
-# Function to run commands sequentially in each processor
+# Function to run commands sequentially
 def run_commands(commands):
     for command in commands:
         subprocess.run(command, shell=True, check=True)
 
-# Run each set of commands in parallel with up to 6 processors
-with ThreadPoolExecutor(max_workers=8) as executor:
-    futures = [
-        executor.submit(run_commands, commands_processor_1),
-        executor.submit(run_commands, commands_processor_2),
-        executor.submit(run_commands, commands_processor_3),
-        # executor.submit(run_commands, commands_processor_4),
-        executor.submit(run_commands, commands_processor_5),
-        executor.submit(run_commands, commands_processor_6),
-        executor.submit(run_commands, commands_processor_7),
-        executor.submit(run_commands, commands_processor_8),
-        executor.submit(run_commands, commands_processor_9),
-    ]
+# Define grouped commands to run in series
+command_groups = [
+    commands_processor_1 + commands_processor_2,
+    commands_processor_3 + commands_processor_4,
+    commands_processor_5 + commands_processor_6,
+    commands_processor_7 + commands_processor_8,
+    commands_processor_9
+]
+
+# Run grouped commands in parallel with up to 4 workers (each runs 2 sets of commands in series)
+with ThreadPoolExecutor(max_workers=4) as executor:
+    futures = [executor.submit(run_commands, group) for group in command_groups]
 
     # Wait for all futures to complete
     for future in futures:
         future.result()
-        
+
 print("All processes completed.")
