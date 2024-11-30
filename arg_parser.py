@@ -240,7 +240,7 @@ def parse_arguments(args=None):
     )
     parser.add_argument(
         "--base_spring",
-        default=0.001,
+        default=0.0001,
         type=float,
         help="HeartModel BC: The stiffness of the spring at the base.",
     )
