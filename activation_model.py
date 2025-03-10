@@ -676,12 +676,17 @@ def cmpute_ep_activation(
                 activation_params["a_max"] = activation_variation
                 activation_params["a_min"] =  -25
             
+            sys_duration = activation_params["t_dias"] - activation_params["t_sys"]
+            activation_params["t_sys"] = t_eval[ind]
+            
             if randomized_flag:
                 activation_params["a_min"] *= (np.random.random() + 0.5)        # [0.5-1.5] 50% increase or decrease
                 activation_params["sigma_0"] *= (np.random.random()/2.5 + 0.8)  # [0.8-1.2] 20% increase or decrease
+                activation_params["t_sys"]  *= (np.random.random() + 0.5)        # [0.5-1.5] 50% increase or decrease
+                # if activation_params["t_sys"]<0:
+                #     logger.warning('Systole time is negative, setting to 100 ms')
+                #     activation_params["t_sys"] = 0.1
             
-            sys_duration = activation_params["t_dias"] - activation_params["t_sys"]
-            activation_params["t_sys"] = t_eval[ind]
             activation_params["t_dias"] = activation_params["t_sys"] + sys_duration
             segment_activations[:, i] = (
                     activation_function(
