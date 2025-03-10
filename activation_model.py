@@ -654,6 +654,7 @@ def cmpute_ep_activation(
     activation_mode,
     activation_variation,
     num_time_step,
+    randomized_flag
 ):
     activations = []
     t_eval = np.linspace(0, 1, num_time_step)
@@ -674,6 +675,11 @@ def cmpute_ep_activation(
             if activation_mode == 'rate':
                 activation_params["a_max"] = activation_variation
                 activation_params["a_min"] =  -25
+            
+            if randomized_flag:
+                activation_params["a_min"] *= (np.random.random() + 0.5)        # [0.5-1.5] 50% increase or decrease
+                activation_params["sigma_0"] *= (np.random.random()/2.5 + 0.8)  # [0.8-1.2] 20% increase or decrease
+            
             sys_duration = activation_params["t_dias"] - activation_params["t_sys"]
             activation_params["t_sys"] = t_eval[ind]
             activation_params["t_dias"] = activation_params["t_sys"] + sys_duration
@@ -799,7 +805,8 @@ def create_ep_activation_function(
     iz_radius,
     bz_thickness,
     micomp_flag,
-    infarct_comp
+    infarct_comp,
+    randomized_flag
     
 ):
     try:
@@ -811,6 +818,7 @@ def create_ep_activation_function(
             activation_mode,
             activation_variation,
             num_time_step,
+            randomized_flag
         )
         fname = outdir / "activation.xdmf"
         if mi_flag:

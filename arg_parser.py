@@ -94,6 +94,14 @@ def parse_arguments(args=None):
         help="The flag for whether using electrophysiology model or not",
     )
     
+    # flag for using randomization to induce further LSL
+    parser.add_argument(
+        "-rn",
+        action="store_true",
+        help="The flag for whether using randomization to induce further LSL or not",
+    )
+    
+    
     # flag for using EP based modeling
     parser.add_argument(
         "-mi",

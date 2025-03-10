@@ -55,6 +55,7 @@ def main(args=None) -> int:
     num_time_step = args.num_time_step
     postprocessing_flag = args.postprocessing
     ep_flag = args.ep                               # Flag for using ep driven activation
+    randomized_flag = args.rn                       # Flag for using randomization for inducing further lsl
     mi_flag = args.mi                               # Flag for adding infarct
     mi_severity = args.mi_severity                  # Severity of MI; 1 = no contractile element 0 = normal tissue
     infarct_stiffness_percent = args.mi_stiffness   # Stiffness increase of MI region in percent, default 20
@@ -94,7 +95,8 @@ def main(args=None) -> int:
                 iz_radius,
                 bz_thickness,
                 micomp_flag,
-                infarct_comp
+                infarct_comp,
+                randomized_flag
             )
     else:
         ## Creating Geometry
