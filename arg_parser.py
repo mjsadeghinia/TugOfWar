@@ -102,6 +102,14 @@ def parse_arguments(args=None):
     )
     
     
+    # flag for using randomization to induce further LSL
+    parser.add_argument(
+        "-crn",
+        action="store_true",
+        help="The flag for whether using randomization at compartments level or not",
+    )
+    
+    
     # flag for using EP based modeling
     parser.add_argument(
         "-mi",

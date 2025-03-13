@@ -654,7 +654,8 @@ def cmpute_ep_activation(
     activation_mode,
     activation_variation,
     num_time_step,
-    randomized_flag
+    randomized_flag,
+    comp_randomized_flag
 ):
     activations = []
     t_eval = np.linspace(0, 1, num_time_step)
@@ -662,10 +663,21 @@ def cmpute_ep_activation(
     ep_folder = outdir / "EP"
     membrane_potential_fname = ep_folder / "membrane_potential_coarse.xdmf"
     membrane_potential_compartments = load_membrane_potential_compartment_from_file(geo_folder, membrane_potential_fname, num_time_step=num_time_step)
+    comp_num = len(membrane_potential_compartments)
+    offsets = stats.norm.ppf(np.linspace(0.01, 0.99, comp_num), loc=0.050, scale=0.020) #50 ms +- 20ms std
+        
     for n, MPs in tqdm(enumerate(membrane_potential_compartments), total=len(membrane_potential_compartments), desc="Creating Activation Curves for Compartments", ncols=100): 
         elems = geometry.get_elems(geo.cfun, n+1)
         num_elems = len(elems)
         segment_activations = np.zeros((len(t_eval), num_elems))
+        
+        if comp_randomized_flag:
+            offset_index = np.random.randint(0, len(offsets))
+            offset = offsets[offset_index]
+            offsets = np.delete(offsets, offset_index)
+        else:
+            offset = 0
+        
         for i, cell_MP in enumerate(MPs.T):
             t_span=(0.0, 1.0)
             ind = np.where(cell_MP>37)[0][0]
@@ -680,12 +692,10 @@ def cmpute_ep_activation(
             activation_params["t_sys"] = t_eval[ind]
             
             if randomized_flag:
-                #activation_params["a_min"] *= (np.random.random() + 0.5)        # [0.5-1.5] 50% increase or decrease
-                #activation_params["sigma_0"] *= (np.random.random()/2.5 + 0.8)  # [0.8-1.2] 20% increase or decrease
-                activation_params["t_sys"]  *= (np.random.random() + 0.5)        # [0.5-1.5] 50% increase or decrease
-                # if activation_params["t_sys"]<0:
-                #     logger.warning('Systole time is negative, setting to 100 ms')
-                #     activation_params["t_sys"] = 0.1
+                activation_params["a_min"] *= (np.random.random() + 0.5)         # [0.5-1.5] 50% increase or decrease
+                activation_params["sigma_0"] *= (np.random.random()/2.5 + 0.8)   # [0.8-1.2] 20% increase or decrease
+                activation_params["t_sys"]  *= (np.random.random() + 0.5)        # [0.5-1.5] 50% increase or decrease  
+                activation_params["t_sys"]  += offset                            # Added compartments offset
             
             activation_params["t_dias"] = activation_params["t_sys"] + sys_duration
             segment_activations[:, i] = (
@@ -811,7 +821,8 @@ def create_ep_activation_function(
     bz_thickness,
     micomp_flag,
     infarct_comp,
-    randomized_flag
+    randomized_flag,
+    comp_randomized_flag
     
 ):
     try:
@@ -823,7 +834,8 @@ def create_ep_activation_function(
             activation_mode,
             activation_variation,
             num_time_step,
-            randomized_flag
+            randomized_flag,
+            comp_randomized_flag
         )
         fname = outdir / "activation.xdmf"
         if mi_flag:
