@@ -655,7 +655,8 @@ def cmpute_ep_activation(
     activation_variation,
     num_time_step,
     randomized_flag,
-    comp_randomized_flag
+    comp_randomized_flag,
+    comp_randomized_std
 ):
     activations = []
     t_eval = np.linspace(0, 1, num_time_step)
@@ -664,8 +665,10 @@ def cmpute_ep_activation(
     membrane_potential_fname = ep_folder / "membrane_potential_coarse.xdmf"
     membrane_potential_compartments = load_membrane_potential_compartment_from_file(geo_folder, membrane_potential_fname, num_time_step=num_time_step)
     comp_num = len(membrane_potential_compartments)
-    offsets = stats.norm.ppf(np.linspace(0.01, 0.99, comp_num), loc=0.050, scale=0.020) #50 ms +- 20ms std
-        
+    offsets = stats.norm.ppf(np.linspace(0.01, 0.99, comp_num), loc=0.10, scale=comp_randomized_std) #100 ms +- comp_randomized_std second std
+    #plt.hist(offsets*1000, label='STD 50 ms')
+    #plt.savefig('Comparment Delay Dist.png')   
+    #breakpoint()
     for n, MPs in tqdm(enumerate(membrane_potential_compartments), total=len(membrane_potential_compartments), desc="Creating Activation Curves for Compartments", ncols=100): 
         elems = geometry.get_elems(geo.cfun, n+1)
         num_elems = len(elems)
@@ -676,7 +679,7 @@ def cmpute_ep_activation(
             offset = offsets[offset_index]
             offsets = np.delete(offsets, offset_index)
         else:
-            offset = 0
+            offset = 0.10
         
         for i, cell_MP in enumerate(MPs.T):
             t_span=(0.0, 1.0)
@@ -695,7 +698,8 @@ def cmpute_ep_activation(
                 activation_params["a_min"] *= (np.random.random() + 0.5)         # [0.5-1.5] 50% increase or decrease
                 activation_params["sigma_0"] *= (np.random.random()/2.5 + 0.8)   # [0.8-1.2] 20% increase or decrease
                 activation_params["t_sys"]  *= (np.random.random() + 0.5)        # [0.5-1.5] 50% increase or decrease  
-                activation_params["t_sys"]  += offset                            # Added compartments offset
+            
+            activation_params["t_sys"]  += offset                            # Added compartments offset, in case of cnr = False, it adds only the fixed average value 
             
             activation_params["t_dias"] = activation_params["t_sys"] + sys_duration
             segment_activations[:, i] = (
@@ -822,7 +826,8 @@ def create_ep_activation_function(
     micomp_flag,
     infarct_comp,
     randomized_flag,
-    comp_randomized_flag
+    comp_randomized_flag,
+    comp_randomized_std
     
 ):
     try:
@@ -835,7 +840,8 @@ def create_ep_activation_function(
             activation_variation,
             num_time_step,
             randomized_flag,
-            comp_randomized_flag
+            comp_randomized_flag,
+            comp_randomized_std
         )
         fname = outdir / "activation.xdmf"
         if mi_flag:

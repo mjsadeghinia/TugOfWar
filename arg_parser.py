@@ -109,6 +109,14 @@ def parse_arguments(args=None):
         help="The flag for whether using randomization at compartments level or not",
     )
     
+     # flag for using randomization to induce further LSL
+    parser.add_argument(
+        "--crn_std",
+        default=0.02,
+        type=float,
+        help="The std for the compartment randomization distribution in seconds, default = 0.02",
+    )
+    
     
     # flag for using EP based modeling
     parser.add_argument(
