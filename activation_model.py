@@ -865,7 +865,48 @@ def create_ep_activation_function(
         logger.error(f"Failed to create activation function: {e}")
         raise
     
-    
+def plot_ep_activation_all_compartments(
+    segmentation_schema: dict,
+    outdir: str,
+    geo_folder: str,
+    activation_fname: str,
+    num_time_step: int = 1000,
+    fname_prefix: str = 'Activation',
+):
+    num_compartment = int(segmentation_schema["num_circ_segments"]*segmentation_schema["num_long_segments"])
+    outdir = Path(outdir)
+    activation_compartments = load_activation_compartment_from_file(
+        geo_folder, activation_fname, num_time_step
+    )
+    t_end = activation_compartments[0].shape[0]
+    t_values = np.linspace(0, t_end / num_time_step, t_end)
+    fig_all, ax_all = plt.subplots(figsize=(8, 6))
+    for compartment_num in tqdm(range(num_compartment), total=num_compartment, desc="Plotting Activation Curves for Compartments", ncols=100) :
+        fig, ax = plt.subplots(figsize=(8, 6))
+        num_elem = activation_compartments[compartment_num].shape[1]
+        for n in range(num_elem):
+            activation = activation_compartments[compartment_num][:,n]
+            ax_all.plot(t_values, activation, "k", linewidth=0.03)
+            ax.plot(t_values, activation, "k", linewidth=0.03)
+            ax.set_xlabel("Normalized time (-)")
+            ax.set_ylabel("Activation Parameter (kPa)")
+            ax.set_xlim([0, 1])
+        ax.grid(True)
+        fname = outdir / f"{fname_prefix}_compartment_{compartment_num+1}"
+        fig.savefig(fname=fname)
+        plt.close(fig)
+        
+    ax_all.plot(t_values, activation, "k", linewidth=0.03)
+    ax_all.set_xlabel("Normalized time (-)")
+    ax_all.set_ylabel("Activation Parameter (kPa)")
+    ax_all.set_xlim([0, 1])
+    ax_all.grid(True)
+    fname = outdir / f"00_{fname_prefix}_all_compartments"
+    fig_all.savefig(fname=fname)
+    plt.close(fig_all)
+        
+        
+        
 def plot_ep_activation_within_compartment(
     outdir: str,
     geo_folder: str,
