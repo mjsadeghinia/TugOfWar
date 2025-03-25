@@ -399,6 +399,14 @@ def main(args=None) -> int:
         num_time_step=num_time_step,
         compartment_num=compartment_num,
     )
+    
+    activation_model.plot_activation_within_compartment(
+        outdir,
+        geo_folder,
+        activation_fname,
+        num_time_step=num_time_step,
+        compartment_num=compartment_num+1,
+    )
 
     
     displacement_fname = Path(data_folder) / "displacement.xdmf"
