@@ -659,20 +659,18 @@ def cmpute_ep_activation(
     comp_randomized_std
 ):
     activations = []
-    t_eval = np.linspace(0, 1, num_time_step)
+    num_time_step_inital = 10000   # initially we solve the ivp with very fine resolution then we resample based on specified num_time_step
+    t_eval = np.linspace(0, 1, num_time_step_inital)
     geo_folder = outdir / "lv_coarse"
     ep_folder = outdir / "EP"
     membrane_potential_fname = ep_folder / "membrane_potential_coarse.xdmf"
     membrane_potential_compartments = load_membrane_potential_compartment_from_file(geo_folder, membrane_potential_fname, num_time_step=num_time_step)
     comp_num = len(membrane_potential_compartments)
     offsets = stats.norm.ppf(np.linspace(0.01, 0.99, comp_num), loc=0.10, scale=comp_randomized_std) #100 ms +- comp_randomized_std second std
-    #plt.hist(offsets*1000, label='STD 50 ms')
-    #plt.savefig('Comparment Delay Dist.png')   
-    #breakpoint()
     for n, MPs in tqdm(enumerate(membrane_potential_compartments), total=len(membrane_potential_compartments), desc="Creating Activation Curves for Compartments", ncols=100): 
         elems = geometry.get_elems(geo.cfun, n+1)
         num_elems = len(elems)
-        segment_activations = np.zeros((len(t_eval), num_elems))
+        segment_activations = np.zeros((num_time_step, num_elems))
         
         if comp_randomized_flag:
             offset_index = np.random.randint(0, len(offsets))
@@ -702,7 +700,7 @@ def cmpute_ep_activation(
             activation_params["t_sys"]  += offset                            # Added compartments offset, in case of cnr = False, it adds only the fixed average value 
             
             activation_params["t_dias"] = activation_params["t_sys"] + sys_duration
-            segment_activations[:, i] = (
+            segment_activations_fine_res = (
                     activation_function(
                         t_span=t_span,
                         t_eval=t_eval,
@@ -710,6 +708,9 @@ def cmpute_ep_activation(
                     )
                     / 1000.0
                 )
+            sampling_step = int(num_time_step_inital/num_time_step)
+            segment_activations[:, i] = segment_activations_fine_res[::sampling_step]
+            
         activations.append(segment_activations)
 
     return activations
