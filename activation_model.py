@@ -110,12 +110,15 @@ def activation_function(
     def rhs(t, tau):
         return -abs(a(t)) * tau + params["sigma_0"] * max(a(t), 0)
 
+    max_step = 5*(t_eval[1] - t_eval[0])
+    
     res = scipy.integrate.solve_ivp(
         rhs,
         t_span,
         [0.0],
         t_eval=t_eval,
         method="Radau",
+        max_step=max_step
     )
     return res.y.squeeze()
 
@@ -659,8 +662,6 @@ def cmpute_ep_activation(
     comp_randomized_std
 ):
     activations = []
-    num_time_step_fine = 10000   # initially we solve the ivp with very fine resolution then we resample based on specified num_time_step
-    t_eval_fine = np.linspace(0, 1, num_time_step_fine)
     t_eval = np.linspace(0, 1, num_time_step)
     geo_folder = outdir / "lv_coarse"
     ep_folder = outdir / "EP"
@@ -701,17 +702,18 @@ def cmpute_ep_activation(
             activation_params["t_sys"]  += offset                            # Added compartments offset, in case of cnr = False, it adds only the fixed average value 
             
             activation_params["t_dias"] = activation_params["t_sys"] + sys_duration
-            segment_activations_fine_res = (
+            segment_activations[:, i] = (
                     activation_function(
                         t_span=t_span,
-                        t_eval=t_eval_fine,
+                        t_eval=t_eval,
                         parameters=activation_params,
                     )
                     / 1000.0
                 )
-            sampling_step = int(num_time_step_fine/num_time_step)
-            segment_activations[:, i] = segment_activations_fine_res[::sampling_step]
             
+            if np.all(segment_activations[:, i]==0):
+                logger.warning(f'Activation is all zero for the current cell {i} of compartment {n}')
+                
         activations.append(segment_activations)
 
     return activations
