@@ -659,8 +659,9 @@ def cmpute_ep_activation(
     comp_randomized_std
 ):
     activations = []
-    num_time_step_inital = 10000   # initially we solve the ivp with very fine resolution then we resample based on specified num_time_step
-    t_eval = np.linspace(0, 1, num_time_step_inital)
+    num_time_step_fine = 10000   # initially we solve the ivp with very fine resolution then we resample based on specified num_time_step
+    t_eval_fine = np.linspace(0, 1, num_time_step_fine)
+    t_eval = np.linspace(0, 1, num_time_step)
     geo_folder = outdir / "lv_coarse"
     ep_folder = outdir / "EP"
     membrane_potential_fname = ep_folder / "membrane_potential_coarse.xdmf"
@@ -703,12 +704,12 @@ def cmpute_ep_activation(
             segment_activations_fine_res = (
                     activation_function(
                         t_span=t_span,
-                        t_eval=t_eval,
+                        t_eval=t_eval_fine,
                         parameters=activation_params,
                     )
                     / 1000.0
                 )
-            sampling_step = int(num_time_step_inital/num_time_step)
+            sampling_step = int(num_time_step_fine/num_time_step)
             segment_activations[:, i] = segment_activations_fine_res[::sampling_step]
             
         activations.append(segment_activations)
