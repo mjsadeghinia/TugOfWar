@@ -695,9 +695,10 @@ def cmpute_ep_activation(
             activation_params["t_sys"] = t_eval[ind]
             
             if randomized_flag:
-                activation_params["a_min"] *= (np.random.random() + 0.5)         # [0.5-1.5] 50% increase or decrease
-                activation_params["sigma_0"] *= (np.random.random()/2.5 + 0.8)   # [0.8-1.2] 20% increase or decrease
-                activation_params["t_sys"]  *= (np.random.random() + 0.5)        # [0.5-1.5] 50% increase or decrease  
+                activation_params["a_min"] *= (np.random.random() + 0.5)        # [0.5-1.5] 50% increase or decrease
+                activation_params["sigma_0"] *= (np.random.random()/2.5 + 0.8)  # [0.8-1.2] 20% increase or decrease
+                activation_params["t_sys"]  *= (np.random.random()/5 + 0.9)     # [0.9-1.1] 10% increase or decrease 
+                sys_duration *= (np.random.random()/5 + 0.9)                    # [0.9-1.1] 10% increase or decrease  
             
             activation_params["t_sys"]  += offset                            # Added compartments offset, in case of cnr = False, it adds only the fixed average value 
             
