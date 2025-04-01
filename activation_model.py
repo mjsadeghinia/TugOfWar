@@ -875,6 +875,7 @@ def plot_ep_activation_all_compartments(
     geo_folder: str,
     activation_fname: str,
     num_time_step: int = 1000,
+    valve_timings: dict = None,
     fname_prefix: str = 'Activation',
 ):
     num_compartment = int(segmentation_schema["num_circ_segments"]*segmentation_schema["num_long_segments"])
@@ -898,6 +899,18 @@ def plot_ep_activation_all_compartments(
             ax.set_ylabel("Activation Parameter (kPa)")
             ax.set_xlim([0, 1])
         ax.grid(True)
+        if valve_timings is not None:
+            y_min, y_max = ax.get_ylim()
+            y_loc = (y_max)*0.9
+            y_loc_avc = (y_max)*0.1
+            plt.axvline(x=t_values[valve_timings['AVO_index']], color="k", linestyle="--")
+            plt.text(t_values[valve_timings['AVO_index'] - 5], y_loc, "AVO", rotation=90, verticalalignment="center", bbox=dict(facecolor='white', edgecolor='none'))
+            plt.axvline(x=t_values[valve_timings['AVC_index']], color="k", linestyle="--")
+            plt.text(t_values[valve_timings['AVC_index'] - 5], y_loc_avc, "AVC", rotation=90, verticalalignment="center", bbox=dict(facecolor='white', edgecolor='none'))
+            plt.axvline(x=t_values[valve_timings['MVO_index']], color="k", linestyle="--")
+            plt.text(t_values[valve_timings['MVO_index'] - 5], y_loc, "MVO", rotation=90, verticalalignment="center", bbox=dict(facecolor='white', edgecolor='none'))
+            plt.axvline(x=t_values[valve_timings['MVC_index']], color="k", linestyle="--")
+            plt.text(t_values[valve_timings['MVC_index'] - 5], y_loc, "MVC", rotation=90, verticalalignment="center", bbox=dict(facecolor='white', edgecolor='none'))
         fname = outdir / f"{fname_prefix}_compartment_{compartment_num+1}"
         fig.savefig(fname=fname)
         plt.close(fig)
@@ -907,13 +920,25 @@ def plot_ep_activation_all_compartments(
     ax_all.set_ylabel("Activation Parameter (kPa)")
     ax_all.set_xlim([0, 1])
     ax_all.grid(True)
+    if valve_timings is not None:
+        y_min, y_max = ax.get_ylim()
+        y_loc = (y_max)*0.9
+        y_loc_avc = (y_max)*0.1
+        plt.axvline(x=t_values[valve_timings['AVO_index']], color="k", linestyle="--")
+        plt.text(t_values[valve_timings['AVO_index'] - 5], y_loc, "AVO", rotation=90, verticalalignment="center", bbox=dict(facecolor='white', edgecolor='none'))
+        plt.axvline(x=t_values[valve_timings['AVC_index']], color="k", linestyle="--")
+        plt.text(t_values[valve_timings['AVC_index'] - 5], y_loc_avc, "AVC", rotation=90, verticalalignment="center", bbox=dict(facecolor='white', edgecolor='none'))
+        plt.axvline(x=t_values[valve_timings['MVO_index']], color="k", linestyle="--")
+        plt.text(t_values[valve_timings['MVO_index'] - 5], y_loc, "MVO", rotation=90, verticalalignment="center", bbox=dict(facecolor='white', edgecolor='none'))
+        plt.axvline(x=t_values[valve_timings['MVC_index']], color="k", linestyle="--")
+        plt.text(t_values[valve_timings['MVC_index'] - 5], y_loc, "MVC", rotation=90, verticalalignment="center", bbox=dict(facecolor='white', edgecolor='none'))
     fname = outdir / f"00_{fname_prefix}_all_compartments"
     fig_all.savefig(fname=fname)
     plt.close(fig_all)
     fname = outdir / f"00_{fname_prefix}_average_std"
-    plot_average_std_all_activations(np.vstack(all_activations), t_values, fname)
+    plot_average_std_all_activations(np.vstack(all_activations), t_values, fname, valve_timings)
         
-def plot_average_std_all_activations(all_activations_array, t_values, fname):
+def plot_average_std_all_activations(all_activations_array, t_values, fname, valve_timings=None):
     # Calculate mean and standard deviation along the 0 axis (row-wise average/std)
     mean_activation = np.mean(all_activations_array, axis=0)
     std_activation = np.std(all_activations_array, axis=0)
@@ -933,6 +958,18 @@ def plot_average_std_all_activations(all_activations_array, t_values, fname):
     plt.ylim(bottom=0)
     plt.grid()
     plt.legend()
+    if valve_timings is not None:
+        y_min, y_max = plt.ylim()
+        y_loc = (y_max)*0.9
+        y_loc_avc = (y_max)*0.1
+        plt.axvline(x=t_values[valve_timings['AVO_index']], color="k", linestyle="--")
+        plt.text(t_values[valve_timings['AVO_index'] - 5], y_loc, "AVO", rotation=90, verticalalignment="center", bbox=dict(facecolor='white', edgecolor='none'))
+        plt.axvline(x=t_values[valve_timings['AVC_index']], color="k", linestyle="--")
+        plt.text(t_values[valve_timings['AVC_index'] - 5], y_loc_avc, "AVC", rotation=90, verticalalignment="center", bbox=dict(facecolor='white', edgecolor='none'))
+        plt.axvline(x=t_values[valve_timings['MVO_index']], color="k", linestyle="--")
+        plt.text(t_values[valve_timings['MVO_index'] - 5], y_loc, "MVO", rotation=90, verticalalignment="center", bbox=dict(facecolor='white', edgecolor='none'))
+        plt.axvline(x=t_values[valve_timings['MVC_index']], color="k", linestyle="--")
+        plt.text(t_values[valve_timings['MVC_index'] - 5], y_loc, "MVC", rotation=90, verticalalignment="center", bbox=dict(facecolor='white', edgecolor='none'))
     plt.savefig(fname)
     plt.close()
         

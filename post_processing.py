@@ -409,8 +409,7 @@ def main(args=None) -> int:
     )
     outdir_activations = outdir / 'Activations'
     outdir_activations.mkdir(exist_ok=True, parents=True)
-    activation_model.plot_ep_activation_all_compartments(segmentation_schema, outdir_activations, geo_folder, activation_fname, num_time_step=500)        
-    
+    activation_model.plot_ep_activation_all_compartments(segmentation_schema, outdir_activations, geo_folder, activation_fname, num_time_step=500, valve_timings=valve_timings)        
     displacement_fname = Path(data_folder) / "displacement.xdmf"
     stress_active_value, stress_passive_value = compute_active_passive_stress_values_from_file(displacement_fname,activation_fname, heart_model, num_time_step = num_time_step)
     stress_active_compartment = compute_value_compartment(stress_active_value, geo.cfun)
