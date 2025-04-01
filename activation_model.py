@@ -883,6 +883,7 @@ def plot_ep_activation_all_compartments(
         geo_folder, activation_fname, num_time_step
     )
     t_end = activation_compartments[0].shape[0]
+    all_activations = []
     t_values = np.linspace(0, t_end / num_time_step, t_end)
     fig_all, ax_all = plt.subplots(figsize=(8, 6))
     for compartment_num in tqdm(range(num_compartment), total=num_compartment, desc="Plotting Activation Curves for Compartments", ncols=100) :
@@ -890,8 +891,9 @@ def plot_ep_activation_all_compartments(
         num_elem = activation_compartments[compartment_num].shape[1]
         for n in range(num_elem):
             activation = activation_compartments[compartment_num][:,n]
-            ax_all.plot(t_values, activation, "k", linewidth=0.03)
-            ax.plot(t_values, activation, "k", linewidth=0.03)
+            all_activations.append(activation)
+            ax_all.plot(t_values, activation, "k", linewidth=0.5)
+            ax.plot(t_values, activation, "k", linewidth=0.5)
             ax.set_xlabel("Normalized time (-)")
             ax.set_ylabel("Activation Parameter (kPa)")
             ax.set_xlim([0, 1])
@@ -908,8 +910,31 @@ def plot_ep_activation_all_compartments(
     fname = outdir / f"00_{fname_prefix}_all_compartments"
     fig_all.savefig(fname=fname)
     plt.close(fig_all)
+    fname = outdir / f"00_{fname_prefix}_average_std"
+    plot_average_std_all_activations(np.vstack(all_activations), t_values, fname)
         
-        
+def plot_average_std_all_activations(all_activations_array, t_values, fname):
+    # Calculate mean and standard deviation along the 0 axis (row-wise average/std)
+    mean_activation = np.mean(all_activations_array, axis=0)
+    std_activation = np.std(all_activations_array, axis=0)
+
+    # Plotting
+    plt.figure(figsize=(10, 6))
+    plt.plot(t_values, mean_activation, color='black', linewidth=2, label='Average Activation')
+    plt.fill_between(t_values,
+                    mean_activation - std_activation,
+                    mean_activation + std_activation,
+                    color='black', alpha=0.3, label='±1 STD')
+
+    # Optional plot enhancements
+    plt.xlabel("Normalized time (-)")
+    plt.ylabel("Activation Parameter (kPa)")
+    plt.xlim([0, 1])
+    plt.ylim(bottom=0)
+    plt.grid()
+    plt.legend()
+    plt.savefig(fname)
+    plt.close()
         
 def plot_ep_activation_within_compartment(
     outdir: str,
