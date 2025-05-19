@@ -121,6 +121,9 @@ def main(args=None) -> int:
                 num_time_step,
                 random_flag=True,
             )
+    outdir_activations = outdir / "Activations"
+    outdir_activations.mkdir(exist_ok=True)
+    activation_model.plot_ep_activation_all_compartments(segmentation_schema, outdir_activations, geo_folder, activation_fname, num_time_step=500)        
     # Model Generation
     # Creating a stiff_region by assuing mi_severity = 1 and bz_thickness=0, i.e. no borderzone
     if micomp_flag:
