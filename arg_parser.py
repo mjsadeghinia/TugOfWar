@@ -112,7 +112,7 @@ def parse_arguments(args=None):
      # flag for using randomization to induce further LSL
     parser.add_argument(
         "--crn_std",
-        default=0.02,
+        default=0.03,
         type=float,
         help="The std for the compartment randomization distribution in seconds, default = 0.02",
     )
@@ -134,8 +134,8 @@ def parse_arguments(args=None):
     
     parser.add_argument(
         "--infarct_comp",
-        default=5,
-        type=int,
+        default=[160, 161, 162, 163, 164, 165],
+        type=list,
         nargs='+',
         help="The number of slice to be processed",
     )
