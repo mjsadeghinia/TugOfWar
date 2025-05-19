@@ -55,6 +55,9 @@ def main(args=None) -> int:
     num_time_step = args.num_time_step
     postprocessing_flag = args.postprocessing
     ep_flag = args.ep                               # Flag for using ep driven activation
+    randomized_flag = args.rn                       # Flag for using randomization for inducing further lsl
+    comp_randomized_flag = args.crn                 # Flag for using randomization at compartments level
+    comp_randomized_std = args.crn_std              # The std for the compartment randomization distribution in seconds
     mi_flag = args.mi                               # Flag for adding infarct
     mi_severity = args.mi_severity                  # Severity of MI; 1 = no contractile element 0 = normal tissue
     infarct_stiffness_percent = args.mi_stiffness   # Stiffness increase of MI region in percent, default 20
@@ -94,7 +97,10 @@ def main(args=None) -> int:
                 iz_radius,
                 bz_thickness,
                 micomp_flag,
-                infarct_comp
+                infarct_comp,
+                randomized_flag,
+                comp_randomized_flag,
+                comp_randomized_std
             )
     else:
         ## Creating Geometry
@@ -115,6 +121,9 @@ def main(args=None) -> int:
                 num_time_step,
                 random_flag=True,
             )
+    outdir_activations = outdir / "Activations"
+    outdir_activations.mkdir(exist_ok=True)
+    activation_model.plot_ep_activation_all_compartments(segmentation_schema, outdir_activations, geo_folder, activation_fname, num_time_step=500)        
     # Model Generation
     # Creating a stiff_region by assuing mi_severity = 1 and bz_thickness=0, i.e. no borderzone
     if micomp_flag:

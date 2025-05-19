@@ -94,6 +94,30 @@ def parse_arguments(args=None):
         help="The flag for whether using electrophysiology model or not",
     )
     
+    # flag for using randomization to induce further LSL
+    parser.add_argument(
+        "-rn",
+        action="store_true",
+        help="The flag for whether using randomization to induce further LSL or not",
+    )
+    
+    
+    # flag for using randomization to induce further LSL
+    parser.add_argument(
+        "-crn",
+        action="store_true",
+        help="The flag for whether using randomization at compartments level or not",
+    )
+    
+     # flag for using randomization to induce further LSL
+    parser.add_argument(
+        "--crn_std",
+        default=0.03,
+        type=float,
+        help="The std for the compartment randomization distribution in seconds, default = 0.02",
+    )
+    
+    
     # flag for using EP based modeling
     parser.add_argument(
         "-mi",
@@ -110,8 +134,8 @@ def parse_arguments(args=None):
     
     parser.add_argument(
         "--infarct_comp",
-        default=5,
-        type=int,
+        default=[160, 161, 162, 163, 164, 165],
+        type=list,
         nargs='+',
         help="The number of slice to be processed",
     )

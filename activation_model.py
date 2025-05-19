@@ -110,12 +110,15 @@ def activation_function(
     def rhs(t, tau):
         return -abs(a(t)) * tau + params["sigma_0"] * max(a(t), 0)
 
+    max_step = 5*(t_eval[1] - t_eval[0])
+    
     res = scipy.integrate.solve_ivp(
         rhs,
         t_span,
         [0.0],
         t_eval=t_eval,
         method="Radau",
+        max_step=max_step
     )
     return res.y.squeeze()
 
@@ -654,6 +657,9 @@ def cmpute_ep_activation(
     activation_mode,
     activation_variation,
     num_time_step,
+    randomized_flag,
+    comp_randomized_flag,
+    comp_randomized_std
 ):
     activations = []
     t_eval = np.linspace(0, 1, num_time_step)
@@ -661,10 +667,20 @@ def cmpute_ep_activation(
     ep_folder = outdir / "EP"
     membrane_potential_fname = ep_folder / "membrane_potential_coarse.xdmf"
     membrane_potential_compartments = load_membrane_potential_compartment_from_file(geo_folder, membrane_potential_fname, num_time_step=num_time_step)
+    comp_num = len(membrane_potential_compartments)
+    offsets = stats.norm.ppf(np.linspace(0.01, 0.99, comp_num), loc=0.10, scale=comp_randomized_std) #100 ms +- comp_randomized_std second std
     for n, MPs in tqdm(enumerate(membrane_potential_compartments), total=len(membrane_potential_compartments), desc="Creating Activation Curves for Compartments", ncols=100): 
         elems = geometry.get_elems(geo.cfun, n+1)
         num_elems = len(elems)
-        segment_activations = np.zeros((len(t_eval), num_elems))
+        segment_activations = np.zeros((num_time_step, num_elems))
+        
+        if comp_randomized_flag:
+            offset_index = np.random.randint(0, len(offsets))
+            offset = offsets[offset_index]
+            offsets = np.delete(offsets, offset_index)
+        else:
+            offset = 0.10
+        
         for i, cell_MP in enumerate(MPs.T):
             t_span=(0.0, 1.0)
             ind = np.where(cell_MP>37)[0][0]
@@ -674,8 +690,18 @@ def cmpute_ep_activation(
             if activation_mode == 'rate':
                 activation_params["a_max"] = activation_variation
                 activation_params["a_min"] =  -25
+            
             sys_duration = activation_params["t_dias"] - activation_params["t_sys"]
             activation_params["t_sys"] = t_eval[ind]
+            
+            if randomized_flag:
+                activation_params["a_min"] *= (np.random.random() + 0.5)        # [0.5-1.5] 50% increase or decrease
+                activation_params["sigma_0"] *= (np.random.random()/2.5 + 0.8)  # [0.8-1.2] 20% increase or decrease
+                activation_params["t_sys"]  *= (np.random.random()/5 + 0.9)     # [0.9-1.1] 10% increase or decrease 
+                sys_duration *= (np.random.random()/5 + 0.9)                    # [0.9-1.1] 10% increase or decrease  
+            
+            activation_params["t_sys"]  += offset                            # Added compartments offset, in case of cnr = False, it adds only the fixed average value 
+            
             activation_params["t_dias"] = activation_params["t_sys"] + sys_duration
             segment_activations[:, i] = (
                     activation_function(
@@ -685,6 +711,10 @@ def cmpute_ep_activation(
                     )
                     / 1000.0
                 )
+            
+            if np.all(segment_activations[:, i]==0):
+                logger.warning(f'Activation is all zero for the current cell {i} of compartment {n}')
+                
         activations.append(segment_activations)
 
     return activations
@@ -799,7 +829,10 @@ def create_ep_activation_function(
     iz_radius,
     bz_thickness,
     micomp_flag,
-    infarct_comp
+    infarct_comp,
+    randomized_flag,
+    comp_randomized_flag,
+    comp_randomized_std
     
 ):
     try:
@@ -811,6 +844,9 @@ def create_ep_activation_function(
             activation_mode,
             activation_variation,
             num_time_step,
+            randomized_flag,
+            comp_randomized_flag,
+            comp_randomized_std
         )
         fname = outdir / "activation.xdmf"
         if mi_flag:
@@ -833,7 +869,110 @@ def create_ep_activation_function(
         logger.error(f"Failed to create activation function: {e}")
         raise
     
-    
+def plot_ep_activation_all_compartments(
+    segmentation_schema: dict,
+    outdir: str,
+    geo_folder: str,
+    activation_fname: str,
+    num_time_step: int = 1000,
+    valve_timings: dict = None,
+    fname_prefix: str = 'Activation',
+):
+    num_compartment = int(segmentation_schema["num_circ_segments"]*segmentation_schema["num_long_segments"])
+    outdir = Path(outdir)
+    activation_compartments = load_activation_compartment_from_file(
+        geo_folder, activation_fname, num_time_step
+    )
+    t_end = activation_compartments[0].shape[0]
+    all_activations = []
+    t_values = np.linspace(0, t_end / num_time_step, t_end)
+    fig_all, ax_all = plt.subplots(figsize=(8, 6))
+    for compartment_num in tqdm(range(num_compartment), total=num_compartment, desc="Plotting Activation Curves for Compartments", ncols=100) :
+        fig, ax = plt.subplots(figsize=(8, 6))
+        num_elem = activation_compartments[compartment_num].shape[1]
+        for n in range(num_elem):
+            activation = activation_compartments[compartment_num][:,n]
+            all_activations.append(activation)
+            ax_all.plot(t_values, activation, "k", linewidth=0.5)
+            ax.plot(t_values, activation, "k", linewidth=0.5)
+            ax.set_xlabel("Normalized time (-)")
+            ax.set_ylabel("Activation Parameter (kPa)")
+            ax.set_xlim([0, 1])
+        ax.grid(True)
+        if valve_timings is not None:
+            y_min, y_max = ax.get_ylim()
+            y_loc = (y_max)*0.9
+            y_loc_avc = (y_max)*0.1
+            plt.axvline(x=t_values[valve_timings['AVO_index']], color="k", linestyle="--")
+            plt.text(t_values[valve_timings['AVO_index'] - 5], y_loc, "AVO", rotation=90, verticalalignment="center", bbox=dict(facecolor='white', edgecolor='none'))
+            plt.axvline(x=t_values[valve_timings['AVC_index']], color="k", linestyle="--")
+            plt.text(t_values[valve_timings['AVC_index'] - 5], y_loc_avc, "AVC", rotation=90, verticalalignment="center", bbox=dict(facecolor='white', edgecolor='none'))
+            plt.axvline(x=t_values[valve_timings['MVO_index']], color="k", linestyle="--")
+            plt.text(t_values[valve_timings['MVO_index'] - 5], y_loc, "MVO", rotation=90, verticalalignment="center", bbox=dict(facecolor='white', edgecolor='none'))
+            plt.axvline(x=t_values[valve_timings['MVC_index']], color="k", linestyle="--")
+            plt.text(t_values[valve_timings['MVC_index'] - 5], y_loc, "MVC", rotation=90, verticalalignment="center", bbox=dict(facecolor='white', edgecolor='none'))
+        fname = outdir / f"{fname_prefix}_compartment_{compartment_num+1}"
+        fig.savefig(fname=fname)
+        plt.close(fig)
+        
+    ax_all.plot(t_values, activation, "k", linewidth=0.03)
+    ax_all.set_xlabel("Normalized time (-)")
+    ax_all.set_ylabel("Activation Parameter (kPa)")
+    ax_all.set_xlim([0, 1])
+    ax_all.grid(True)
+    if valve_timings is not None:
+        y_min, y_max = ax.get_ylim()
+        y_loc = (y_max)*0.9
+        y_loc_avc = (y_max)*0.1
+        plt.axvline(x=t_values[valve_timings['AVO_index']], color="k", linestyle="--")
+        plt.text(t_values[valve_timings['AVO_index'] - 5], y_loc, "AVO", rotation=90, verticalalignment="center", bbox=dict(facecolor='white', edgecolor='none'))
+        plt.axvline(x=t_values[valve_timings['AVC_index']], color="k", linestyle="--")
+        plt.text(t_values[valve_timings['AVC_index'] - 5], y_loc_avc, "AVC", rotation=90, verticalalignment="center", bbox=dict(facecolor='white', edgecolor='none'))
+        plt.axvline(x=t_values[valve_timings['MVO_index']], color="k", linestyle="--")
+        plt.text(t_values[valve_timings['MVO_index'] - 5], y_loc, "MVO", rotation=90, verticalalignment="center", bbox=dict(facecolor='white', edgecolor='none'))
+        plt.axvline(x=t_values[valve_timings['MVC_index']], color="k", linestyle="--")
+        plt.text(t_values[valve_timings['MVC_index'] - 5], y_loc, "MVC", rotation=90, verticalalignment="center", bbox=dict(facecolor='white', edgecolor='none'))
+    fname = outdir / f"00_{fname_prefix}_all_compartments"
+    fig_all.savefig(fname=fname)
+    plt.close(fig_all)
+    fname = outdir / f"00_{fname_prefix}_average_std"
+    plot_average_std_all_activations(np.vstack(all_activations), t_values, fname, valve_timings)
+        
+def plot_average_std_all_activations(all_activations_array, t_values, fname, valve_timings=None):
+    # Calculate mean and standard deviation along the 0 axis (row-wise average/std)
+    mean_activation = np.mean(all_activations_array, axis=0)
+    std_activation = np.std(all_activations_array, axis=0)
+
+    # Plotting
+    plt.figure(figsize=(10, 6))
+    plt.plot(t_values, mean_activation, color='black', linewidth=2, label='Average Activation')
+    plt.fill_between(t_values,
+                    mean_activation - std_activation,
+                    mean_activation + std_activation,
+                    color='black', alpha=0.3, label='±1 STD')
+
+    # Optional plot enhancements
+    plt.xlabel("Normalized time (-)")
+    plt.ylabel("Activation Parameter (kPa)")
+    plt.xlim([0, 1])
+    plt.ylim(bottom=0)
+    plt.grid()
+    plt.legend()
+    if valve_timings is not None:
+        y_min, y_max = plt.ylim()
+        y_loc = (y_max)*0.9
+        y_loc_avc = (y_max)*0.1
+        plt.axvline(x=t_values[valve_timings['AVO_index']], color="k", linestyle="--")
+        plt.text(t_values[valve_timings['AVO_index'] - 5], y_loc, "AVO", rotation=90, verticalalignment="center", bbox=dict(facecolor='white', edgecolor='none'))
+        plt.axvline(x=t_values[valve_timings['AVC_index']], color="k", linestyle="--")
+        plt.text(t_values[valve_timings['AVC_index'] - 5], y_loc_avc, "AVC", rotation=90, verticalalignment="center", bbox=dict(facecolor='white', edgecolor='none'))
+        plt.axvline(x=t_values[valve_timings['MVO_index']], color="k", linestyle="--")
+        plt.text(t_values[valve_timings['MVO_index'] - 5], y_loc, "MVO", rotation=90, verticalalignment="center", bbox=dict(facecolor='white', edgecolor='none'))
+        plt.axvline(x=t_values[valve_timings['MVC_index']], color="k", linestyle="--")
+        plt.text(t_values[valve_timings['MVC_index'] - 5], y_loc, "MVC", rotation=90, verticalalignment="center", bbox=dict(facecolor='white', edgecolor='none'))
+    plt.savefig(fname)
+    plt.close()
+        
 def plot_ep_activation_within_compartment(
     outdir: str,
     geo_folder: str,
